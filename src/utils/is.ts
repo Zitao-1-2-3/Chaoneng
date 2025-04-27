@@ -118,10 +118,15 @@ export const isEmptyVal = (val: any): boolean => {
 
 export const isSuperAdmin = () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  return user?.userInfo?.permissions?.includes('*')
+  const permissions = user?.userInfo?.permissions || []
+  return Array.isArray(permissions) && permissions.includes('*')
 }
 
 export const isPermission = (value) => {
+  if (isSuperAdmin()) {
+    return true
+  }
   const user = JSON.parse(localStorage.getItem('user') || '{}')
-  return user?.userInfo?.permissions?.includes(value)
+  const permissions = user?.userInfo?.permissions || []
+  return Array.isArray(permissions) && permissions.includes(value)
 }
