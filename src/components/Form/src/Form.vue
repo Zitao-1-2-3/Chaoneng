@@ -340,6 +340,7 @@ export default defineComponent({
                   <>
                     <ElInput
                       v-model={formModel.value[item.field]}
+                      modelModifiers={{ trim: true }}
                       {...(item?.componentProps as any)}
                       style="width: 100%"
                     />

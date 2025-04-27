@@ -53,8 +53,18 @@ const buttonCodeMap: Record<string, string> = {
 
 // --- 修改：递归构建菜单树 --- (移除收集叶子节点)
 function buildMenuTree(routes: any[]): any[] {
+  // 需要排除的首页路由
+  const excludedRoutes = ['ExchangeRate', 'ExchangeRateIndex']
+
   return routes
-    .filter((route) => route.name && route.meta && route.meta.title && !route.meta.hidden)
+    .filter((route) => {
+      // 过滤掉需要排除的路由
+      if (excludedRoutes.includes(route.name)) {
+        return false
+      }
+      // 保持原有的过滤条件
+      return route.name && route.meta && route.meta.title && !route.meta.hidden
+    })
     .map((route) => {
       let mappedButtonList: ButtonListItem[] | undefined = undefined
       // 检查 buttonList 是否存在且为字符串数组
@@ -69,8 +79,6 @@ function buildMenuTree(routes: any[]): any[] {
         }))
       } else if (Array.isArray(route.meta?.buttonList)) {
         // 如果已经是对象数组 (兼容旧格式或混合格式)
-        // 假设它已经是 ButtonListItem[] 结构或类似结构
-        // 你可能需要根据实际情况调整这里的逻辑
         mappedButtonList = route.meta.buttonList.map((item) => ({
           code: item.code || String(item), // 尝试获取 code 或将整个项转为字符串
           label: item.label || buttonCodeMap[item.code] || String(item) // 优先 label, 再映射, 再 code/字符串
@@ -386,7 +394,15 @@ const submit = async () => {
     const permissionMap: Record<string, string[]> = {} // menu_id -> buttonCode[]
     const menuSet = new Set<string>() // 存储所有涉及的 menu_id
 
+    // 需要排除的首页路由
+    const excludedRoutes = ['ExchangeRate', 'ExchangeRateIndex']
+
     flatPermissions.forEach((permission) => {
+      // 检查是否是需要排除的路由
+      if (excludedRoutes.some((route) => permission.startsWith(route))) {
+        return // 跳过这个权限
+      }
+
       if (permission.includes('.')) {
         const parts = permission.split('.')
         const menu_id = parts[0]
