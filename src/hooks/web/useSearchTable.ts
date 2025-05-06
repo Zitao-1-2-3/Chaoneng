@@ -7,6 +7,7 @@ import { TableColumn } from '@/components/Table'
 import { ElMessage } from 'element-plus'
 import { ref as vueRef } from 'vue'
 import { useUserStore } from '@/store/modules/user'
+import { isManagementSystem, isOperationSystem } from '@/utils/system'
 
 export interface SearchTableState {
   loading: boolean
@@ -43,9 +44,12 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
 
   // 响应式地获取用户权限列表 (确保是 string[])
   const userPermissions = computed(() => (userStore.userInfo?.permissions || []).map(String))
-
+  const isOperation = isOperationSystem()
   // 计算是否拥有当前页面的新增权限
   const hasAddPermission = computed(() => {
+    if (!isOperation) {
+      return true
+    }
     if (userStore.isSuperAdmin) {
       return true
     }
