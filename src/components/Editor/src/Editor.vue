@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, computed, PropType, unref, nextTick, ref, watch, shallowRef } from 'vue'
 import { Editor, Toolbar } from '@wangeditor/editor-for-vue'
-import { IDomEditor, IEditorConfig, i18nChangeLanguage } from '@wangeditor/editor'
+import { IDomEditor, IEditorConfig, IToolbarConfig, i18nChangeLanguage } from '@wangeditor/editor'
 import { propTypes } from '@/utils/propTypes'
 import { isNumber } from '@/utils/is'
 import { ElMessage } from 'element-plus'
@@ -17,8 +17,12 @@ const props = defineProps({
   editorId: propTypes.string.def('wangeEditor-1'),
   height: propTypes.oneOfType([Number, String]).def('500px'),
   editorConfig: {
-    type: Object as PropType<IEditorConfig>,
-    default: () => undefined
+    type: Object as PropType<Partial<IEditorConfig>>,
+    default: () => ({})
+  },
+  toolbarConfig: {
+    type: Object as PropType<Partial<IToolbarConfig>>,
+    default: () => ({})
   },
   modelValue: propTypes.string.def('')
 })
@@ -52,35 +56,44 @@ const handleCreated = (editor: IDomEditor) => {
 }
 
 // 编辑器配置
-const editorConfig = computed((): IEditorConfig => {
-  return Object.assign(
-    {
-      readOnly: false,
-      customAlert: (s: string, t: string) => {
-        switch (t) {
-          case 'success':
-            ElMessage.success(s)
-            break
-          case 'info':
-            ElMessage.info(s)
-            break
-          case 'warning':
-            ElMessage.warning(s)
-            break
-          case 'error':
-            ElMessage.error(s)
-            break
-          default:
-            ElMessage.info(s)
-            break
-        }
-      },
-      autoFocus: false,
-      scroll: true,
-      uploadImgShowBase64: true
+const currentEditorConfig = computed((): Partial<IEditorConfig> => {
+  return {
+    readOnly: false,
+    customAlert: (s: string, t: string) => {
+      switch (t) {
+        case 'success':
+          ElMessage.success(s)
+          break
+        case 'info':
+          ElMessage.info(s)
+          break
+        case 'warning':
+          ElMessage.warning(s)
+          break
+        case 'error':
+          ElMessage.error(s)
+          break
+        default:
+          ElMessage.info(s)
+          break
+      }
     },
-    props.editorConfig || {}
-  )
+    autoFocus: false,
+    scroll: true,
+    MENU_CONF: {
+      uploadImage: {
+        uploadImgShowBase64: true
+      }
+    },
+    ...props.editorConfig
+  }
+})
+
+// 工具栏配置
+const currentToolbarConfig = computed((): Partial<IToolbarConfig> => {
+  return {
+    ...props.toolbarConfig
+  }
 })
 
 const editorStyle = computed(() => {
@@ -118,13 +131,14 @@ defineExpose({
     <Toolbar
       :editor="editorRef"
       :editorId="editorId"
+      :defaultConfig="currentToolbarConfig"
       class="border-0 b-b-1 border-solid border-[var(--el-border-color)]"
     />
     <!-- 编辑器 -->
     <Editor
       v-model="valueHtml"
       :editorId="editorId"
-      :defaultConfig="editorConfig"
+      :defaultConfig="currentEditorConfig"
       :style="editorStyle"
       @on-change="handleChange"
       @on-created="handleCreated"

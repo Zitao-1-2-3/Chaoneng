@@ -32,15 +32,15 @@ const managementRoutes: AppRouteRecordRaw[] = [
         meta: {
           title: '菜单列表'
         }
+      },
+      {
+        path: 'reply_list',
+        component: () => import('@/views/Bot_manage/reply_list/index.vue'),
+        name: 'ReplyList',
+        meta: {
+          title: '关键词回复'
+        }
       }
-      // {
-      //   path: 'reply_list',
-      //   component: () => import('@/views/Bot_manage/reply_list/index.vue'),
-      //   name: 'ReplyList',
-      //   meta: {
-      //     title: '关键词回复'
-      //   }
-      // }
     ]
   },
   {
