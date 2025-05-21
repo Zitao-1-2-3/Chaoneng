@@ -85,6 +85,12 @@ const columns: TableColumn[] = [
     formatter: (row: AutoManageAddressItem) => row.bot_name || '-'
   },
   {
+    field: 'tg_name',
+    label: '用户名',
+    width: 150,
+    formatter: (row: AutoManageAddressItem) => row.tg_name || '-'
+  },
+  {
     field: 'address',
     label: '托管地址',
     minWidth: 250
@@ -137,7 +143,7 @@ const searchSchema = computed<FormSchema[]>(() => [
     label: '关键字',
     component: 'Input',
     componentProps: {
-      placeholder: '请输入托管地址'
+      placeholder: '请输入托管地址/用户名'
     }
   }
 ])
