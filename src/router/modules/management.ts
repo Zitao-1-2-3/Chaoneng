@@ -44,6 +44,26 @@ const managementRoutes: AppRouteRecordRaw[] = [
     ]
   },
   {
+    path: '/hosted_list',
+    component: Layout,
+    name: 'Hosted',
+    meta: {
+      title: '托管列表',
+      icon: 'vi-mdi:order-bool-ascending-variant',
+      alwaysShow: true
+    },
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/HostedList/index.vue'),
+        name: 'HostedList',
+        meta: {
+          title: '托管列表'
+        }
+      }
+    ]
+  },
+  {
     path: '/user_group',
     component: Layout,
     name: 'UserGroup',
