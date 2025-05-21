@@ -30,7 +30,7 @@
       width="50%"
       :close-on-click-modal="false"
     >
-      <div v-html="currentContentToView"></div>
+      <div v-html="currentContentToView" style="white-space: pre-line"></div>
       <template #footer>
         <ElButton @click="viewContentDialogVisible = false">关闭</ElButton>
       </template>
