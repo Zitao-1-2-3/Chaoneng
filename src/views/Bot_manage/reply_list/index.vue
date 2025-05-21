@@ -252,7 +252,7 @@ const deleteReplyAction = async () => {
       return false
     }
   }
-  ElMessage.warning('未选择任何数据行进行删除')
+  // ElMessage.warning('未选择任何数据行进行删除')
   return false
 }
 
@@ -268,14 +268,14 @@ const handleEdit = (row: ReplyItem) => {
   dialogVisible.value = true
 }
 
-const handleDeleteConfirmation = async (row: ReplyItem) => {
-  await ElMessageBox.confirm('确定删除选中的回复吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
+const handleDeleteConfirmation = (row: ReplyItem) => {
   currentRowData.value = row
-  searchTableRef.value?.delete(row)
+
+  if (searchTableRef.value) {
+    searchTableRef.value.delete(row)
+  } else {
+    console.warn('SearchTable ref is not available in handleDeleteConfirmation.')
+  }
 }
 
 const handleDialogSubmitted = async (data: ReplySaveParams) => {
