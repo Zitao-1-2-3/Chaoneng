@@ -11,7 +11,6 @@
         ref="searchTableRef"
         @add="handleAdd"
         @search="onSearch"
-        :show-add-button="false"
       >
         <!-- 自定义搜索按钮 -->
         <template #searchButtons>

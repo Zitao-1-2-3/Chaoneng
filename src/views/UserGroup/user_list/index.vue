@@ -10,18 +10,12 @@
         ref="searchTableRef"
         @ready="onSearchTableReady"
       >
-        <!-- <template #searchButtons>
-          <BaseButton
-            type="primary"
-            disabled
-            @click="openMassSendDialog()"
-            style="margin-right: 10px"
+        <template #searchButtons>
+          <BaseButton type="primary" @click="openMassSendDialog()" style="margin-right: 10px"
             >群发消息</BaseButton
           >
-          <BaseButton type="success" disabled @click="openMassSendRecordDialog()"
-            >群发记录</BaseButton
-          >
-        </template> -->
+          <BaseButton type="success" @click="openMassSendRecordDialog()">群发记录</BaseButton>
+        </template>
       </SearchTable>
 
       <!-- 充值弹窗 -->
@@ -36,11 +30,16 @@
         v-model="messageDialogVisible"
         :type="messageDialogType"
         :user="currentAccount"
+        :bot-list="botsForDialog"
         @success="handleMessageSent"
       />
 
       <!-- 群发记录弹窗 -->
-      <MassSendRecordDialog v-model="massSendRecordDialogVisible" ref="massSendRecordDialogRef" />
+      <MassSendRecordDialog
+        v-model="massSendRecordDialogVisible"
+        ref="massSendRecordDialogRef"
+        :bot-list="botOptions"
+      />
 
       <!-- 新增：余额记录弹窗 -->
       <BalanceRecordDialog
@@ -53,7 +52,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h, computed, reactive, watch } from 'vue'
+import { ref, onMounted, h, computed, reactive } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { ElButton, ElTag, ElMessage, ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -102,6 +101,11 @@ const fetchBotList = async () => {
     console.error('获取机器人列表失败:', error)
   }
 }
+
+// 为弹窗准备的机器人列表 (不包含"全部")
+const botsForDialog = computed(() => {
+  return botOptions.value.filter((option) => option.value !== '')
+})
 
 // 当前选中账户
 const currentAccount = ref<any>({})
@@ -180,9 +184,9 @@ const columns: TableColumn[] = [
       default: ({ row }) => {
         return (
           <div>
-            {/* <BaseButton type="primary" disabled onClick={() => openSendMessageDialog(row)}>
+            <BaseButton type="primary" onClick={() => openSendMessageDialog(row)}>
               发送消息
-            </BaseButton> */}
+            </BaseButton>
             <BaseButton
               type="success"
               style="margin-left: 8px"
@@ -302,7 +306,6 @@ const openMassSendRecordDialog = () => {
 
 // 消息发送成功处理
 const handleMessageSent = () => {
-  // ElMessage.success('消息发送成功') // 这条消息也可以在 MessageDialog 内部处理
   messageDialogVisible.value = false
 }
 

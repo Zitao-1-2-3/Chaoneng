@@ -1,5 +1,12 @@
 <template>
   <Dialog v-model="dialogVisible" :title="dialogTitle">
+    <Descriptions
+      v-if="props.type === 'single' && props.user"
+      :data="props.user"
+      :schema="userDescriptionSchema"
+      title="用户信息"
+      class="mb-20px"
+    />
     <Form :schema="formSchema" @register="messageFormRegister" />
     <template #footer>
       <div class="flex justify-end">
@@ -11,14 +18,20 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, reactive, watch, defineProps, defineEmits } from 'vue'
+import { ref, computed, reactive, watch, defineProps, defineEmits, onMounted } from 'vue'
 import { ElButton, ElMessage, ElCheckbox, ElCheckboxGroup } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
+import { Descriptions } from '@/components/Descriptions'
+import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { sendMessageToUserApi, massSendMessageApi } from '@/api/tgUser'
+import { getBotReplyMenuListApi } from '@/api/menu_list'
+import type { MenuItem } from '@/api/menu_list/types'
 import { useRouter } from 'vue-router'
+import { BaseButton } from '@/components/Button'
+
 const props = defineProps({
   modelValue: {
     type: Boolean,
@@ -29,7 +42,7 @@ const props = defineProps({
     default: 'single'
   },
   user: {
-    type: Object,
+    type: Object as () => Record<string, any>,
     default: () => ({})
   },
   botList: {
@@ -52,10 +65,33 @@ const router = useRouter()
 
 const dialogTitle = computed(() => (props.type === 'single' ? '发送消息' : '群发消息'))
 
-const checkList = ref([])
+const checkList = ref<(number | string)[]>([])
+const menuList = ref<MenuItem[]>([])
+
+// 用户信息 Descriptions 配置
+const userDescriptionSchema = computed<DescriptionsSchema[]>(() => [
+  { field: 'bot_info.bot_name', label: '机器人名称' },
+  { field: 'bot_info.firstname', label: '机器人用户名' },
+  { field: 'tg_name', label: 'TG用户昵称' },
+  { field: 'tg_id', label: 'TG用户ID' }
+])
 
 // 表单相关
 const { formRegister: messageFormRegister, formMethods } = useForm()
+
+// 获取内联菜单列表
+const fetchMenuList = async () => {
+  try {
+    const res = await getBotReplyMenuListApi({})
+
+    console.log('res', res)
+    menuList.value = res.data || []
+  } catch (error: any) {
+    menuList.value = []
+    console.error('获取内联菜单失败:', error)
+    ElMessage.error('获取内联菜单失败: ' + error?.msg || '未知错误')
+  }
+}
 
 // 根据类型动态生成表单配置
 const formSchema = computed<FormSchema[]>(() => {
@@ -71,43 +107,45 @@ const formSchema = computed<FormSchema[]>(() => {
         placeholder: '请输入消息内容'
       },
       formItemProps: {
-        rules: [required()]
+        rules: [required('消息内容不能为空')]
       }
     },
     {
-      field: 'inline_button',
-      component: 'Input',
+      field: 'inline_buttons',
+      component: 'CheckboxGroup',
       label: '内联按钮',
-      colProps: { span: 12 },
+      colProps: { span: 24 },
       formItemProps: {
         slots: {
           default: () => {
             return (
-              <>
-                <div>
-                  <div>
-                    <button onClick={goToMenu}>去添加</button>
-                  </div>
-                  <ElCheckboxGroup v-model={checkList}>
-                    <ElCheckbox label="Option A" value="Value A" border />
-                    <ElCheckbox label="Option B" value="Value B" border />
-                    <ElCheckbox label="Option C" value="Value C" border />
+              <div class="flex flex-col gap-2 w-full">
+                <BaseButton link type="primary" plain onClick={goToMenu} class="self-start">
+                  去菜单管理添加
+                </BaseButton>
+                {menuList.value.length > 0 ? (
+                  <ElCheckboxGroup v-model={checkList.value} class="flex flex-wrap gap-2">
+                    {menuList.value.map((menu) => (
+                      <ElCheckbox key={menu.id} label={menu.id}>
+                        {menu.menu_name}
+                      </ElCheckbox>
+                    ))}
                   </ElCheckboxGroup>
-                </div>
-              </>
+                ) : (
+                  <p class="text-gray-500 text-sm m-0">
+                    暂无可用的内联按钮，请先前往菜单管理添加。
+                  </p>
+                )}
+              </div>
             )
           }
         }
-      },
-      componentProps: {
-        placeholder: '内联按钮设置'
       }
     }
   ]
 
-  // 群发消息时需要增加筛选条件
   if (props.type === 'mass') {
-    return [
+    const massSpecificSchema: FormSchema[] = [
       {
         field: 'bot_id',
         component: 'Select',
@@ -118,96 +156,84 @@ const formSchema = computed<FormSchema[]>(() => {
           placeholder: '请选择机器人'
         },
         formItemProps: {
-          rules: [required()]
+          rules: [required('请选择机器人')]
         }
       },
       {
         field: 'filter_type',
         component: 'RadioGroup',
         label: '接受用户',
-        value: 'custom',
+        value: 'user_custom',
         colProps: { span: 12 },
         componentProps: {
           options: [
-            { label: '自定义', value: 'custom' },
-            { label: '全部', value: 'all' }
+            { label: '自定义', value: 'user_custom' },
+            { label: '全部', value: 'all_user' }
           ]
         },
         formItemProps: {
-          rules: [required()]
+          rules: [required('请选择接受用户类型')]
         }
       },
       {
         field: 'user_list',
         component: 'Input',
-        label: 'TG用户id',
+        label: 'TG用户id列表',
         colProps: { span: 24 },
         componentProps: {
-          type: 'text',
-          placeholder: '请输入TG用户id'
+          type: 'textarea',
+          rows: 3,
+          placeholder: '请输入TG用户id，多个用英文逗号隔开'
+        },
+        formItemProps: {
+          rules: [
+            {
+              required: true,
+              validator: (rule, value, callback) => {
+                formMethods
+                  .getFormData()
+                  .then((data) => {
+                    if (data.filter_type === 'user_custom' && !value) {
+                      callback(new Error('自定义用户时，TG用户id列表不能为空'))
+                    } else {
+                      callback()
+                    }
+                  })
+                  .catch(() => {
+                    callback(new Error('获取表单数据失败进行校验'))
+                  })
+              }
+            }
+          ]
         }
-        // hidden: (model: any) => model.filter_type !== 'custom',
-        // formItemProps: {
-        //   rules: [(model: any) => (model.filter_type === 'custom' ? required() : null)]
-        // }
-      },
-      ...baseSchema
+      }
     ]
+    return [...massSpecificSchema, ...baseSchema]
   } else {
-    // 单发消息时设置用户信息（只读）
-    return [
-      {
-        field: 'firstname',
-        component: 'Input',
-        label: '机器人用户名',
-        colProps: { span: 12 }
-      },
-      {
-        field: 'bot_name',
-        component: 'Input',
-        label: '机器人名称',
-        colProps: { span: 12 }
-      },
-      {
-        field: 'tg_nickname',
-        component: 'Input',
-        label: 'TG用户ID',
-        colProps: { span: 12 }
-      },
-      {
-        field: 'tg_nickname',
-        component: 'Input',
-        label: 'TG用户名称',
-        colProps: { span: 12 }
-      },
-      ...baseSchema
-    ]
+    return baseSchema
   }
 })
 
-// 初始化表单数据
+// 监听对话框打开，获取机器人列表和内联菜单
 watch(
-  () => props.user,
-  (newVal) => {
-    if (props.type === 'single' && newVal) {
-      formMethods?.setValues({
-        tg_user_id: newVal.tg_user_id,
-        tg_nickname: newVal.tg_nickname
-      })
+  () => dialogVisible.value,
+  async (val) => {
+    if (val) {
+      await fetchMenuList()
+      const elForm = await formMethods.getElFormExpose()
+      elForm?.resetFields()
+      checkList.value = []
+
+      if (props.type === 'mass') {
+        formMethods.setValues({ filter_type: 'user_custom' })
+      } else if (props.type === 'single') {
+        // Handle prefill for single message if needed in the future, but not from initialFormData
+      }
+    } else {
+      menuList.value = []
     }
   },
   { immediate: true }
-)
-
-// 监听对话框打开，获取机器人列表
-watch(
-  () => dialogVisible.value,
-  (val) => {
-    if (val && props.type === 'mass') {
-      // 不需要再调用fetchBotList
-      // 已通过props传入
-    }
-  }
 )
 
 // 取消操作
@@ -217,48 +243,90 @@ const handleCancel = () => {
 
 const goToMenu = () => {
   router.push('/bot_manage/menu_list')
+  dialogVisible.value = false
 }
 
 // 提交消息
 const handleSubmit = async () => {
   const elForm = await formMethods.getElFormExpose()
-  await elForm?.validate(async (valid) => {
+  if (!elForm) {
+    ElMessage.error('表单实例获取失败')
+    return
+  }
+
+  await elForm.validate(async (valid) => {
     if (!valid) return
 
     const formData = await formMethods.getFormData()
     submitting.value = true
 
+    // 将 checkList (内联按钮ID) 转换为数字数组
+    const keyboards = checkList.value.map((id) => Number(id)).filter((id) => !isNaN(id))
+
     try {
-      // 根据消息类型调用不同的API
       if (props.type === 'single') {
-        await sendMessageToUserApi({
-          tg_user_id: props.user?.tg_user_id,
-          bot_id: props.user?.bot_id,
-          message_type: formData.message_type,
+        const apiParams: Parameters<typeof sendMessageToUserApi>[0] = {
+          id: props.user?.id,
           content: formData.content
-        })
+        }
+        if (keyboards.length > 0) {
+          apiParams.keyboards = keyboards
+        }
+        await sendMessageToUserApi(apiParams)
       } else {
-        // 群发消息
-        await massSendMessageApi({
+        // 群发
+        const apiParams: Parameters<typeof massSendMessageApi>[0] = {
           bot_id: formData.bot_id,
-          filter_type: formData.filter_type,
-          message_type: formData.message_type,
+          receive_type: formData.filter_type,
           content: formData.content
-        })
+          // image: formData.image, //  UI 上没有 image 字段，暂不传递
+        }
+
+        if (keyboards.length > 0) {
+          apiParams.keyboards = keyboards
+        }
+
+        if (formData.filter_type === 'user_custom') {
+          if (formData.user_list) {
+            const tgUserIdsArray = formData.user_list
+              .split(',')
+              .map((id) => Number(id.trim()))
+              .filter((id) => !isNaN(id) && id !== 0)
+            if (tgUserIdsArray.length > 0) {
+              apiParams.tg_user_ids = tgUserIdsArray
+            } else {
+              ElMessage.error('自定义用户列表解析后为空或格式不正确，请检查输入')
+              submitting.value = false
+              return
+            }
+          } else {
+            // 这个分支理论上会被表单校验的 validator 阻止，但作为保险
+            ElMessage.error('自定义用户时，TG用户id列表不能为空')
+            submitting.value = false
+            return
+          }
+        }
+        // 对于非 'user_custom' 类型，tg_user_ids 不需要传递
+
+        await massSendMessageApi(apiParams)
       }
 
-      // 发送成功
       emit('success')
-      // 重置表单 (使用正确的方法)
-      await elForm.resetFields()
       ElMessage.success(`${props.type === 'single' ? '消息' : '群发消息'}发送成功`)
       dialogVisible.value = false
-    } catch (error) {
+    } catch (error: any) {
       console.error('消息发送失败:', error)
-      ElMessage.error('消息发送失败，请重试')
+      const errorMsg = error?.response?.data?.msg || error?.message || '消息发送失败，请重试'
+      ElMessage.error(errorMsg)
     } finally {
       submitting.value = false
     }
   })
 }
+
+onMounted(() => {
+  // if (dialogVisible.value) {
+  //   fetchMenuList();
+  // }
+})
 </script>

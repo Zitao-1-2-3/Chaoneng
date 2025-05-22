@@ -36,12 +36,11 @@ export const getTgUserDetailApi = (id: number) => {
  * @param data 消息数据
  */
 export const sendMessageToUserApi = (data: {
-  tg_user_id: number | string
-  bot_id: number | string
-  message_type: 'text' | 'image' | 'video'
+  id: number | string
   content: string
+  keyboards?: (number | string)[]
 }) => {
-  return request.post({ url: '/v1/user/bot/tg_user/send_message', data })
+  return request.post({ url: '/v1/bot/reply/send_msg', data })
 }
 
 /**
@@ -50,11 +49,13 @@ export const sendMessageToUserApi = (data: {
  */
 export const massSendMessageApi = (data: {
   bot_id: number | string
-  filter_type: 'all' | 'active' | 'new'
-  message_type: 'text' | 'image' | 'video'
+  receive_type: 'user_custom' | 'all_user' | 'one_user'
   content: string
+  image?: string
+  keyboards?: (number | string)[]
+  tg_user_ids?: (number | string)[]
 }) => {
-  return request.post({ url: '/v1/user/bot/tg_user/mass_send', data })
+  return request.post({ url: '/v1/bot/reply/send_group_msg', data })
 }
 
 /**
@@ -68,7 +69,7 @@ export const getMassSendRecordsApi = (params: {
   pageSize?: number
   currentPage?: number
 }) => {
-  return request.get({ url: '/v1/user/bot/tg_user/mass_send/records', params })
+  return request.get({ url: '/v1/bot/reply/reply_msg/list', params })
 }
 
 /**
@@ -77,6 +78,22 @@ export const getMassSendRecordsApi = (params: {
  */
 export const getMassSendRecordDetailApi = (id: number | string) => {
   return request.get({ url: '/v1/user/bot/tg_user/mass_send/detail', params: { id } })
+}
+
+/**
+ * 删除群发消息记录
+ * @param id 记录ID
+ */
+export const deleteMassSendRecordApi = (id: number | string) => {
+  return request.post({ url: '/v1/bot/reply/reply_msg/delete', data: { id } }) // Assuming id should be in data
+}
+
+/**
+ * 再次发送群发消息
+ * @param id 记录ID
+ */
+export const resendMassSendRecordApi = (id: number | string) => {
+  return request.post({ url: '/v1/bot/reply/group_msg/again', data: { id } }) // Assuming id should be in data
 }
 
 /**

@@ -24,6 +24,14 @@ export const getMenuListApi = (params: any) => {
   return request.get({ url: '/v1/bot/menu/list', params })
 }
 
+// 获取机器人回复内联按钮菜单列表 (用于发送消息时的内联按钮选择)
+export const getBotReplyMenuListApi = (params: any = {}) => {
+  return request.get({
+    url: '/v1/bot/reply/menu_list',
+    params
+  })
+}
+
 // 删除菜单
 export const deleteMenuApi = (id: number) => {
   return request.delete({ url: `/v1/bot/menu/delete/${id}` })
