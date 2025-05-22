@@ -67,6 +67,20 @@ const paymentSchema = reactive<FormSchema[]>([
     }
   },
   {
+    field: 'energy_usdt_address',
+    component: 'Input' as const,
+    label: {
+      text: '【按笔数购买】USDT收款钱包地址',
+      tips: '请区分闪兑首款地址，不能相同'
+    },
+    componentProps: {
+      placeholder: '请输入USDT收款钱包地址'
+    },
+    formItemProps: {
+      rules: [{ required: true, message: 'USDT收款钱包地址是必填项' }]
+    }
+  },
+  {
     field: 'notice_order_tg_admin',
     component: 'Switch' as const,
     label: {

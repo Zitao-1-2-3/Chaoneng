@@ -157,6 +157,7 @@ export function useBotConfig() {
               username: paymentConfig.user_name || '',
               energy_address: paymentConfig.energy_address || '',
               receive_address: paymentConfig.receive_address || '',
+              energy_usdt_address: paymentConfig.energy_usdt_address || '',
               notice_order_tg_admin: paymentConfig.notice_order_tg_admin || 2
             })
             return true

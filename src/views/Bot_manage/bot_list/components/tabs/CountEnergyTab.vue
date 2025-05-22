@@ -68,7 +68,6 @@ const countEnergySchema = reactive<FormSchema[]>([
   {
     field: 'count_price_usdt',
     component: 'InputNumber' as const,
-    hidden: true,
     label: {
       text: '[1笔]能量USDT价格：',
       tips: '只支持保留一位小数'
