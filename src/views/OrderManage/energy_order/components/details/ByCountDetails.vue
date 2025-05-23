@@ -41,14 +41,14 @@ const byCountDetailSchema = computed((): DescriptionsSchema[] => [
     slots: {
       default: (data: any) => h('span', {}, `${data.stroke_ext.price_trx + ' TRX'}`)
     }
+  },
+  {
+    field: 'stroke_ext.price_usdt',
+    label: '能量USDT价格',
+    slots: {
+      default: (data: any) => h('span', {}, `${data.stroke_ext.price_usdt + ' USDT'}`)
+    }
   }
-  // {
-  //   field: 'stroke_ext.price_usdt',
-  //   label: '能量USDT价格',
-  //   slots: {
-  //     default: (data: any) => h('span', {}, `${data.stroke_ext.price_usdt + ' USDT'}`)
-  //   }
-  // }
 ])
 
 const countOrderTableSchema = computed((): TableColumn[] => [
