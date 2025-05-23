@@ -71,7 +71,7 @@ const paymentSchema = reactive<FormSchema[]>([
     component: 'Input' as const,
     label: {
       text: '【按笔数购买】USDT收款钱包地址',
-      tips: '请区分闪兑首款地址，不能相同'
+      tips: '请区分闪兑收款地址，不能相同'
     },
     componentProps: {
       placeholder: '请输入USDT收款钱包地址'
