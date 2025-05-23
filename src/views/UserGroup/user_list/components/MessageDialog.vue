@@ -15,11 +15,24 @@
       </div>
     </template>
   </Dialog>
+  <ElImageViewer
+    v-if="showImageViewer"
+    :url-list="imageViewerSrcList"
+    @close="showImageViewer = false"
+    :initial-index="0"
+  />
 </template>
 
 <script setup lang="tsx">
 import { ref, computed, reactive, watch, defineProps, defineEmits, onMounted } from 'vue'
-import { ElButton, ElMessage, ElCheckbox, ElCheckboxGroup, ElUpload } from 'element-plus'
+import {
+  ElButton,
+  ElMessage,
+  ElCheckbox,
+  ElCheckboxGroup,
+  ElUpload,
+  ElImageViewer
+} from 'element-plus'
 import type { UploadUserFile, UploadRequestOptions } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
@@ -69,10 +82,31 @@ const dialogTitle = computed(() => (props.type === 'single' ? '发送消息' : '
 
 const checkList = ref<(number | string)[]>([])
 const menuList = ref<MenuItem[]>([])
+const currentFilterType = ref<'user_custom' | 'all_user'>('user_custom')
 
 // 新增：图片上传相关状态
 const fileListRef = ref<UploadUserFile[]>([])
 const fileToUpload = ref<File | null>(null) // 只保存 File
+
+const showImageViewer = ref(false)
+const imageViewerSrcList = ref<string[]>([])
+
+const handlePreview = (uploadFile: UploadUserFile) => {
+  if (uploadFile.url) {
+    imageViewerSrcList.value = [uploadFile.url]
+    showImageViewer.value = true
+  } else if (uploadFile.raw) {
+    // Fallback if url is not present, create an object URL
+    // ElUpload usually provides 'url' for previewable files
+    const objectURL = URL.createObjectURL(uploadFile.raw)
+    imageViewerSrcList.value = [objectURL]
+    showImageViewer.value = true
+    // Note: Manually created object URLs should ideally be revoked when no longer needed
+    // For simplicity here, we rely on ElUpload providing the URL or the browser handling GC.
+  } else {
+    ElMessage.warning('无法预览图片，缺少图片URL')
+  }
+}
 
 // 文件选择变化
 const handleFileChange = (file: UploadUserFile, fileList: UploadUserFile[]) => {
@@ -153,12 +187,13 @@ const formSchema = computed<FormSchema[]>(() => {
               accept="image/png, image/jpeg, image/gif"
               autoUpload={false}
               fileList={fileListRef.value}
+              onPreview={handlePreview}
               onChange={handleFileChange}
               onRemove={handleImageRemove}
               onExceed={() => ElMessage.warning('最多只能上传一张图片')}
               show-file-list={true}
             >
-              <BaseButton type="primary">选择图片</BaseButton>
+              {<BaseButton type="primary">选择图片</BaseButton>}
             </ElUpload>
           )
         }
@@ -199,7 +234,7 @@ const formSchema = computed<FormSchema[]>(() => {
   ]
 
   if (props.type === 'mass') {
-    const massSpecificSchema: FormSchema[] = [
+    const massSpecificSchemaItems: FormSchema[] = [
       {
         field: 'bot_id',
         component: 'Select',
@@ -223,13 +258,25 @@ const formSchema = computed<FormSchema[]>(() => {
           options: [
             { label: '自定义', value: 'user_custom' },
             { label: '全部', value: 'all_user' }
-          ]
+          ],
+          onChange: async (value: 'user_custom' | 'all_user') => {
+            currentFilterType.value = value
+            if (value === 'all_user') {
+              const formData = await formMethods.getFormData()
+              if (formData && Object.prototype.hasOwnProperty.call(formData, 'user_list')) {
+                formMethods.setValues({ user_list: undefined })
+              }
+            }
+          }
         },
         formItemProps: {
           rules: [required('请选择接受用户类型')]
         }
-      },
-      {
+      }
+    ]
+
+    if (currentFilterType.value === 'user_custom') {
+      massSpecificSchemaItems.push({
         field: 'user_list',
         component: 'Input',
         label: 'TG用户id列表',
@@ -244,25 +291,18 @@ const formSchema = computed<FormSchema[]>(() => {
             {
               required: true,
               validator: (rule, value, callback) => {
-                formMethods
-                  .getFormData()
-                  .then((data) => {
-                    if (data.filter_type === 'user_custom' && !value) {
-                      callback(new Error('自定义用户时，TG用户id列表不能为空'))
-                    } else {
-                      callback()
-                    }
-                  })
-                  .catch(() => {
-                    callback(new Error('获取表单数据失败进行校验'))
-                  })
+                if (currentFilterType.value === 'user_custom' && !value) {
+                  callback(new Error('自定义用户时，TG用户id列表不能为空'))
+                } else {
+                  callback()
+                }
               }
             }
           ]
         }
-      }
-    ]
-    return [...massSpecificSchema, ...baseSchema]
+      })
+    }
+    return [...massSpecificSchemaItems, ...baseSchema]
   } else {
     return baseSchema
   }
@@ -281,9 +321,9 @@ watch(
       fileListRef.value = []
 
       if (props.type === 'mass') {
-        formMethods.setValues({ filter_type: 'user_custom' })
+        currentFilterType.value = 'user_custom'
       } else if (props.type === 'single') {
-        // Handle prefill for single message if needed in the future, but not from initialFormData
+        // Handle prefill for single message if needed in the future
       }
     } else {
       menuList.value = []
