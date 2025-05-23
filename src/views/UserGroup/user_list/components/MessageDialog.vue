@@ -19,7 +19,8 @@
 
 <script setup lang="tsx">
 import { ref, computed, reactive, watch, defineProps, defineEmits, onMounted } from 'vue'
-import { ElButton, ElMessage, ElCheckbox, ElCheckboxGroup } from 'element-plus'
+import { ElButton, ElMessage, ElCheckbox, ElCheckboxGroup, ElUpload } from 'element-plus'
+import type { UploadUserFile, UploadRequestOptions } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
@@ -28,6 +29,7 @@ import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { sendMessageToUserApi, massSendMessageApi } from '@/api/tgUser'
 import { getBotReplyMenuListApi } from '@/api/menu_list'
+import { upload as uploadAPI } from '@/api/utils/upload'
 import type { MenuItem } from '@/api/menu_list/types'
 import { useRouter } from 'vue-router'
 import { BaseButton } from '@/components/Button'
@@ -67,6 +69,33 @@ const dialogTitle = computed(() => (props.type === 'single' ? '发送消息' : '
 
 const checkList = ref<(number | string)[]>([])
 const menuList = ref<MenuItem[]>([])
+
+// 新增：图片上传相关状态
+const fileListRef = ref<UploadUserFile[]>([])
+const fileToUpload = ref<File | null>(null) // 只保存 File
+
+// 文件选择变化
+const handleFileChange = (file: UploadUserFile, fileList: UploadUserFile[]) => {
+  if (fileList.length > 1) {
+    ElMessage.warning('只能上传一张图片')
+    fileListRef.value = [fileList[fileList.length - 1]]
+    fileToUpload.value = fileList[fileList.length - 1].raw || null
+  } else if (fileList.length === 1) {
+    fileToUpload.value = fileList[0].raw || null
+    fileListRef.value = [fileList[0]]
+  } else {
+    fileToUpload.value = null
+    fileListRef.value = []
+  }
+}
+
+// 移除图片
+const handleImageRemove = () => {
+  fileToUpload.value = null
+  fileListRef.value = []
+  ElMessage.info('图片已移除')
+  return true
+}
 
 // 用户信息 Descriptions 配置
 const userDescriptionSchema = computed<DescriptionsSchema[]>(() => [
@@ -108,6 +137,31 @@ const formSchema = computed<FormSchema[]>(() => {
       },
       formItemProps: {
         rules: [required('消息内容不能为空')]
+      }
+    },
+    {
+      field: 'image_upload_control',
+      label: '上传图片',
+      colProps: { span: 24 },
+      formItemProps: {
+        slots: {
+          default: () => (
+            <ElUpload
+              action="#"
+              listType="picture-card"
+              limit={1}
+              accept="image/png, image/jpeg, image/gif"
+              autoUpload={false}
+              fileList={fileListRef.value}
+              onChange={handleFileChange}
+              onRemove={handleImageRemove}
+              onExceed={() => ElMessage.warning('最多只能上传一张图片')}
+              show-file-list={true}
+            >
+              <BaseButton type="primary">选择图片</BaseButton>
+            </ElUpload>
+          )
+        }
       }
     },
     {
@@ -223,6 +277,8 @@ watch(
       const elForm = await formMethods.getElFormExpose()
       elForm?.resetFields()
       checkList.value = []
+      fileToUpload.value = null
+      fileListRef.value = []
 
       if (props.type === 'mass') {
         formMethods.setValues({ filter_type: 'user_custom' })
@@ -260,30 +316,56 @@ const handleSubmit = async () => {
     const formData = await formMethods.getFormData()
     submitting.value = true
 
+    // 先上传图片
+    let imageUrl = ''
+    if (fileToUpload.value) {
+      const formDataObj = new FormData()
+      formDataObj.append('file', fileToUpload.value)
+      try {
+        const res = await uploadAPI(formDataObj)
+        if (res && res.data && res.data.url) {
+          imageUrl = res.data.url
+        } else {
+          ElMessage.error('图片上传失败，未返回图片链接')
+          submitting.value = false
+          return
+        }
+      } catch (error: any) {
+        ElMessage.error('图片上传失败: ' + (error?.message || '请重试'))
+        submitting.value = false
+        return
+      }
+    }
+
     // 将 checkList (内联按钮ID) 转换为数字数组
     const keyboards = checkList.value.map((id) => Number(id)).filter((id) => !isNaN(id))
 
     try {
       if (props.type === 'single') {
-        const apiParams: Parameters<typeof sendMessageToUserApi>[0] = {
+        const apiParams: any = {
           id: props.user?.id,
           content: formData.content
         }
         if (keyboards.length > 0) {
           apiParams.keyboards = keyboards
         }
+        if (imageUrl) {
+          apiParams.image = imageUrl
+        }
         await sendMessageToUserApi(apiParams)
       } else {
         // 群发
-        const apiParams: Parameters<typeof massSendMessageApi>[0] = {
+        const apiParams: any = {
           bot_id: formData.bot_id,
           receive_type: formData.filter_type,
           content: formData.content
-          // image: formData.image, //  UI 上没有 image 字段，暂不传递
         }
 
         if (keyboards.length > 0) {
           apiParams.keyboards = keyboards
+        }
+        if (imageUrl) {
+          apiParams.image = imageUrl
         }
 
         if (formData.filter_type === 'user_custom') {
