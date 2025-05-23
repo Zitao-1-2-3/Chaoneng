@@ -225,7 +225,7 @@ const fetchMassSendRecords = async (params: any) => {
     // content, keyboards, ReceiveType, tg_user_ids, image, etc.
     return {
       list: response.data.list || [],
-      total: response.data.total || 0
+      total: response.data.totalCount || 0
     }
   } catch (error) {
     console.error('获取群发记录失败:', error)
