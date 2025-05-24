@@ -171,8 +171,7 @@ const formSchema = computed<FormSchema[]>(() => {
         label: '关键词',
         component: 'Input',
         componentProps: {
-          placeholder: '请输入关键词',
-          remark: '多个使用英文逗号分隔, 例如: 个人, 个人中心'
+          placeholder: '请输入关键词'
         },
         colProps: { span: 24 }
       },
