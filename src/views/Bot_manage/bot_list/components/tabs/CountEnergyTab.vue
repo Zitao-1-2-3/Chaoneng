@@ -32,15 +32,6 @@ const { formRegister, formMethods } = useForm()
 // 笔数能量价格表单
 const countEnergySchema = reactive<FormSchema[]>([
   {
-    field: 'count_pay_type',
-    component: 'Tag' as const,
-    label: '笔数能量：',
-    value: (formData) => {
-      console.log('Form Data from useForm:', formData)
-      return formData.count_pay_type === 1 ? '账号代扣' : '购买笔数'
-    }
-  },
-  {
     field: 'count_price_trx',
     component: 'InputNumber' as const,
     label: {
@@ -63,6 +54,9 @@ const countEnergySchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [{ required: true, message: '能量TRX价格是必填项' }]
+    },
+    colProps: {
+      span: 12
     }
   },
   {
@@ -79,6 +73,57 @@ const countEnergySchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [{ required: true, message: '能量USDT价格是必填项' }]
+    },
+    colProps: {
+      span: 12
+    }
+  },
+  {
+    field: 'line',
+    component: 'Divider' as const,
+    label: '购买设置'
+  },
+  {
+    field: 'hourly_count',
+    component: 'InputNumber' as const,
+    label: '每小时使用笔数：',
+    componentProps: {
+      placeholder: '请输入每小时使用笔数',
+      min: 0
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '每小时使用笔数是必填项' }]
+    },
+    colProps: {
+      span: 12
+    }
+  },
+  {
+    field: 'total_count',
+    component: 'InputNumber' as const,
+    label: '总使用笔数：',
+    componentProps: {
+      placeholder: '请输入总使用笔数',
+      min: 0
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '总使用笔数是必填项' }]
+    },
+    colProps: {
+      span: 12
+    }
+  },
+  {
+    field: 'is_pledge',
+    component: 'Switch' as const,
+    label: {
+      text: '是否有质押：',
+      tips: '开启则有质押的地址无法代理能量'
+    },
+    value: 1,
+    componentProps: {
+      activeValue: 1,
+      inactiveValue: 2
     }
   },
   {
