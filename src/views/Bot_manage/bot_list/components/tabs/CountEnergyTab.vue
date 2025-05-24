@@ -84,7 +84,7 @@ const countEnergySchema = reactive<FormSchema[]>([
     label: '购买设置'
   },
   {
-    field: 'hourly_count',
+    field: 'hour_limit_count',
     component: 'InputNumber' as const,
     label: '每小时使用笔数：',
     componentProps: {
@@ -99,7 +99,7 @@ const countEnergySchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'total_count',
+    field: 'total_limit_count',
     component: 'InputNumber' as const,
     label: '总使用笔数：',
     componentProps: {
@@ -114,13 +114,13 @@ const countEnergySchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'is_pledge',
+    field: 'check_resource_status',
     component: 'Switch' as const,
     label: {
       text: '是否有质押：',
       tips: '开启则有质押的地址无法代理能量'
     },
-    value: 1,
+    value: 2,
     componentProps: {
       activeValue: 1,
       inactiveValue: 2

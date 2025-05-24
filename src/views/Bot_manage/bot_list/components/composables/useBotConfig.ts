@@ -201,6 +201,9 @@ export function useBotConfig() {
               count_pay_type: countEnergyConfig.count_pay_type,
               count_price_trx: countEnergyConfig.count_price_trx || 0,
               count_price_usdt: countEnergyConfig.count_price_usdt || 0,
+              hour_limit_count: countEnergyConfig.hour_limit_count || 0,
+              total_limit_count: countEnergyConfig.total_limit_count || 0,
+              check_resource_status: countEnergyConfig.check_resource_status || 1,
               notifyUser: countEnergyConfig.notifyUser || false,
               notifyGroupOwner: countEnergyConfig.notifyGroupOwner || false,
               notifyAdmin: countEnergyConfig.notifyAdmin || false
