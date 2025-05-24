@@ -64,6 +64,26 @@ const managementRoutes: AppRouteRecordRaw[] = [
     ]
   },
   {
+    path: '/black_list',
+    component: Layout,
+    name: 'Black',
+    meta: {
+      title: '黑名单列表',
+      icon: 'vi-mdi:order-bool-ascending-variant',
+      alwaysShow: true
+    },
+    children: [
+      {
+        path: 'index',
+        component: () => import('@/views/BlackList/index.vue'),
+        name: 'BlackList',
+        meta: {
+          title: '黑名单列表'
+        }
+      }
+    ]
+  },
+  {
     path: '/user_group',
     component: Layout,
     name: 'UserGroup',
