@@ -2,6 +2,7 @@
   <div class="app-container">
     <ContentWrap>
       <SearchTable
+        v-if="isBotlistLoaded"
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchReplyList"
@@ -67,6 +68,7 @@ const dialogVisible = ref(false)
 const isEditMode = ref(false)
 const submitLoading = ref(false)
 const isLoaded = ref(false)
+const isBotlistLoaded = ref(false)
 const currentRowData = ref<ReplyItem | null>(null)
 
 const botOptionsForDialog = ref<BotOption[]>([])
@@ -78,6 +80,7 @@ const fetchBotOptionsForPage = async () => {
       label: `${bot.name} (${bot.firstname})`,
       value: bot.tg_bot_id
     }))
+    isBotlistLoaded.value = true
   } catch (error) {
     console.error('获取机器人选项失败: ', error)
     botOptionsForDialog.value = []
@@ -186,7 +189,7 @@ const actionColumn: TableColumn = {
 
 const searchSchema = computed<FormSchema[]>(() => [
   {
-    field: 'bot_id',
+    field: 'tg_bot_id',
     label: '机器人',
     component: 'Select',
     componentProps: {
@@ -197,7 +200,7 @@ const searchSchema = computed<FormSchema[]>(() => [
     }
   },
   {
-    field: 'keyword',
+    field: 'query',
     label: '关键词',
     component: 'Input',
     componentProps: {
