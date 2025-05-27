@@ -40,7 +40,7 @@ const systemType = import.meta.env.VITE_SYSTEM_TYPE || 'Management'
 
 // 根据系统类型设置不同标题
 const getSystemTitle = () => {
-  return systemType === 'Management' ? '机器人后台管理系统' : '机器人后台运营系统'
+  return systemType === 'Management' ? '能量代理系统' : '能量运营系统'
 }
 
 export const useAppStore = defineStore('app', {
