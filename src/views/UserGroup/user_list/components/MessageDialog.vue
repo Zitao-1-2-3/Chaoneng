@@ -197,6 +197,9 @@ const formSchema = computed<FormSchema[]>(() => {
             </ElUpload>
           )
         }
+      },
+      hidden: () => {
+        return props.type === 'single'
       }
     },
     {
