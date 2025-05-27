@@ -184,6 +184,11 @@ const columns: TableColumn[] = [
     }
   },
   {
+    field: 'receive_address',
+    label: '接收地址',
+    minWidth: 180
+  },
+  {
     field: 'stroke_num',
     label: '笔数',
     width: 80,
