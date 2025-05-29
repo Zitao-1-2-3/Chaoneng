@@ -184,13 +184,7 @@ const accountSchema = reactive<FormSchema[]>([
     colProps: { span: 24 },
     componentProps: {
       style: { width: '100%' },
-      placeholder: '请输入密码',
-      onKeydown: (_e: any) => {
-        if (_e.key === 'Enter') {
-          _e.stopPropagation()
-          signIn()
-        }
-      }
+      placeholder: '请输入密码'
     }
   },
   {
@@ -211,6 +205,12 @@ const accountSchema = reactive<FormSchema[]>([
             alt="captcha"
           />
         )
+      },
+      onKeydown: (_e: any) => {
+        if (_e.key === 'Enter') {
+          _e.stopPropagation()
+          signIn()
+        }
       }
     }
   },
