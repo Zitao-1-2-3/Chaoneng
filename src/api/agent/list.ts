@@ -58,3 +58,36 @@ export const updateAgentStatusApi = (data: UpdateAgentStatusPayload): Promise<IR
 export const rechargeTrxApi = (data: any) => {
   return request.post({ url: '/v2/manage/agent/change_balance', data })
 }
+
+// 定义新增代理参数类型
+export interface AddAgentPayload {
+  name: string // 代理名称
+  contact: string // 联系方式
+  password: string // 登录密码
+}
+
+// 定义编辑代理参数类型
+export interface UpdateAgentPayload {
+  id: number | string // 代理ID
+  name?: string // 代理名称（可选）
+  contact?: string // 联系方式（可选）
+  password?: string // 登录密码（可选，留空不修改）
+}
+
+/**
+ * 新增代理
+ * @param data 新增代理数据
+ * @returns Promise<IResponse>
+ */
+export const addAgentApi = (data: AddAgentPayload): Promise<IResponse> => {
+  return request.post({ url: '/v2/manage/agent/add', data })
+}
+
+/**
+ * 编辑代理
+ * @param data 编辑代理数据
+ * @returns Promise<IResponse>
+ */
+export const updateAgentApi = (data: UpdateAgentPayload): Promise<IResponse> => {
+  return request.post({ url: '/v2/manage/agent/edit', data })
+}
