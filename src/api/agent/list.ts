@@ -61,17 +61,18 @@ export const rechargeTrxApi = (data: any) => {
 
 // 定义新增代理参数类型
 export interface AddAgentPayload {
-  name: string // 代理名称
-  contact: string // 联系方式
+  username: string // 代理名称
+  email: string // 联系方式
   password: string // 登录密码
 }
 
 // 定义编辑代理参数类型
 export interface UpdateAgentPayload {
   id: number | string // 代理ID
-  name?: string // 代理名称（可选）
-  contact?: string // 联系方式（可选）
+  username?: string // 代理名称（可选）
+  email?: string // 联系方式（可选）
   password?: string // 登录密码（可选，留空不修改）
+  status?: number // 状态（可选）
 }
 
 /**
@@ -89,5 +90,5 @@ export const addAgentApi = (data: AddAgentPayload): Promise<IResponse> => {
  * @returns Promise<IResponse>
  */
 export const updateAgentApi = (data: UpdateAgentPayload): Promise<IResponse> => {
-  return request.post({ url: '/v2/manage/agent/edit', data })
+  return request.post({ url: '/v2/manage/agent/update', data })
 }

@@ -1,13 +1,11 @@
 <template>
   <div class="app-container">
     <ContentWrap>
-      <!-- 使用SearchTable组件 -->
       <SearchTable
         ref="searchTableRef"
         :columns="columns"
         :searchSchema="searchSchema"
         :fetchDataApi="getAgentList"
-        @search="handleSearch"
         :show-add-button="false"
       >
         <template #leftToolbar>
@@ -15,13 +13,14 @@
         </template>
       </SearchTable>
     </ContentWrap>
+
     <RechargeDialog
       v-model:visible="rechargeDialogVisible"
       :user="currentAccount"
       @success="handleRechargeSuccess"
     />
-    <!-- 新增/编辑代理弹窗 -->
-    <AgentForm ref="agentFormRef" @success="handleAgentFormSuccess" @error="handleAgentFormError" />
+
+    <AgentForm ref="agentFormRef" @success="handleAgentSuccess" @error="handleAgentError" />
   </div>
 </template>
 
@@ -35,32 +34,41 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import {
   getAgentListApi,
   updateAgentStatusApi,
-  AgentItem,
-  UpdateAgentStatusPayload
+  type AgentItem,
+  type UpdateAgentStatusPayload
 } from '@/api/agent/list'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import RechargeDialog from './components/RechargeDialog.vue'
 import AgentForm from './components/AgentForm.vue'
 
+// 状态管理
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 const agentFormRef = ref<InstanceType<typeof AgentForm>>()
-
 const rechargeDialogVisible = ref(false)
 const currentAccount = ref<AgentItem>()
 
-// --- API 调用封装 ---
+// 常量配置
+const STATUS_OPTIONS = [
+  { label: '全部', value: '' },
+  { label: '启用', value: 1 },
+  { label: '禁用', value: 2 }
+] as const
 
-// 获取代理列表API封装
-const getAgentList = async (params?: any): Promise<{ list: AgentItem[]; total?: number }> => {
+const STATUS_CONFIG = {
+  1: { text: '启用', type: 'success' as const },
+  2: { text: '禁用', type: 'danger' as const }
+} as const
+
+// API 调用
+const getAgentList = async (params?: any) => {
   try {
     const res = await getAgentListApi(params)
-    if (res && res.data) {
-      const list = (res.data as any).list || (res.data as any).items || []
-      const total = (res.data as any).total || (res.data as any).count || 0
-      return { list, total }
+    const data = (res?.data as any) || {}
+    return {
+      list: data.list || data.items || [],
+      total: data.totalCount || data.total || 0
     }
-    return { list: [], total: 0 }
   } catch (error) {
     console.error('获取代理列表失败:', error)
     ElMessage.error('获取代理列表失败')
@@ -68,7 +76,6 @@ const getAgentList = async (params?: any): Promise<{ list: AgentItem[]; total?: 
   }
 }
 
-// 更新代理状态API封装
 const updateAgentStatus = async (id: number | string, status: number) => {
   try {
     const payload: UpdateAgentStatusPayload = { id, status }
@@ -81,9 +88,7 @@ const updateAgentStatus = async (id: number | string, status: number) => {
   }
 }
 
-// --- SearchTable 配置 ---
-
-// 搜索表单配置
+// 表单配置
 const searchSchema = ref<FormSchema[]>([
   {
     field: 'query',
@@ -100,54 +105,27 @@ const searchSchema = ref<FormSchema[]>([
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
-        { label: '启用', value: 1 },
-        { label: '禁用', value: 2 }
-      ]
+      options: STATUS_OPTIONS
     }
   }
 ])
 
 // 表格列配置
 const columns = ref<TableColumn[]>([
-  {
-    field: 'email',
-    label: '联系方式'
-  },
-  {
-    field: 'username',
-    label: '代理名称'
-  },
-  {
-    field: 'bot_num',
-    label: '机器人数量'
-  },
-  {
-    field: 'tg_account_num',
-    label: '总用户数'
-  },
-  {
-    field: 'trx_mount',
-    label: 'TRX余额'
-  },
-  {
-    field: 'total_trx_amount',
-    label: 'TRX收入'
-  },
-  {
-    field: 'total_usdt_amount',
-    label: 'USDT收入'
-  },
+  { field: 'email', label: '联系方式' },
+  { field: 'username', label: '代理名称' },
+  { field: 'bot_num', label: '机器人数量' },
+  { field: 'tg_account_num', label: '总用户数' },
+  { field: 'trx_mount', label: 'TRX余额' },
+  { field: 'total_trx_amount', label: 'TRX收入' },
+  { field: 'total_usdt_amount', label: 'USDT收入' },
   {
     field: 'status',
     label: '状态',
     formatter: (row: AgentItem) => {
-      const status = row.status
-      const isEnabled = status === 1
-      const text = isEnabled ? '启用' : '禁用'
-      const type: 'success' | 'danger' = isEnabled ? 'success' : 'danger'
-      return <ElTag type={type}>{text}</ElTag>
+      const config = STATUS_CONFIG[row.status as keyof typeof STATUS_CONFIG]
+      if (!config) return <ElTag>未知</ElTag>
+      return <ElTag type={config.type}>{config.text}</ElTag>
     }
   },
   {
@@ -159,89 +137,80 @@ const columns = ref<TableColumn[]>([
     field: 'action',
     label: '操作',
     minWidth: '200px',
-    formatter: (row: AgentItem) => {
-      const isEnabled = row.status === 1
-      const targetStatus = isEnabled ? 2 : 1
-      const buttonText = isEnabled ? '禁用' : '启用'
-      const buttonType = isEnabled ? 'danger' : 'success'
-      const actionText = isEnabled ? '禁用' : '启用'
-
-      return (
-        <>
-          <BaseButton type="primary" class="mr-1" onClick={() => handleEditAgent(row)}>
-            编辑
-          </BaseButton>
-          <BaseButton
-            type="primary"
-            class="mr-1"
-            onClick={() => {
-              currentAccount.value = row
-              rechargeDialogVisible.value = true
-            }}
-          >
-            充值
-          </BaseButton>
-          <BaseButton
-            type={buttonType}
-            onClick={() => handleUpdateStatus(row.id, targetStatus, actionText)}
-          >
-            {buttonText}
-          </BaseButton>
-        </>
-      )
-    }
+    formatter: (row: AgentItem) => renderActionButtons(row)
   }
 ])
 
-// --- 事件处理 ---
+// 渲染操作按钮
+const renderActionButtons = (row: AgentItem) => {
+  const isEnabled = row.status === 1
+  const statusAction = {
+    text: isEnabled ? '禁用' : '启用',
+    type: (isEnabled ? 'danger' : 'success') as 'danger' | 'success',
+    status: isEnabled ? 2 : 1
+  }
 
-// 处理搜索
-const handleSearch = (params: any) => {
-  console.log('搜索参数:', params)
+  return (
+    <div class="action-buttons">
+      <BaseButton type="primary" onClick={() => handleEditAgent(row)}>
+        编辑
+      </BaseButton>
+      <BaseButton type="primary" onClick={() => handleRecharge(row)}>
+        充值
+      </BaseButton>
+      <BaseButton
+        type={statusAction.type}
+        onClick={() => handleUpdateStatus(row.id, statusAction.status, statusAction.text)}
+      >
+        {statusAction.text}
+      </BaseButton>
+    </div>
+  )
 }
 
-// 处理状态更新按钮点击
-const handleUpdateStatus = (id: number | string, status: number, actionText: string) => {
-  ElMessageBox.confirm(`确定要${actionText}该代理吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
+// 事件处理
+const handleAddAgent = () => {
+  agentFormRef.value?.openDialog('add')
+}
+
+const handleEditAgent = (row: AgentItem) => {
+  agentFormRef.value?.openDialog('edit', {
+    id: row.id,
+    username: row.user_name,
+    email: row.email,
+    status: row.status
   })
-    .then(async () => {
-      await updateAgentStatus(id, status)
-    })
-    .catch(() => {
-      ElMessage.info('操作已取消')
-    })
 }
 
-// 处理充值成功
+const handleRecharge = (row: AgentItem) => {
+  currentAccount.value = row
+  rechargeDialogVisible.value = true
+}
+
+const handleUpdateStatus = async (id: number | string, status: number, actionText: string) => {
+  try {
+    await ElMessageBox.confirm(`确定要${actionText}该代理吗？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    await updateAgentStatus(id, status)
+  } catch {
+    // 用户取消操作
+  }
+}
+
 const handleRechargeSuccess = (amount: number) => {
   ElMessage.success(`充值成功 ${amount} TRX`)
   searchTableRef.value?.reload()
 }
 
-// AgentForm 成功事件处理
-const handleAgentFormSuccess = (result: { type: 'add' | 'edit'; data: any }) => {
-  console.log(`代理${result.type === 'add' ? '新增' : '编辑'}成功:`, result.data)
-  searchTableRef.value?.reload() // 操作成功后刷新列表
+const handleAgentSuccess = () => {
+  searchTableRef.value?.reload()
 }
 
-// AgentForm 错误事件处理
-const handleAgentFormError = (error: { type: 'add' | 'edit'; error: any }) => {
+const handleAgentError = (error: { type: 'add' | 'edit'; error: any }) => {
   console.error(`代理${error.type === 'add' ? '新增' : '编辑'}失败:`, error.error)
-  // 错误消息已经在 AgentForm 中显示，这里可以添加额外的错误处理逻辑
-}
-
-// 新增代理按钮点击处理
-const handleAddAgent = () => {
-  agentFormRef.value?.openDialog('add')
-}
-
-// 编辑代理按钮点击处理
-const handleEditAgent = (row: AgentItem) => {
-  // 直接传递行数据，AgentForm 内部会处理密码等字段的显示逻辑
-  agentFormRef.value?.openDialog('edit', row as any)
 }
 </script>
 
@@ -250,7 +219,13 @@ const handleEditAgent = (row: AgentItem) => {
   padding: 20px;
 }
 
-.mr-1 {
-  margin-right: 5px;
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-buttons .el-button {
+  margin: 0;
 }
 </style>
