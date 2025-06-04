@@ -22,71 +22,71 @@ const { required, email, phone } = useValidator()
 // 添加注册类型切换
 const registerType = ref('email') // 'phone' 或 'email'
 
-// 验证码倒计时相关
-const countdown = ref(0)
-const isCounting = computed(() => countdown.value > 0)
-let timer: number | null = null
+// 验证码倒计时相关 - 暂时注释掉
+// const countdown = ref(0)
+// const isCounting = computed(() => countdown.value > 0)
+// let timer: number | null = null
 
-// 开始倒计时
-const startCountdown = () => {
-  countdown.value = 60
-  timer = window.setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(timer!)
-      timer = null
-    }
-  }, 1000)
-}
+// 开始倒计时 - 暂时注释掉
+// const startCountdown = () => {
+//   countdown.value = 60
+//   timer = window.setInterval(() => {
+//     countdown.value--
+//     if (countdown.value <= 0) {
+//       clearInterval(timer!)
+//       timer = null
+//     }
+//   }, 1000)
+// }
 
-// 发送验证码
-const sendCode = async () => {
-  const formRef = await getElFormExpose()
+// 发送验证码 - 暂时注释掉
+// const sendCode = async () => {
+//   const formRef = await getElFormExpose()
 
-  try {
-    if (registerType.value === 'phone') {
-      // 验证手机号
-      await formRef?.validateField('phone')
-      const formData = await formMethods.getFormData()
+//   try {
+//     if (registerType.value === 'phone') {
+//       // 验证手机号
+//       await formRef?.validateField('phone')
+//       const formData = await formMethods.getFormData()
 
-      if (!formData.phone) {
-        ElMessage.warning('请输入手机号')
-        return
-      }
+//       if (!formData.phone) {
+//         ElMessage.warning('请输入手机号')
+//         return
+//       }
 
-      // 发送手机验证码
-      await sendPhoneCodeApi({
-        mobile: formData.phone,
-        channel: 'register'
-      })
+//       // 发送手机验证码
+//       await sendPhoneCodeApi({
+//         mobile: formData.phone,
+//         channel: 'register'
+//       })
 
-      ElMessage.success('验证码已发送到手机')
-    } else {
-      // 验证邮箱
-      await formRef?.validateField('email')
-      const formData = await formMethods.getFormData()
+//       ElMessage.success('验证码已发送到手机')
+//     } else {
+//       // 验证邮箱
+//       await formRef?.validateField('email')
+//       const formData = await formMethods.getFormData()
 
-      if (!formData.email) {
-        ElMessage.warning('请输入邮箱')
-        return
-      }
+//       if (!formData.email) {
+//         ElMessage.warning('请输入邮箱')
+//         return
+//       }
 
-      // 发送邮箱验证码
-      await sendEmailCodeApi({
-        email: formData.email,
-        channel: 'register'
-      })
+//       // 发送邮箱验证码
+//       await sendEmailCodeApi({
+//         email: formData.email,
+//         channel: 'register'
+//       })
 
-      ElMessage.success('验证码已发送到邮箱')
-    }
+//       ElMessage.success('验证码已发送到邮箱')
+//     }
 
-    // 启动倒计时
-    startCountdown()
-  } catch (error) {
-    console.error('发送验证码失败:', error)
-    ElMessage.error('发送验证码失败，请稍后重试')
-  }
-}
+//     // 启动倒计时
+//     startCountdown()
+//   } catch (error) {
+//     console.error('发送验证码失败:', error)
+//     ElMessage.error('发送验证码失败，请稍后重试')
+//   }
+// }
 
 // 切换注册方式时清空表单
 const handleTabChange = () => {
@@ -100,27 +100,27 @@ const clearForm = () => {
     check_password: '',
     phone: '',
     email: '',
-    code: '',
+    // code: '', // 暂时注释掉验证码字段
     iAgree: false
   })
 }
 
-// 根据注册类型选择不同的验证规则
+// 根据注册类型选择不同的验证规则 - 移除验证码验证
 const rules = computed<FormRules>(() => {
   return registerType.value === 'phone'
     ? {
         username: [required()],
         password: [required()],
         check_password: [required()],
-        phone: [required(), phone()],
-        code: [required()]
+        phone: [required(), phone()]
+        // code: [required()] // 暂时注释掉验证码验证
       }
     : {
         username: [required()],
         password: [required()],
         check_password: [required()],
-        email: [required(), email()],
-        code: [required()]
+        email: [required(), email()]
+        // code: [required()] // 暂时注释掉验证码验证
       }
 })
 
@@ -164,28 +164,29 @@ const phoneSchema = reactive<FormSchema[]>([
       placeholder: t('login.inputPhoneNumber')
     }
   },
-  {
-    field: 'code',
-    label: t('login.code'),
-    component: 'Input',
-    colProps: { span: 24 },
-    componentProps: {
-      style: { width: '100%' },
-      placeholder: t('login.codePlaceholder'),
-      slots: {
-        append: () => (
-          <BaseButton
-            type="primary"
-            class="send-code-btn"
-            disabled={isCounting.value}
-            onClick={sendCode}
-          >
-            {isCounting.value ? `${countdown.value}秒` : t('login.getCode')}
-          </BaseButton>
-        )
-      }
-    }
-  },
+  // 暂时注释掉验证码字段
+  // {
+  //   field: 'code',
+  //   label: t('login.code'),
+  //   component: 'Input',
+  //   colProps: { span: 24 },
+  //   componentProps: {
+  //     style: { width: '100%' },
+  //     placeholder: t('login.codePlaceholder'),
+  //     slots: {
+  //       append: () => (
+  //         <BaseButton
+  //           type="primary"
+  //           class="send-code-btn"
+  //           disabled={isCounting.value}
+  //           onClick={sendCode}
+  //         >
+  //           {isCounting.value ? `${countdown.value}秒` : t('login.getCode')}
+  //         </BaseButton>
+  //       )
+  //     }
+  //   }
+  // },
   {
     field: 'password',
     label: t('login.password'),
@@ -281,28 +282,29 @@ const emailSchema = reactive<FormSchema[]>([
       placeholder: t('login.inputEmail')
     }
   },
-  {
-    field: 'code',
-    label: t('login.code'),
-    component: 'Input',
-    colProps: { span: 24 },
-    componentProps: {
-      style: { width: '100%' },
-      placeholder: t('login.codePlaceholder'),
-      slots: {
-        append: () => (
-          <BaseButton
-            type="primary"
-            class="send-code-btn"
-            disabled={isCounting.value}
-            onClick={sendCode}
-          >
-            {isCounting.value ? `${countdown.value}秒` : t('login.getCode')}
-          </BaseButton>
-        )
-      }
-    }
-  },
+  // 暂时注释掉验证码字段
+  // {
+  //   field: 'code',
+  //   label: t('login.code'),
+  //   component: 'Input',
+  //   colProps: { span: 24 },
+  //   componentProps: {
+  //     style: { width: '100%' },
+  //     placeholder: t('login.codePlaceholder'),
+  //     slots: {
+  //       append: () => (
+  //         <BaseButton
+  //           type="primary"
+  //           class="send-code-btn"
+  //           disabled={isCounting.value}
+  //           onClick={sendCode}
+  //         >
+  //           {isCounting.value ? `${countdown.value}秒` : t('login.getCode')}
+  //         </BaseButton>
+  //       )
+  //     }
+  //   }
+  // },
   {
     field: 'password',
     label: t('login.password'),
@@ -382,13 +384,13 @@ const register = async () => {
           return
         }
 
-        // 根据注册类型调用不同的注册API
+        // 根据注册类型调用不同的注册API - 暂时去掉验证码参数
         if (registerType.value === 'phone') {
           // 手机号注册
           const res = await phoneRegisterApi({
             phone: formData.phone,
             password: formData.password,
-            verify_code: formData.code
+            verify_code: '' // 暂时传递空字符串
           })
 
           if (res && res.code === '000000') {
@@ -404,7 +406,7 @@ const register = async () => {
             username: formData.username,
             email: formData.email,
             password: formData.password,
-            verify_code: formData.code
+            verify_code: '' // 暂时传递空字符串
           })
 
           if (res && res.code === '000000') {
@@ -439,7 +441,9 @@ const register = async () => {
 </template>
 
 <style scoped>
-.send-code-btn {
+/* 暂时注释掉发送验证码按钮的样式 */
+
+/* .send-code-btn {
   width: 120px;
-}
+} */
 </style>
