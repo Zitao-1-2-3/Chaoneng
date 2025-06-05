@@ -307,7 +307,10 @@ const emailSchema = reactive<FormSchema[]>([
   // },
   {
     field: 'password',
-    label: t('login.password'),
+    label: {
+      text: t('login.password'),
+      tips: '请输入最低不少于8位字符的密码'
+    },
     value: '',
     component: 'InputPassword',
     colProps: { span: 24 },
