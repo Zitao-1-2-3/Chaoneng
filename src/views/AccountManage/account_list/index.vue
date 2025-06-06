@@ -108,6 +108,10 @@
           <div v-if="userData.qr_address" class="mt-4 text-center">
             <div class="font-bold mb-2">扫描二维码充值</div>
             <img :src="userData.qr_address" alt="收款二维码" />
+            <div class="flex items-center justify-center mt-2">
+              <Icon icon="cryptocurrency-color:trx" :size="24" />
+              <div class="text-sm text-gray-500">（可转入大于 1TRX 的任意金额）</div>
+            </div>
           </div>
         </div>
         <div v-else class="py-4 text-center text-red-500">
