@@ -117,7 +117,7 @@ const countEnergySchema = reactive<FormSchema[]>([
     field: 'check_resource_status',
     component: 'Switch' as const,
     label: {
-      text: '是否有质押：',
+      text: '是否开启质押黑名单：',
       tips: '开启则有质押的地址无法代理能量'
     },
     value: 2,

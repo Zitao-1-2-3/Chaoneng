@@ -75,7 +75,12 @@ const flashExchangeSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入最低余额',
       min: 0,
-      precision: 2
+      precision: 2,
+      slots: {
+        suffix: () => {
+          return <div>TRX</div>
+        }
+      }
     }
   },
   {
@@ -108,12 +113,17 @@ const flashExchangeSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: 'USDT兑TRX可兑换上限',
-      tips: '用户单次可兑换的上限'
+      tips: '单次可兑换USDT上限(USDT兑换TRX)'
     },
     componentProps: {
       placeholder: '请输入兑换上限',
       min: 0,
-      precision: 2
+      precision: 2,
+      slots: {
+        suffix: () => {
+          return <div>TRX</div>
+        }
+      }
     }
   },
   {
