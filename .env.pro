@@ -20,8 +20,8 @@ VITE_SOURCEMAP=false
 VITE_OUT_DIR=dist-pro
 
 # 标题
-VITE_APP_TITLE='能量代理'
-VITE_APP_TITLE_OPERATION='能量运营'
+VITE_APP_TITLE='超能代理'
+VITE_APP_TITLE_OPERATION='超能运营'
 
 
 # 是否包分析
