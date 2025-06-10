@@ -104,9 +104,9 @@ const commonDetailSchema = reactive<any[]>([
     slots: { default: (data) => data?.energy_rent_text || '-' }
   },
   {
-    label: '使用时间',
-    field: 'use_time',
-    slots: { default: (data) => (data?.use_time ? formatToDateTime(data?.use_time) : '-') }
+    label: '回收时间',
+    field: 'recycle_time',
+    slots: { default: (data) => (data?.recycle_time ? formatToDateTime(data?.recycle_time) : '-') }
   },
   {
     label: '创建时间',

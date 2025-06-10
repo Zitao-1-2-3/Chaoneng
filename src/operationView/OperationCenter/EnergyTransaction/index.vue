@@ -195,10 +195,10 @@ const columns = [
   },
   { field: 'energy_rent_text', label: '有效时长', width: 100 },
   {
-    field: 'use_time',
-    label: '使用时间',
+    field: 'recycle_time',
+    label: '回收时间',
     width: 160,
-    formatter: (row) => (row.use_time ? formatToDateTime(row.use_time * 1000) : '-')
+    formatter: (row) => (row.recycle_time ? formatToDateTime(row.recycle_time * 1000) : '-')
   },
   {
     field: 'delegate_status', // Updated field: delegate_status
