@@ -179,15 +179,14 @@ const columns = reactive<TableColumn[]>([
       default: ({ row }) => {
         const handle_status = row.handle_status
         const text = getHandleStatusText(handle_status)
-        let tagType: 'primary' | 'info' | 'success' | 'warning' | 'danger' = 'info'
-
-        if (handle_status) {
-          tagType = 'success'
-        } else {
-          tagType = 'info'
+        let tagType = {
+          '0': 'info',
+          '1': 'success',
+          '2': 'warning',
+          '3': 'danger'
         }
 
-        return <ElTag type={tagType}>{text}</ElTag>
+        return <ElTag type={tagType[handle_status]}>{text}</ElTag>
       }
     }
   },
