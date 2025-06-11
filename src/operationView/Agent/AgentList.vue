@@ -116,7 +116,15 @@ const columns = ref<TableColumn[]>([
   { field: 'username', label: '代理名称' },
   { field: 'bot_num', label: '机器人数量' },
   { field: 'tg_account_num', label: '总用户数' },
-  { field: 'trx_mount', label: 'TRX余额', sortable: true },
+  {
+    field: 'trx_mount',
+    label: 'TRX余额',
+    sortable: true,
+    sortMethod: (a: any, b: any) => {
+      // 确保将值转换为浮点数进行比较
+      return parseFloat(a.trx_mount) - parseFloat(b.trx_mount)
+    }
+  },
   { field: 'total_trx_amount', label: 'TRX收入' },
   { field: 'total_usdt_amount', label: 'USDT收入' },
   {
