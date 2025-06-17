@@ -12,7 +12,7 @@ import { useFormValidation } from '../composables'
 
 // 表单相关
 const { formRegister, formMethods } = useForm()
-const { required } = useFormValidation({})
+const { required } = useFormValidation()
 
 // 存储用户名
 const username = ref('')
@@ -43,7 +43,7 @@ const paymentSchema = reactive<FormSchema[]>([
   {
     field: 'energy_address',
     component: 'Input' as const,
-    label: '【1小时能量闪租/余额充值】收款钱包地址：',
+    label: '【1小时能量闪租】收款钱包地址：',
     componentProps: {
       placeholder: '请输入闪充收款钱包地址'
     },
@@ -70,14 +70,39 @@ const paymentSchema = reactive<FormSchema[]>([
     field: 'energy_usdt_address',
     component: 'Input' as const,
     label: {
-      text: '【按笔数购买】USDT收款钱包地址',
+      text: '【按笔数购买】TRX/USDT收款钱包地址',
       tips: '请区分闪兑收款地址，不能相同'
     },
     componentProps: {
-      placeholder: '请输入USDT收款钱包地址'
+      placeholder: '请输入TRX/USDT收款钱包地址'
     },
     formItemProps: {
-      rules: [{ required: true, message: 'USDT收款钱包地址是必填项' }]
+      rules: [
+        { required: true, message: 'TRX/USDT收款钱包地址是必填项' },
+        {
+          validator: (_: any, value: string, callback: (error?: Error) => void) => {
+            // 当前值为空时不验证
+            if (!value) {
+              callback()
+              return
+            }
+            // 使用setTimeout来确保能获取到最新的表单数据
+            setTimeout(async () => {
+              try {
+                const formData = await formMethods.getFormData()
+                if (formData && formData.energy_address && value === formData.energy_address) {
+                  callback(new Error('TRX/USDT收款钱包地址不能与闪租收款钱包地址相同'))
+                } else {
+                  callback()
+                }
+              } catch (error) {
+                callback()
+              }
+            }, 0)
+          },
+          trigger: 'blur'
+        }
+      ]
     }
   },
   {
