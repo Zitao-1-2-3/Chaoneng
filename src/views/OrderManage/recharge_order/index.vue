@@ -281,6 +281,16 @@ const columns: TableColumn[] = [
     }
   },
   {
+    field: 'receive_address',
+    label: '收款地址',
+    minWidth: 150
+  },
+  {
+    field: 'pay_address',
+    label: '支付地址',
+    minWidth: 150
+  },
+  {
     field: 'describe',
     label: '备注'
   },
