@@ -186,14 +186,7 @@ const columns = [
     width: 110,
     formatter: (row) => `${formatToWan(row.delegate_energy_num) ?? '-'}`
   },
-  {
-    field: 'from_address',
-    label: '代理能量钱包地址',
-    minWidth: 200,
-    formatter: (row) => {
-      return <span>{row.from_address ?? '-'}</span>
-    }
-  },
+  { field: 'bot_address', label: '收款钱包地址', minWidth: 200 },
   { field: 'receive_address', label: '能量接收地址', minWidth: 200 },
   {
     field: 'stroke_num',

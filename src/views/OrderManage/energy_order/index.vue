@@ -184,8 +184,13 @@ const columns: TableColumn[] = [
     }
   },
   {
+    field: 'bot_address',
+    label: '收款钱包地址',
+    minWidth: 180
+  },
+  {
     field: 'receive_address',
-    label: '接收地址',
+    label: '能量接收地址',
     minWidth: 180
   },
   {
@@ -456,7 +461,7 @@ const transactionDetailSchema = computed((): DescriptionsSchema[] => [
     }
   },
   { field: 'from_address', label: '发起地址', span: 24 }, // Ensure 'from_address' is present
-  { field: 'receive_address', label: '接收地址', span: 24 }, // Ensure 'receive_address' is present
+  { field: 'receive_address', label: '能量接收地址', span: 24 }, // Ensure 'receive_address' is present
   {
     field: 'status', // Use the order status field from getEnergyOrderDetailApi response
     label: '订单状态', // Label changed to reflect it's order status now
