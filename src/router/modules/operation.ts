@@ -186,6 +186,27 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       ]
     },
     {
+      path: '/customer-service',
+      component: Layout,
+      redirect: '/customer-service/index',
+      name: 'CustomerService',
+      meta: {
+        title: '客服管理',
+        icon: 'ant-design:customer-service-outlined' // Material Design Icons: account-headset
+      },
+      children: [
+        {
+          path: 'index',
+          name: 'CustomerServicePage',
+          component: () => import('@/operationView/CustomerService/index.vue'),
+          meta: {
+            title: '客服管理',
+            icon: 'ant-design:customer-service-outlined'
+          }
+        }
+      ]
+    },
+    {
       path: '/system_config',
       component: Layout,
       name: 'SystemConfig',

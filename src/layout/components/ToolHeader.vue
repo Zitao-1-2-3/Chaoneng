@@ -10,6 +10,8 @@ import { useAppStore } from '@/store/modules/app'
 import { useDesign } from '@/hooks/web/useDesign'
 import { Icon } from '@/components/Icon'
 import WebhookFormModal from './WebhookFormModal.vue'
+import { getCustomerServiceListApi } from '@/api/customer_service'
+import { ElMessage } from 'element-plus'
 
 const { getPrefixCls, variables } = useDesign()
 
@@ -55,6 +57,37 @@ export default defineComponent({
       isWebhookFormVisible.value = false
     }
 
+    // 联系客服功能
+    const handleContactCustomerService = async () => {
+      try {
+        // 调用客服列表 API 获取第一个客服
+        const res = await getCustomerServiceListApi({
+          current_page: 1,
+          page_size: 1,
+          status: 1 // 只获取启用状态的客服
+        })
+
+        if (res.data.list && res.data.list.length > 0) {
+          const firstCustomerService = res.data.list[0]
+          let tgName = firstCustomerService.tg_name
+
+          // 去掉 @ 符号（如果有的话）
+          if (tgName.startsWith('@')) {
+            tgName = tgName.substring(1)
+          }
+
+          // 跳转到 Telegram
+          const telegramUrl = `https://t.me/${tgName}`
+          window.open(telegramUrl, '_blank')
+        } else {
+          ElMessage.warning('暂无可用客服')
+        }
+      } catch (error) {
+        console.error('获取客服信息失败:', error)
+        ElMessage.error('获取客服信息失败')
+      }
+    }
+
     return () => (
       <div
         id={`${variables.namespace}-tool-header`}
@@ -84,6 +117,16 @@ export default defineComponent({
               ></Icon>
             </div>
           ) : undefined}
+          <div
+            class="custom-hover mr-2 flex items-center cursor-pointer"
+            onClick={handleContactCustomerService}
+          >
+            <Icon
+              icon="material-symbols:support-agent"
+              size={24}
+              color="var(--top-header-text-color)"
+            />
+          </div>
           {screenfull.value ? (
             <Screenfull class="custom-hover" color="var(--top-header-text-color)"></Screenfull>
           ) : undefined}
