@@ -12,6 +12,7 @@ import { Icon } from '@/components/Icon'
 import WebhookFormModal from './WebhookFormModal.vue'
 import { getCustomerServiceListApi } from '@/api/customer_service'
 import { ElMessage } from 'element-plus'
+import { BaseButton } from '@/components/Button'
 
 const { getPrefixCls, variables } = useDesign()
 
@@ -117,16 +118,9 @@ export default defineComponent({
               ></Icon>
             </div>
           ) : undefined}
-          <div
-            class="custom-hover mr-2 flex items-center cursor-pointer"
-            onClick={handleContactCustomerService}
-          >
-            <Icon
-              icon="material-symbols:support-agent"
-              size={24}
-              color="var(--top-header-text-color)"
-            />
-          </div>
+          <BaseButton type="primary" onClick={handleContactCustomerService}>
+            联系客服
+          </BaseButton>
           {screenfull.value ? (
             <Screenfull class="custom-hover" color="var(--top-header-text-color)"></Screenfull>
           ) : undefined}
