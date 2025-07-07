@@ -34,7 +34,7 @@
       <!-- 交易详情弹窗 - 综合版 -->
       <Dialog v-model="transactionDialogVisible" :title="'交易详情'">
         <ElTabs v-model="activeTransactionTab" class="transaction-tabs">
-          <ElTabPane name="in" label="代理转入详情">
+          <ElTabPane name="in" label=" 用户转USDT hash">
             <Descriptions
               :schema="transactionInSchema"
               :data="transactionDetail"
@@ -42,7 +42,7 @@
               border
             />
           </ElTabPane>
-          <ElTabPane name="out" label="用户转出详情">
+          <ElTabPane name="out" label="系统发放TRX hash">
             <Descriptions
               :schema="transactionOutSchema"
               :data="transactionDetail"

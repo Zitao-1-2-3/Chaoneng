@@ -24,7 +24,7 @@ const flashRentDetailSchema = computed((): DescriptionsSchema[] => [
     }
   },
   { field: 'receive_address', label: '接收地址', span: 24 },
-  { field: 'from_address', label: '收款地址', span: 24 },
+  { field: 'from_address', label: '发放能量地址', span: 24 },
   {
     field: 'txid',
     label: '交易hash',

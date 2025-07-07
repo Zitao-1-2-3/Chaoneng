@@ -47,7 +47,7 @@ const flashRentDetailSchema = computed((): DescriptionsSchema[] => [
       }
     }
   },
-  { field: 'from_address', label: '发起地址', span: 24 }, // Ensure 'from_address' is present
+  { field: 'from_address', label: '发放能量地址', span: 24 }, // Ensure 'from_address' is present
   { field: 'receive_address', label: '接收地址', span: 24 }, // Ensure 'receive_address' is present
   {
     field: 'recycle_txid', // Ensure 'txid' is in getEnergyOrderDetailApi response
