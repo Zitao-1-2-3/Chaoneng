@@ -161,7 +161,7 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
     slots: { default: (data) => data.in_to_address || '-' }
   },
   {
-    label: '系统发放TRXhas',
+    label: '系统发放TRX hash',
     field: 'out_txid',
     span: 16,
     slots: {
