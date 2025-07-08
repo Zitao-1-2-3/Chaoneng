@@ -143,19 +143,19 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
 
   // { label: '补发TRX', field: 'resend_amount', span: 8, slots: { default: (data) => formatAmount(data.resend_amount, data.resend_unit ?? data.exchange_unit) } },
   {
-    label: '系统转出地址',
+    label: '系统转出TRX',
     field: 'out_from_address',
     span: 16,
     slots: { default: (data) => data.out_from_address || '-' }
   },
   {
-    label: '用户接收地址',
+    label: '用户接收TRX',
     field: 'in_from_address',
     span: 16,
     slots: { default: (data) => data.in_from_address || '-' }
   },
   {
-    label: '代理接收地址',
+    label: '代理收用户USDT地址',
     field: 'in_to_address',
     span: 16,
     slots: { default: (data) => data.in_to_address || '-' }
