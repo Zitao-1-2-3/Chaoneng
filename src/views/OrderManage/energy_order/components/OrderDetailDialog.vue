@@ -123,7 +123,8 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
             2: '按时间',
             3: '批量下单',
             4: '闪租',
-            5: '激活'
+            5: '激活',
+            6: '福利'
           }
           const typeColorMap: Record<
             number,
@@ -133,7 +134,8 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
             2: 'success',
             3: 'warning',
             4: 'danger',
-            5: 'info'
+            5: 'info',
+            6: 'primary'
           }
           const orderTypeNum =
             typeof data.order_type === 'string' ? parseInt(data.order_type, 10) : data.order_type

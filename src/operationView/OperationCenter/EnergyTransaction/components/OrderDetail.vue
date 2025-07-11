@@ -125,8 +125,15 @@ const commonDetailSchema = reactive<any[]>([
   }
 ])
 
-const orderTypeMap = { 1: '按笔数', 2: '按时间', 3: '批量下单', 4: '闪租', 5: '激活' }
-const orderTypeColorMap = { 1: 'primary', 2: 'success', 3: 'warning', 4: 'danger', 5: 'info' }
+const orderTypeMap = { 1: '按笔数', 2: '按时间', 3: '批量下单', 4: '闪租', 5: '激活', 6: '福利' }
+const orderTypeColorMap = {
+  1: 'primary',
+  2: 'success',
+  3: 'warning',
+  4: 'danger',
+  5: 'info',
+  6: 'primary'
+}
 const statusMap = { 1: '已完成', 2: '待支付' }
 const statusColorMap = { 1: 'success', 2: 'warning' }
 

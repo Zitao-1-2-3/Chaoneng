@@ -133,7 +133,8 @@ const columns: TableColumn[] = [
           2: '按时间',
           3: '批量下单',
           4: '闪租',
-          5: '激活'
+          5: '激活',
+          6: '福利'
         }
         // Assign fixed color types
         const typeColorMap: Record<number, 'primary' | 'success' | 'warning' | 'danger' | 'info'> =
@@ -142,7 +143,8 @@ const columns: TableColumn[] = [
             2: 'success',
             3: 'warning',
             4: 'danger',
-            5: 'info'
+            5: 'info',
+            6: 'primary'
           }
 
         const orderTypeNum =
@@ -289,7 +291,8 @@ const searchSchema = [
         { label: '按时间', value: 2 },
         { label: '批量下单', value: 3 },
         { label: '闪租', value: 4 },
-        { label: '激活', value: 5 }
+        { label: '激活', value: 5 },
+        { label: '福利', value: 6 }
       ],
       placeholder: '请选择订单类型'
     }

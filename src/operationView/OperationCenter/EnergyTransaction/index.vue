@@ -153,14 +153,16 @@ const columns = [
           2: '按时间',
           3: '批量下单',
           4: '闪租',
-          5: '激活'
+          5: '激活',
+          6: '福利'
         }
         const typeColorMap: Record<number, ElTagType> = {
           1: 'primary',
           2: 'success',
           3: 'warning',
           4: 'danger',
-          5: 'info'
+          5: 'info',
+          6: 'primary'
         }
         const text = typeMap[type] || '未知类型'
         const tagType = typeColorMap[type] || 'info'
