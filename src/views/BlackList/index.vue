@@ -113,7 +113,7 @@ const fetchBlackListData = async (params: {
 }) => {
   try {
     const queryParams: BlackListParams = {
-      page: Number(params.current_page) || 1,
+      current_page: Number(params.current_page) || 1,
       page_size: Number(params.page_size) || 10,
       address: params.address || undefined
     }

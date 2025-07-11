@@ -1,7 +1,7 @@
 import request from '@/axios'
 
 export interface BlackListParams {
-  page: number
+  current_page: number
   page_size: number
   address?: string // 添加 address 参数用于搜索
 }
