@@ -125,3 +125,11 @@ export const getBotConsumptionRecordApi = (params: { page_size: number; current_
 export const getCountEnergyConfigApi = (id: number) => {
   return request.get({ url: `/v1/bot/count-energy-config/${id}` })
 }
+
+export const updateWelfarePriceConfigApi = (data: {
+  id: number
+  weal_address: string
+  weal_price_trx: number
+}) => {
+  return request.post({ url: '/v1/bot/weal/add_address', data })
+}

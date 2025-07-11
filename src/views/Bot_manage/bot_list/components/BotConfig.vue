@@ -34,6 +34,10 @@
         <ElTabPane label="闪兑配置" name="flashExchange">
           <FlashExchangeTab ref="flashExchangeTabRef" :agent-prices="agentPrices" />
         </ElTabPane>
+
+        <ElTabPane label="福利板块" name="welfarePrice">
+          <WelfarePriceTab ref="welfarePriceTabRef" :agent-prices="agentPrices" />
+        </ElTabPane>
       </ElTabs>
     </div>
 
@@ -60,6 +64,7 @@ import CountEnergyTab from './tabs/CountEnergyTab.vue'
 import ManagedModeTab from './tabs/ManagedModeTab.vue'
 import BatchOrderTab from './tabs/BatchOrderTab.vue'
 import FlashExchangeTab from './tabs/FlashExchangeTab.vue'
+import WelfarePriceTab from './tabs/WelfarePriceTab.vue'
 
 // 组件引用
 const botInfoTabRef = ref()
@@ -69,6 +74,7 @@ const countEnergyTabRef = ref()
 const managedModeTabRef = ref()
 const batchOrderTabRef = ref()
 const flashExchangeTabRef = ref()
+const welfarePriceTabRef = ref()
 
 // 使用机器人配置组合函数
 const {
@@ -132,7 +138,8 @@ const getFormMethods = () => {
     countEnergy: countEnergyTabRef.value?.formMethods,
     managedMode: managedModeTabRef.value?.formMethods,
     batchOrder: batchOrderTabRef.value?.formMethods,
-    flashExchange: flashExchangeTabRef.value?.formMethods
+    flashExchange: flashExchangeTabRef.value?.formMethods,
+    welfarePrice: welfarePriceTabRef.value?.formMethods
   }
 }
 
@@ -190,6 +197,9 @@ const submit = async () => {
       break
     case 'flashExchange':
       currentFormMethod = flashExchangeTabRef.value?.formMethods
+      break
+    case 'welfarePrice':
+      currentFormMethod = welfarePriceTabRef.value?.formMethods
       break
   }
 

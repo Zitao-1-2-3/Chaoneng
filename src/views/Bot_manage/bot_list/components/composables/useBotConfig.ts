@@ -17,7 +17,8 @@ import {
   updateBotCountEnergyConfigApi,
   updateBotManagedModeConfigApi,
   updateBotBatchOrderConfigApi,
-  updateBotFlashExchangeConfigApi
+  updateBotFlashExchangeConfigApi,
+  updateWelfarePriceConfigApi
 } from '@/api/botlist'
 
 // 定义通用的API响应类型
@@ -282,6 +283,26 @@ export function useBotConfig() {
             console.error('加载闪兑配置失败:', error)
             return false
           }
+        },
+
+        // 福利价格配置加载策略
+        welfarePrice: async () => {
+          try {
+            // 这里仍然需要获取时间能量配置以设置表单
+            const welfarePriceRes = await getBotTimeEnergyConfigApi(id)
+            const welfarePriceConfig = welfarePriceRes.data || {}
+
+            // 设置表单值 (保留)
+            console.log('welfarePriceConfig', welfarePriceConfig)
+            formMethods.welfarePrice.setValues({
+              weal_address: currentBot.value.weal_address,
+              weal_price_trx: welfarePriceConfig.weal_price_trx
+            })
+            return true
+          } catch (error) {
+            console.error('加载时间能量价格配置失败:', error)
+            return false
+          }
         }
       }
 
@@ -441,6 +462,22 @@ export function useBotConfig() {
             return true
           } catch (error) {
             console.error('保存闪兑配置失败:', error)
+            return false
+          }
+        },
+
+        welfarePrice: async () => {
+          if (!formMethods.welfarePrice) return false
+          try {
+            const welfarePriceData = await formMethods.welfarePrice.getFormData()
+
+            await updateWelfarePriceConfigApi({ ...welfarePriceData, id })
+            // 临时返回成功，等待API接口确认
+            console.log('福利价格配置数据:', welfarePriceData)
+            ElMessage.success('福利价格配置已保存')
+            return true
+          } catch (error) {
+            console.error('保存福利价格配置失败:', error)
             return false
           }
         }
