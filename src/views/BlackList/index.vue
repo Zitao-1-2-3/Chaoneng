@@ -72,6 +72,10 @@ const columns: TableColumn[] = [
     minWidth: 300
   },
   {
+    field: 'describe',
+    label: '描述'
+  },
+  {
     field: 'create_time',
     label: '创建时间',
     width: 180,

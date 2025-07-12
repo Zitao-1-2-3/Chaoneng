@@ -48,6 +48,7 @@ const ByTimeDetails = defineAsyncComponent(() => import('./details/ByTimeDetails
 const BatchOrderDetails = defineAsyncComponent(() => import('./details/BatchOrderDetails.vue'))
 const FlashRentDetails = defineAsyncComponent(() => import('./details/FlashRentDetails.vue'))
 const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
+const WealOrderDetails = defineAsyncComponent(() => import('./details/WealOrderDetails.vue'))
 
 const visible = ref(false)
 const currentOrder = ref<any | null>(null)
@@ -166,6 +167,8 @@ const detailComponent = computed(() => {
       return FlashRentDetails
     case 5:
       return ActivationDetails
+    case 6:
+      return WealOrderDetails
     default:
       return null
   }
@@ -180,7 +183,8 @@ const detailTabLabel = computed(() => {
     2: '按时间详情',
     3: '批量下单详情',
     4: '闪租详情',
-    5: '激活详情'
+    5: '激活详情',
+    6: '福利详情'
   }
   return typeTextMap[type] || '详情'
 })
