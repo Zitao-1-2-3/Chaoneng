@@ -49,7 +49,7 @@ const welfarePriceSchema = reactive<FormSchema[]>([
       min: 0,
       precision: 2,
       remark: () => {
-        const costKey = 'count_price'
+        const costKey = 'flash_rent_price'
         const costPrice = computedAgentPrices.value[costKey]
         return (
           <>
