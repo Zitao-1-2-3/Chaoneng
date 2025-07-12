@@ -202,9 +202,6 @@ export function useBotConfig() {
               count_pay_type: countEnergyConfig.count_pay_type,
               count_price_trx: countEnergyConfig.count_price_trx || 0,
               count_price_usdt: countEnergyConfig.count_price_usdt || 0,
-              hour_limit_count: countEnergyConfig.hour_limit_count || 0,
-              total_limit_count: countEnergyConfig.total_limit_count || 0,
-              check_resource_status: countEnergyConfig.check_resource_status || 2,
               notifyUser: countEnergyConfig.notifyUser || false,
               notifyGroupOwner: countEnergyConfig.notifyGroupOwner || false,
               notifyAdmin: countEnergyConfig.notifyAdmin || false
@@ -296,7 +293,10 @@ export function useBotConfig() {
             console.log('welfarePriceConfig', welfarePriceConfig)
             formMethods.welfarePrice.setValues({
               weal_address: currentBot.value.weal_address,
-              weal_price_trx: welfarePriceConfig.weal_price_trx
+              weal_price_trx: welfarePriceConfig.weal_price_trx,
+              hour_limit_count: welfarePriceConfig.hour_limit_count || 0,
+              total_limit_count: welfarePriceConfig.total_limit_count || 0,
+              check_resource_status: welfarePriceConfig.check_resource_status || 2
             })
             return true
           } catch (error) {

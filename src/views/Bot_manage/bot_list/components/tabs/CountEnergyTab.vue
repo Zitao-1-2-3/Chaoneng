@@ -79,54 +79,6 @@ const countEnergySchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'line',
-    component: 'Divider' as const,
-    label: '购买设置'
-  },
-  {
-    field: 'hour_limit_count',
-    component: 'InputNumber' as const,
-    label: '每小时使用笔数：',
-    componentProps: {
-      placeholder: '请输入每小时使用笔数',
-      min: 0
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '每小时使用笔数是必填项' }]
-    },
-    colProps: {
-      span: 12
-    }
-  },
-  {
-    field: 'total_limit_count',
-    component: 'InputNumber' as const,
-    label: '总使用笔数：',
-    componentProps: {
-      placeholder: '请输入总使用笔数',
-      min: 0
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '总使用笔数是必填项' }]
-    },
-    colProps: {
-      span: 12
-    }
-  },
-  {
-    field: 'check_resource_status',
-    component: 'Switch' as const,
-    label: {
-      text: '是否开启质押黑名单：',
-      tips: '开启则有质押的地址无法代理能量'
-    },
-    value: 2,
-    componentProps: {
-      activeValue: 1,
-      inactiveValue: 2
-    }
-  },
-  {
     field: 'notifyUser',
     component: 'Switch' as const,
     label: '地址笔数变更通知(用户)：',
