@@ -21,14 +21,6 @@ const props = defineProps({
 const flashRentDetailSchema = computed((): DescriptionsSchema[] => [
   { field: 'stroke_num', label: '福利笔数' }, // Assuming 'stroke_num' applies
   {
-    field: 'flash_price',
-    label: '福利能量价格',
-    slots: {
-      default: (data: any) =>
-        h('span', {}, data.flash_price + ' ' + data.pay_unit + '/' + data.energy_rent_text)
-    }
-  },
-  {
     field: 'txid', // Ensure 'txid' is in getEnergyOrderDetailApi response
     label: '交易hash',
     span: 24,
