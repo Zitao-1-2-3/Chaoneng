@@ -136,6 +136,7 @@ const columns = ref<TableColumn[]>([
     field: 'apl_key',
     label: 'API密钥'
   },
+  { field: 'account_num', label: '用户数量' },
   {
     field: 'order_count',
     label: '交易订单数'

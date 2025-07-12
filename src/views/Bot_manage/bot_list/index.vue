@@ -168,6 +168,7 @@ const columns = [
       }
     }
   },
+  { field: 'account_num', label: '用户数量' },
   {
     field: 'createTime',
     label: '创建时间',
