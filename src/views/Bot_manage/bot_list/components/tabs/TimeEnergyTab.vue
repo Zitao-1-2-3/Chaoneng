@@ -50,6 +50,29 @@ const timeEnergySchema = reactive<FormSchema[]>([
       span: 12
     }
   },
+
+  // 闪租地址转账价格flash_addr_price
+  {
+    field: 'flash_addr_price',
+    component: 'InputNumber' as const,
+    label: '闪租地址转账价格',
+    componentProps: {
+      placeholder: '请输入闪租地址转账价格',
+      min: 0,
+      precision: 1,
+      remark: () => {
+        const costKey = 'flash_rent_price'
+        const costPrice = computedAgentPrices.value[costKey]
+        return costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+      }
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '闪租地址转账价格不能为空' }]
+    },
+    colProps: {
+      span: 12
+    }
+  },
   {
     field: 'flash_time_max_num',
     component: 'InputNumber' as const,
@@ -63,7 +86,7 @@ const timeEnergySchema = reactive<FormSchema[]>([
       precision: 2
     },
     colProps: {
-      span: 12
+      span: 24
     }
   },
   {
@@ -82,6 +105,9 @@ const timeEnergySchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [{ required: true, message: '1天租赁价格不能为空' }]
+    },
+    colProps: {
+      span: 12
     }
   },
   {
@@ -100,6 +126,9 @@ const timeEnergySchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [{ required: true, message: '3天租赁价格不能为空' }]
+    },
+    colProps: {
+      span: 12
     }
   },
   {
@@ -118,6 +147,9 @@ const timeEnergySchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [{ required: true, message: '7天租赁价格不能为空' }]
+    },
+    colProps: {
+      span: 12
     }
   },
   {
@@ -136,6 +168,9 @@ const timeEnergySchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [{ required: true, message: '15天租赁价格不能为空' }]
+    },
+    colProps: {
+      span: 12
     }
   }
 ])
