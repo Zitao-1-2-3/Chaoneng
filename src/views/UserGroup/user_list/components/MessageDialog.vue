@@ -46,6 +46,7 @@ import { upload as uploadAPI } from '@/api/utils/upload'
 import type { MenuItem } from '@/api/menu_list/types'
 import { useRouter } from 'vue-router'
 import { BaseButton } from '@/components/Button'
+import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
 
 const props = defineProps({
   modelValue: {
@@ -141,6 +142,11 @@ const userDescriptionSchema = computed<DescriptionsSchema[]>(() => [
 
 // 表单相关
 const { formRegister: messageFormRegister, formMethods } = useForm()
+const { getFormData, setValues } = formMethods
+
+const getContent = async () => (await getFormData())?.content || ''
+const setContent = async (newContent: string) => await setValues({ content: newContent })
+const { renderFormattingButtons } = useHtmlInsert(getContent, setContent)
 
 // 获取内联菜单列表
 const fetchMenuList = async () => {
@@ -167,7 +173,8 @@ const formSchema = computed<FormSchema[]>(() => {
       componentProps: {
         type: 'textarea',
         rows: 4,
-        placeholder: '请输入消息内容'
+        placeholder: '请输入消息内容',
+        remark: renderFormattingButtons
       },
       formItemProps: {
         rules: [required('消息内容不能为空')]

@@ -7,18 +7,6 @@
     @close="handleClose"
     :close-on-click-modal="false"
   >
-    <!-- Custom HTML formatting buttons REMOVED FROM HERE -->
-    <!-- 
-    <div class="custom-html-buttons" style="margin-bottom: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px;">
-      <ElLink type="primary" :underline="false" @click="insertTag('b')" style="font-size: 14px; font-weight: bold;">B</ElLink>
-      <ElLink type="primary" :underline="false" @click="insertTag('i')" style="font-size: 14px; font-style: italic;">I</ElLink>
-      <ElLink type="primary" :underline="false" @click="insertTag('u')" style="font-size: 14px; text-decoration: underline;">U</ElLink>
-      <ElLink type="primary" :underline="false" @click="insertLink" style="font-size: 14px;">链接</ElLink>
-      <ElLink type="primary" :underline="false" @click="insertTgUserLink" style="font-size: 14px;">TG用户</ElLink>
-      <ElLink type="primary" :underline="false" @click="insertTag('precode')" style="font-size: 14px;">代码块</ElLink>
-    </div>
-    -->
-
     <Form
       ref="formComponentRef"
       :schema="formSchema"
@@ -36,13 +24,14 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, watch, computed, type PropType, type Ref, nextTick } from 'vue'
-import { ElButton, ElMessage, ElMessageBox, ElLink } from 'element-plus'
+import { ref, watch, computed, type PropType, nextTick } from 'vue'
+import { ElButton, ElMessage } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, type FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import type { ReplyItem, ReplySaveParams, BotOption } from '@/api/reply_list/types'
+import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -62,6 +51,10 @@ const submitLoading = ref(false)
 
 const dialogTitle = computed(() => (props.isEdit ? '编辑关键词回复' : '新增关键词回复'))
 
+const getContent = async () => (await getFormData())?.content || ''
+const setContent = async (newContent: string) => await setValues({ content: newContent })
+const { renderFormattingButtons } = useHtmlInsert(getContent, setContent)
+
 const formSchema = computed<FormSchema[]>(() => {
   const baseSchema: FormSchema[] = [
     {
@@ -72,66 +65,7 @@ const formSchema = computed<FormSchema[]>(() => {
         type: 'textarea',
         rows: 5,
         placeholder: '请输入回复内容',
-        remark: () => (
-          <div
-            style={{
-              marginTop: '5px',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              gap: '10px'
-            }}
-          >
-            <ElLink
-              type="primary"
-              underline={false}
-              onClick={() => insertTag('b')}
-              style={{ fontSize: '13px', fontWeight: 'bold' }}
-            >
-              B
-            </ElLink>
-            <ElLink
-              type="primary"
-              underline={false}
-              onClick={() => insertTag('i')}
-              style={{ fontSize: '13px', fontStyle: 'italic' }}
-            >
-              I
-            </ElLink>
-            <ElLink
-              type="primary"
-              underline={false}
-              onClick={() => insertTag('u')}
-              style={{ fontSize: '13px', textDecoration: 'underline' }}
-            >
-              U
-            </ElLink>
-            <ElLink
-              type="primary"
-              underline={false}
-              onClick={insertLink}
-              style={{ fontSize: '13px' }}
-            >
-              链接
-            </ElLink>
-            <ElLink
-              type="primary"
-              underline={false}
-              onClick={insertTgUserLink}
-              style={{ fontSize: '13px' }}
-            >
-              TG用户
-            </ElLink>
-            <ElLink
-              type="primary"
-              underline={false}
-              onClick={() => insertTag('precode')}
-              style={{ fontSize: '13px' }}
-            >
-              代码块
-            </ElLink>
-          </div>
-        )
+        remark: renderFormattingButtons
       },
       colProps: { span: 24 }
     } as any,
@@ -229,127 +163,6 @@ const handleModelUpdate = (value: boolean) => {
 const handleClose = () => {
   emit('update:modelValue', false)
 }
-
-// --- HTML Tag Insertion Logic ---
-
-const getContent = async (): Promise<string> => {
-  try {
-    const formData = await getFormData()
-    return formData?.content || ''
-  } catch (e) {
-    console.error('Failed to get form data for content:', e)
-    return ''
-  }
-}
-
-const setContent = async (newContent: string) => {
-  try {
-    await setValues({ content: newContent })
-  } catch (e) {
-    console.error('Failed to set form data for content:', e)
-  }
-}
-
-// Simplified insertText: just appends the given text
-const insertText = async (textToInsert: string) => {
-  const currentContent = await getContent()
-  await setContent(currentContent + textToInsert)
-}
-
-const insertTag = async (tagType: 'b' | 'i' | 'u' | 'precode') => {
-  let exampleHtml = ''
-
-  switch (tagType) {
-    case 'b':
-      exampleHtml = '<b>粗体文字示例</b>'
-      break
-    case 'i':
-      exampleHtml = '<i>斜体文字示例</i>'
-      break
-    case 'u':
-      exampleHtml = '<u>下划线文字示例</u>'
-      break
-    case 'precode':
-      exampleHtml = '<pre><code>代码示例\n第二行代码示例</code></pre>' // Added a newline for precode example
-      break
-  }
-  await insertText(exampleHtml)
-}
-
-const insertLink = async () => {
-  try {
-    const { value: href } = await ElMessageBox.prompt(
-      '请输入链接地址 (例: https://example.com)',
-      '插入超链接',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputPlaceholder: 'https://example.com',
-        inputType: 'url'
-      }
-    )
-    if (!href) return
-
-    const { value: text } = await ElMessageBox.prompt(
-      '请输入链接文字 (可选, 默认为链接地址)',
-      '插入超链接',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputPlaceholder: '链接描述'
-      }
-    )
-
-    const linkText = text || href
-    const linkHtml = `<a href="${href.trim()}">${linkText.trim()}</a>`
-    await insertText(linkHtml)
-  } catch (action) {
-    if (action === 'cancel') {
-      // ElMessage.info('操作取消') // Prompt handles cancel implicitly
-    } else {
-      ElMessage.error('插入链接操作失败')
-      console.error('Insert link error:', action)
-    }
-  }
-}
-
-const insertTgUserLink = async () => {
-  try {
-    const { value: username } = await ElMessageBox.prompt(
-      '请输入TG用户名 (例: tgwljsyy77)',
-      '插入TG用户链接',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputPlaceholder: 'TG用户名'
-      }
-    )
-    if (!username) return
-
-    const { value: text } = await ElMessageBox.prompt(
-      '请输入链接显示的文字 (可选, 默认为用户名)',
-      '插入TG用户链接',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        inputPlaceholder: username
-      }
-    )
-
-    const linkText = text || username
-    const userLinkHtml = `<a href="https://t.me/${username.trim()}">${linkText.trim()}</a>`
-    await insertText(userLinkHtml)
-  } catch (action) {
-    if (action === 'cancel') {
-      // ElMessage.info('操作取消') // Prompt handles cancel implicitly
-    } else {
-      ElMessage.error('插入TG用户链接操作失败')
-      console.error('Insert TG user link error:', action)
-    }
-  }
-}
-
-// --- End HTML Tag Insertion Logic ---
 
 const handleSubmit = async () => {
   const elForm = await getElFormExpose()
