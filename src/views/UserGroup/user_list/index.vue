@@ -221,11 +221,11 @@ const searchSchema = computed<FormSchema[]>(() => {
       }
     },
     {
-      field: 'tg_id',
+      field: 'query',
       component: 'Input' as const,
-      label: 'TG用户ID',
+      label: '关键词',
       componentProps: {
-        placeholder: '请输入TG用户ID'
+        placeholder: '请输入机器人id/用户名/昵称'
       }
     }
   ]
