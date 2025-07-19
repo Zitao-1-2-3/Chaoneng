@@ -301,7 +301,8 @@ const searchSchema = [
         { label: '按时间', value: 2 },
         { label: '批量下单', value: 3 },
         { label: '闪租', value: 4 },
-        { label: '激活', value: 5 }
+        { label: '激活', value: 5 },
+        { label: '福利', value: 6 }
       ]
     }
   }
