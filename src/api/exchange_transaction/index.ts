@@ -62,5 +62,12 @@ export const resendTrxApi = (params: ResendTrxParams) => {
   */
 }
 
+export const exportExchangeOrderApi = (params: ExchangeOrderListParams) => {
+  return request.get<IResponse<boolean>>({
+    url: '/v2/manage/exchange_order/export',
+    params
+  })
+}
+
 // 导出所有类型
 export * from './types'
