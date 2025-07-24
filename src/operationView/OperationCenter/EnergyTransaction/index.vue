@@ -26,7 +26,14 @@
           total: totalCount
         }"
         @ready="onSearchTableReady"
-      />
+      >
+        <!-- <template #searchButtons>
+          <BaseButton type="primary" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
+          </BaseButton>
+        </template> -->
+      </SearchTable>
 
       <!-- 详情弹窗 -->
       <Dialog v-model="dialogVisible" title="添加能量交易">
@@ -68,6 +75,7 @@ import {
   getEnergyTransactionListApi,
   getEnergyTransactionDetailApi,
   updateEnergyTransactionStatusApi,
+  exportEnergyTransactionApi, // 新增导入
   EnergyTransactionOrder,
   EnergyTransactionQueryParams,
   EnergyTransactionResponse
@@ -84,6 +92,18 @@ const recycleEnergyRef = ref()
 const resendEnergyRef = ref()
 const orderDetailRef = ref()
 const isLoaded = ref(false)
+
+// 导出
+const handleExport = async () => {
+  try {
+    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
+    await exportEnergyTransactionApi(params as EnergyTransactionQueryParams)
+    ElMessage.success('导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  }
+}
 
 // 定义 ElTag 允许的类型
 type ElTagType = 'success' | 'warning' | 'info' | 'primary' | 'danger'
@@ -238,7 +258,7 @@ const columns = [
 const actionColumn = {
   field: 'action',
   label: '操作',
-  minWidth: 120,
+  minWidth: 200,
   fixed: 'right' as const,
   slots: {
     default: (data: any) => {
@@ -251,6 +271,9 @@ const actionColumn = {
           <BaseButton type="success" disabled onClick={() => handleResend(row)}>
             补发
           </BaseButton> */}
+          <BaseButton type="danger" onClick={() => handleStop(row)}>
+            停止代理
+          </BaseButton>
           <BaseButton type="primary" onClick={() => handleDetail(row)}>
             详情
           </BaseButton>
@@ -570,6 +593,10 @@ const handleResendSuccess = () => {
   if (searchTableRef.value) {
     searchTableRef.value.reload()
   }
+}
+
+const handleStop = (row) => {
+  console.log(row)
 }
 
 const route = useRoute()

@@ -123,6 +123,11 @@ const commonDetailSchema = reactive<any[]>([
     label: '支付时间',
     field: 'pay_time',
     slots: { default: (data) => formatToDateTime(data?.pay_time) }
+  },
+  {
+    label: '停止时间',
+    field: 'stop_time',
+    slots: { default: (data) => (data?.stop_time ? formatToDateTime(data?.stop_time) : '-') }
   }
 ])
 
