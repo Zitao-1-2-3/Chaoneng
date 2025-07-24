@@ -41,7 +41,10 @@ const botOptions = ref<{ label: string; value: string }[]>([{ label: '全部', v
 const fetchBotList = async () => {
   isBotListLoaded.value = false
   try {
-    const res = await getAgentBotListApi({})
+    const res = await getAgentBotListApi({
+      current_page: 1,
+      page_size: 1000
+    })
     const bots = (res.data.list || []).map((bot: any) => ({
       label: `${bot.name} (${bot.firstname})`,
       value: String(bot.id)
@@ -86,6 +89,10 @@ const columns: TableColumn[] = [
   {
     field: 'bot_info.bot_name',
     label: '机器人用户名'
+  },
+  {
+    field: 'user_name',
+    label: '代理名称'
   },
   {
     field: 'trx_mount',
