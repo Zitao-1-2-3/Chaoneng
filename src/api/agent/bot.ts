@@ -65,3 +65,7 @@ export const getAgentBotListApi = (
 export const updateAgentBotStatusApi = (data: UpdateAgentBotStatusPayload): Promise<IResponse> => {
   return request.post({ url: '/v2/manage/agent_bot/update', data })
 }
+
+export const exportAgentBotListApi = (params: AgentBotQueryParams): Promise<IResponse> => {
+  return request.get({ url: '/v2/manage/agent_bot/export', params })
+}

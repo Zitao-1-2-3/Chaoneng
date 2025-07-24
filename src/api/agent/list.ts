@@ -23,6 +23,13 @@ export interface AgentItem {
   create_time: string | number // 创建时间 (示例值为 0)
 }
 
+export interface AgentListParams {
+  query?: string // 关键字：代理ID/联系方式
+  status?: number | string // 状态：'' 或 undefined 表示全部, 1 表示启用, 2 表示禁用
+  current_page?: number
+  page_size?: number
+}
+
 // 定义列表接口返回结构 (假设 data 结构)
 interface AgentListResponseData {
   list: AgentItem[]
@@ -91,4 +98,11 @@ export const addAgentApi = (data: AddAgentPayload): Promise<IResponse> => {
  */
 export const updateAgentApi = (data: UpdateAgentPayload): Promise<IResponse> => {
   return request.post({ url: '/v2/manage/agent/update', data })
+}
+
+export const exportAgentListApi = (params: AgentListParams) => {
+  return request.get<IResponse<boolean>>({
+    url: '/v2/manage/agent/export',
+    params
+  })
 }
