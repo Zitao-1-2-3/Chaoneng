@@ -19,12 +19,12 @@
           buttonPosition: 'center'
         }"
       >
-        <template #searchButtons>
+        <!-- <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
-        </template>
+        </template> -->
       </SearchTable>
 
       <!-- 回收能量弹窗 -->
