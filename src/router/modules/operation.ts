@@ -82,6 +82,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '托管明细'
           }
+        },
+        {
+          path: 'recharge_order',
+          component: () => import('@/operationView/OperationCenter/RechargeOrder/index.vue'),
+          name: 'RechargeOrder',
+          meta: {
+            hidden: true,
+            title: '充值订单'
+          }
         }
       ]
     },
@@ -112,6 +121,16 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
             title: '收款配置',
             buttonList: ['add', 'edit', 'delete']
           }
+        },
+        {
+          path: 'trx_address_book',
+          component: () => import('@/operationView/Marketing/TrxAddressBook.vue'),
+          name: 'TrxAddressBook',
+          meta: {
+            hidden: true,
+            title: '收款地址簿',
+            buttonList: ['add', 'edit', 'delete']
+          }
         }
       ]
     },
@@ -135,6 +154,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'agent_recharge',
+          component: () => import('@/operationView/Agent/AgentRecharge.vue'),
+          name: 'AgentRecharge',
+          meta: {
+            hidden: true,
+            title: '代理充值明细'
+          }
+        },
+        {
           path: 'ledger',
           component: () => import('@/operationView/Agent/Ledger.vue'),
           name: 'AgentLedger',
@@ -149,6 +177,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '机器人列表',
             buttonList: ['edit']
+          }
+        },
+        {
+          path: 'user_list',
+          component: () => import('@/operationView/Agent/UserList.vue'),
+          name: 'UserList',
+          meta: {
+            title: '用户列表'
           }
         }
       ]
