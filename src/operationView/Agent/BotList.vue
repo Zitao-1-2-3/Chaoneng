@@ -12,7 +12,10 @@
       >
         <!-- 可以根据需要添加自定义按钮，这里暂时留空 -->
         <!-- <template #searchButtons>
-          <ElButton type="primary">...</ElButton>
+          <BaseButton type="primary" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
+          </BaseButton>
         </template> -->
       </SearchTable>
     </ContentWrap>
@@ -21,7 +24,7 @@
 
 <script setup lang="tsx">
 import { ref, reactive, onMounted } from 'vue'
-import { ElTag, ElMessage, ElMessageBox } from 'element-plus' // 引入ElMessageBox
+import { ElTag, ElMessage, ElMessageBox, ElLink } from 'element-plus' // 引入ElMessageBox
 import { Icon } from '@/components/Icon'
 import { SearchTable, useSearchTable } from '@/components/SearchTable'
 import { FormSchema } from '@/components/Form'
@@ -32,13 +35,15 @@ import {
   updateAgentBotStatusApi,
   AgentBotQueryParams,
   AgentBotItem,
-  UpdateAgentBotStatusPayload
+  UpdateAgentBotStatusPayload,
+  exportAgentBotListApi
 } from '@/api/agent/bot' // 更新导入路径
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
+const router = useRouter()
 // 引用SearchTable实例
 const searchTableRef = ref()
 
@@ -136,7 +141,23 @@ const columns = ref<TableColumn[]>([
     field: 'apl_key',
     label: 'API密钥'
   },
-  { field: 'account_num', label: '用户数量' },
+  {
+    field: 'account_num',
+    label: '用户数量',
+    slots: {
+      default: (data: any) => {
+        return (
+          <ElLink
+            type="primary"
+            style="cursor:pointer"
+            onClick={() => handleUserCountClick(data.row.id)}
+          >
+            {data.row.account_num}
+          </ElLink>
+        )
+      }
+    }
+  },
   {
     field: 'order_count',
     label: '交易订单数'
@@ -218,6 +239,28 @@ const handleUpdateStatus = (id: number | string, status: number, actionText: str
     })
 }
 
+const handleExport = async () => {
+  try {
+    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
+    await exportAgentBotListApi(params)
+    ElMessage.success('导出已开始，请稍候')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  }
+}
+
+const handleUserCountClick = (botId: number | string) => {
+  router.push({ path: '/agent/user_list', query: { bot_id: botId } })
+}
+
+onMounted(() => {
+  // 优化：支持通过bot_id参数自动筛选
+  if (route.query.bot_id) {
+    searchTableRef.value?.setSearchParams({ query: String(route.query.bot_id) })
+    searchTableRef.value?.reload()
+  }
+})
 // 页面加载时自动查询 (SearchTable 内部会处理首次加载，此行可省略)
 // onMounted(() => {
 //   searchTableRef.value?.reload()
