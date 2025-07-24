@@ -76,7 +76,7 @@ import { getBotListApi, addBotApi, updateBotApi } from '@/api/botlist'
 import { Icon } from '@/components/Icon'
 import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 interface SearchTableInstance {
   reload: () => Promise<void>
   reset: () => Promise<any>
@@ -168,7 +168,23 @@ const columns = [
       }
     }
   },
-  { field: 'account_num', label: '用户数量' },
+  {
+    field: 'account_num',
+    label: '用户数量',
+    slots: {
+      default: (data: any) => {
+        return (
+          <ElLink
+            type="primary"
+            style="cursor:pointer"
+            onClick={() => handleUserCountClick(data.row.id)}
+          >
+            {data.row.account_num}
+          </ElLink>
+        )
+      }
+    }
+  },
   {
     field: 'createTime',
     label: '创建时间',
@@ -506,4 +522,10 @@ onMounted(() => {
     }
   }, 100)
 })
+
+const router = useRouter()
+
+const handleUserCountClick = (botId: number | string) => {
+  router.push({ path: '/user_group/user_list', query: { bot_id: botId } })
+}
 </script>

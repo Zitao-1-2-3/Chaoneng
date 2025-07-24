@@ -73,7 +73,9 @@ import { useRoute, useRouter } from 'vue-router'
 import RechargeDialog from './components/RechargeDialog.vue'
 import BalanceRecordDialog from './components/BalanceRecordDialog.vue'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
+import { nextTick } from 'vue'
 
+const route = useRoute()
 const router = useRouter()
 // 表单校验
 const { required } = useValidator()
@@ -83,20 +85,20 @@ const massSendRecordDialogRef = ref<InstanceType<typeof MassSendRecordDialog> | 
 // State for conditional rendering
 const isBotListLoaded = ref(false)
 
-// 机器人列表
-const botOptions = ref<{ label: string; value: number | string }[]>([{ label: '全部', value: '' }])
+// 机器人下拉options，全部string类型
+const botOptions = ref<{ label: string; value: string }[]>([{ label: '全部', value: '' }])
 
 // 获取机器人列表
 const fetchBotList = async () => {
-  isBotListLoaded.value = false // Reset before fetching if needed
+  isBotListLoaded.value = false
   try {
     const res = await getBotListApi({})
     const bots = (res.data.list || []).map((bot: any) => ({
       label: `${bot.name} (${bot.firstname})`,
-      value: bot.id
+      value: String(bot.id)
     }))
     botOptions.value = [{ label: '全部', value: '' }, ...bots]
-    isBotListLoaded.value = true // Set to true after successful fetch
+    isBotListLoaded.value = true
   } catch (error) {
     console.error('获取机器人列表失败:', error)
   }
@@ -208,28 +210,28 @@ const columns: TableColumn[] = [
   }
 ]
 
-// 搜索表单配置 - computed is fine now
-const searchSchema = computed<FormSchema[]>(() => {
-  return [
-    {
-      field: 'bot_id',
-      component: 'Select' as const,
-      label: '机器人',
-      componentProps: {
-        options: botOptions.value,
-        placeholder: '请选择机器人'
-      }
-    },
-    {
-      field: 'query',
-      component: 'Input' as const,
-      label: '关键词',
-      componentProps: {
-        placeholder: '请输入机器人id/用户名/昵称'
-      }
+// 搜索表单配置
+const searchSchema = computed<FormSchema[]>(() => [
+  {
+    field: 'bot_id',
+    component: 'Select' as const,
+    label: '机器人',
+    componentProps: {
+      options: botOptions.value,
+      placeholder: '请选择机器人',
+      valueKey: 'value',
+      labelKey: 'label'
     }
-  ]
-})
+  },
+  {
+    field: 'query',
+    component: 'Input' as const,
+    label: '关键词',
+    componentProps: {
+      placeholder: '请输入机器人id/用户名/昵称'
+    }
+  }
+])
 
 // API 封装 - 获取账户信息
 const fetchAccountList = async (params: any) => {
@@ -311,16 +313,23 @@ const handleMessageSent = () => {
 
 // SearchTable ready事件处理
 function onSearchTableReady(instance) {
-  const query = useRoute().query
-  if (query.tg_id) {
-    instance.setSearchParams({ tg_id: query.tg_id })
-  }
   instance.reload()
 }
 
-onMounted(() => {
-  // 获取机器人列表
-  fetchBotList()
+onMounted(async () => {
+  await fetchBotList()
+  const query = route.query
+  // 只在options加载后做筛选，类型严格一致
+  if (query.bot_id) {
+    const botId = botOptions.value.find((opt) => opt.value === String(query.bot_id))?.value
+    if (botId !== undefined) {
+      searchTableRef.value?.setSearchParams({ bot_id: botId })
+      searchTableRef.value?.reload()
+    }
+  } else if (query.tg_id) {
+    searchTableRef.value?.setSearchParams({ tg_id: String(query.tg_id) })
+    searchTableRef.value?.reload()
+  }
 })
 </script>
 
