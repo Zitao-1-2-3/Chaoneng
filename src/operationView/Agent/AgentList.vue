@@ -11,6 +11,12 @@
         <template #leftToolbar>
           <BaseButton type="primary" @click="handleAddAgent">新增代理</BaseButton>
         </template>
+        <!-- <template #searchButtons>
+          <BaseButton type="primary" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
+          </BaseButton>
+        </template> -->
       </SearchTable>
     </ContentWrap>
 
@@ -34,8 +40,10 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import {
   getAgentListApi,
   updateAgentStatusApi,
+  exportAgentListApi, // 新增导入
   type AgentItem,
-  type UpdateAgentStatusPayload
+  type UpdateAgentStatusPayload,
+  type AgentListParams // 新增导入
 } from '@/api/agent/list'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
@@ -47,6 +55,18 @@ const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 const agentFormRef = ref<InstanceType<typeof AgentForm>>()
 const rechargeDialogVisible = ref(false)
 const currentAccount = ref<AgentItem>()
+
+// 导出
+const handleExport = async () => {
+  try {
+    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
+    await exportAgentListApi(params as AgentListParams)
+    ElMessage.success('导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  }
+}
 
 // 常量配置
 const STATUS_OPTIONS = [
