@@ -18,7 +18,14 @@
           layout: 'inline',
           buttonPosition: 'center'
         }"
-      />
+      >
+        <template #searchButtons>
+          <BaseButton type="primary" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
+          </BaseButton>
+        </template>
+      </SearchTable>
 
       <!-- 回收能量弹窗 -->
       <RetrieveAsset ref="retrieveEnergyRef" @success="handleRecycleSuccess" />
@@ -44,8 +51,8 @@ import RetrieveAsset from './components/RetrieveAsset.vue'
 import ResendEnergy from './components/ResendEnergy.vue'
 import TrustTransactionDetail from './components/TrustTransactionDetail.vue'
 import { BaseButton } from '@/components/Button'
-import { getTrustTransactionListApi } from '@/api/trust_transaction'
-import type { HostedOrder } from '@/api/trust_transaction/types'
+import { getTrustTransactionListApi, exportTrustTransactionApi } from '@/api/trust_transaction' // 新增导入
+import type { HostedOrder, TrustTransactionQueryParams } from '@/api/trust_transaction/types' // 新增导入
 import { ContentWrap } from '@/components/ContentWrap'
 import { formatToWan } from '@/utils'
 import { useRouter, RouterLink } from 'vue-router'
@@ -57,6 +64,18 @@ const searchTableRef = ref<SearchTableExpose>()
 const retrieveEnergyRef = ref()
 const resendEnergyRef = ref()
 const detailRef = ref()
+
+// 导出
+const handleExport = async () => {
+  try {
+    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
+    await exportTrustTransactionApi(params as TrustTransactionQueryParams)
+    ElMessage.success('导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  }
+}
 
 // --- Helper Functions ---
 const getManageStatus = (status: number) => {

@@ -90,3 +90,10 @@ export const deleteTrustTransactionApi = (id: string) => {
 //     params
 //   })
 // }
+
+export const exportTrustTransactionApi = (params: HostedOrderQueryParams) => {
+  return request.get<IResponse<boolean>>({
+    url: '/v2/manage/order/hosted_order/export',
+    params
+  })
+}
