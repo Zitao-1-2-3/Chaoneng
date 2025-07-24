@@ -19,7 +19,14 @@
           layout: 'inline',
           buttonPosition: 'center'
         }"
-      />
+      >
+        <!-- <template #searchButtons>
+          <BaseButton type="primary" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
+          </BaseButton>
+        </template> -->
+      </SearchTable>
 
       <!-- 订单详情弹窗 -->
       <OrderDetail ref="orderDetailRef" />
@@ -40,7 +47,7 @@ import { FormSchema } from '@/components/Form'
 import { formatToDateTime, formatToDate } from '@/utils/dateUtil'
 import OrderDetail from './components/OrderDetail.vue'
 import ResendTrx from './components/ResendTrx.vue'
-import { getExchangeOrderListApi } from '@/api/exchange_transaction'
+import { getExchangeOrderListApi, exportExchangeOrderApi } from '@/api/exchange_transaction' // 新增导入
 import type {
   ExchangeOrderListItem,
   ExchangeOrderListParams,
@@ -54,6 +61,18 @@ const searchTableRef = ref<SearchTableExpose>()
 const orderDetailRef = ref()
 const resendTrxRef = ref()
 const totalCount = ref(0)
+
+// 导出
+const handleExport = async () => {
+  try {
+    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
+    await exportExchangeOrderApi(params as ExchangeOrderListParams)
+    ElMessage.success('导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  }
+}
 
 // 表格列配置 (根据截图更新)
 const columns = reactive<TableColumn[]>([
