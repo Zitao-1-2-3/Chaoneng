@@ -78,7 +78,8 @@ import {
   exportEnergyTransactionApi, // 新增导入
   EnergyTransactionOrder,
   EnergyTransactionQueryParams,
-  EnergyTransactionResponse
+  EnergyTransactionResponse,
+  handleRecycleApi
 } from '@/api/energy_transaction'
 import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
@@ -595,8 +596,16 @@ const handleResendSuccess = () => {
   }
 }
 
-const handleStop = (row) => {
-  console.log(row)
+const handleStop = async (row) => {
+  const res = await handleRecycleApi({
+    id: row.id
+  })
+  if (res) {
+    ElMessage.success('停止代理成功')
+    searchTableRef.value?.reload()
+  } else {
+    ElMessage.error('停止代理失败')
+  }
 }
 
 const route = useRoute()

@@ -24,6 +24,21 @@ export interface ApiResponse<T = any> {
   }
 }
 
+export interface HandleRecycleParams {
+  id: number
+}
+
+/**
+ * 处理回收
+ * @param data 处理回收参数
+ */
+export const handleRecycleApi = (data: HandleRecycleParams) => {
+  return request.post<ApiResponse<EnergyTransactionOrder | null>>({
+    url: '/v2/manage/energy_order/hand_recycle',
+    data
+  })
+}
+
 /**
  * 获取能量交易订单列表
  * @param params 查询参数

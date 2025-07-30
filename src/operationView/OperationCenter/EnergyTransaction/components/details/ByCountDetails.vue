@@ -108,6 +108,14 @@ const countOrderTableSchema = computed((): TableColumn[] => [
     type: 'link',
     showOverflowTooltip: true,
     url: (row) => `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.energy_txid}`
+  },
+  {
+    field: 'recycle_txid',
+    label: '回收hash',
+    width: 280,
+    type: 'link',
+    showOverflowTooltip: true,
+    url: (row) => `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.recycle_txid}`
   }
 ])
 

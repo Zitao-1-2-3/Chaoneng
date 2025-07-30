@@ -183,6 +183,23 @@ const batchOrderTableColumns = ref<TableColumn[]>([
     slots: { default: ({ row }) => getStatusTag('status', row.status) }
   },
   {
+    prop: 'handle_status',
+    field: 'handle_status',
+    label: '回收状态',
+    width: 100,
+    align: 'center',
+    formatter: (row) => {
+      if (row.handle_status === 1) {
+        return h(ElTag, { type: 'success', size: 'small' }, () => '已处理')
+      } else if (row.handle_status === 2) {
+        return h(ElTag, { type: 'info', size: 'small' }, () => '未处理')
+      } else if (row.handle_status === 3) {
+        return h(ElTag, { type: 'danger', size: 'small' }, () => '处理失败')
+      }
+      return h(ElTag, { type: 'info', size: 'small' }, () => '-')
+    }
+  },
+  {
     prop: 'order_amount',
     field: 'order_amount',
     label: '扣款金额',
@@ -258,6 +275,23 @@ const batchItemDetailSchema = computed((): DescriptionsSchema[] => [
     label: '交易状态',
     span: 24,
     slots: { default: (data) => getStatusTag('status', data?.status) } // Use status tag renderer
+  },
+  {
+    field: 'handle_status', // Field from reference
+    label: '回收状态',
+    span: 24,
+    slots: {
+      default: (data) => {
+        if (data?.handle_status === 1) {
+          return h(ElTag, { type: 'success', size: 'small' }, () => '已处理')
+        } else if (data?.handle_status === 2) {
+          return h(ElTag, { type: 'info', size: 'small' }, () => '未处理')
+        } else if (data?.handle_status === 3) {
+          return h(ElTag, { type: 'danger', size: 'small' }, () => '处理失败')
+        }
+        return h(ElTag, { type: 'info', size: 'small' }, () => '-')
+      }
+    } // Use status tag renderer
   },
   {
     field: 'finish_time', // Field from reference

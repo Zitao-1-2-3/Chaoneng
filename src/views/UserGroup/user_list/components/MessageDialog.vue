@@ -406,7 +406,7 @@ const handleSubmit = async () => {
       } else {
         // 群发
         const apiParams: any = {
-          bot_id: formData.bot_id,
+          bot_id: Number(formData.bot_id),
           receive_type: formData.filter_type,
           content: formData.content
         }
