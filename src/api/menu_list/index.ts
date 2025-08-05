@@ -10,7 +10,8 @@ export interface AddBotMenuParam {
   status: number
   menu_type: number
   inner_type: string
-  inner_value?: string // 统一字段：根据inner_type判断用途
+  inner_value?: string // URL链接时使用
+  callback_type?: string // 回调函数时使用
   order_num?: number
 }
 
@@ -54,4 +55,9 @@ export const saveMenuApi = (data: Partial<UpdateBotMenuParam>) => {
   } else {
     return addMenuApi(data as AddBotMenuParam)
   }
+}
+
+// 获取内联回调操作指令列表
+export const getCallBackListApi = () => {
+  return request.get({ url: '/v1/bot/operate-command/list' })
 }

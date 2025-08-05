@@ -64,7 +64,7 @@ import { useForm } from '@/hooks/web/useForm'
 import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import { getMenuListApi, deleteMenuApi, saveMenuApi } from '@/api/menu_list'
+import { getMenuListApi, deleteMenuApi, saveMenuApi, getCallBackListApi } from '@/api/menu_list'
 import { MenuItem } from '@/api/menu_list/types'
 import { useValidator } from '@/hooks/web/useValidator'
 import MenuPreview from './components/MenuPreview.vue'
@@ -81,6 +81,9 @@ const { getElFormExpose } = formMethods
 const isUrlType = computed(() => formValues.inner_type === 'url')
 
 const isLoaded = ref(false)
+
+// 回调函数列表
+const callbackList = ref<Array<{ label: string; value: string }>>([])
 
 // 添加formValues来跟踪表单值
 const formValues = reactive<{
@@ -196,7 +199,7 @@ const formSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入链接地址',
       remark: () => {
-        if (isUrlType.value) {
+        if (formValues.inner_type === 'url') {
           return (
             <>
               <p>例如：https://www.123456789.com</p>
@@ -205,7 +208,7 @@ const formSchema = reactive<FormSchema[]>([
         } else {
           return (
             <>
-              <p>例如：callbackName</p>
+              <p>请选择回调函数</p>
             </>
           )
         }
@@ -397,7 +400,7 @@ const fetchMenuList = async (params: any) => {
 }
 
 // 修改deleteMenu函数签名以满足接口要求
-const deleteMenu = async () => {
+const deleteMenu = async (): Promise<boolean> => {
   // 获取当前选中行数据
   const row = searchTableRef.value?.currentRow
   if (row && row.id) {
@@ -405,7 +408,7 @@ const deleteMenu = async () => {
       // 直接调用API删除菜单
       const res = await deleteMenuApi(row.id)
       // 返回删除操作的结果，useTable会根据此结果显示成功消息并刷新列表
-      return res
+      return res.code === '000000'
     } catch (error) {
       console.error('删除菜单失败:', error)
       ElMessage.error('删除失败')
@@ -456,6 +459,16 @@ const handleEdit = (row: any) => {
   // 获取inner_type和相关值
   const innerType = row.inner_type
 
+  // 根据inner_type决定使用哪个字段的值
+  let innerValue = ''
+  if (innerType === 'call') {
+    // 如果是回调函数，使用callback_type字段
+    innerValue = row.callback_type || row.inner_value || ''
+  } else {
+    // 如果是URL，使用inner_value字段
+    innerValue = row.inner_value || ''
+  }
+
   // 设置表单值
   const editValues = {
     id: row.id,
@@ -464,7 +477,7 @@ const handleEdit = (row: any) => {
     order_num: row.order_num,
     status: row.status,
     inner_type: innerType,
-    inner_value: row.inner_value || '' // 统一使用inner_value字段
+    inner_value: innerValue
   }
 
   // 更新本地响应式数据
@@ -499,6 +512,13 @@ const handleSubmit = async () => {
       // 校验通过后获取表单数据
       const values = await formMethods.getFormData()
 
+      // 根据inner_type决定传递的字段
+      if (values.inner_type === 'call') {
+        // 如果是回调函数，将inner_value作为callback_type传递
+        values.callback_type = values.inner_value
+        delete values.inner_value // 删除inner_value字段
+      }
+
       // 调用保存API
       await saveMenuApi(values)
 
@@ -521,6 +541,23 @@ const onSearch = (params: any) => {
   console.log('搜索参数:', params)
 }
 
+// 获取回调函数列表
+const fetchCallbackList = async () => {
+  try {
+    const response = await getCallBackListApi()
+    if (response.code === '000000' && response.data) {
+      // 假设返回的数据结构包含name和callback_type字段
+      callbackList.value = response.data.map((item: any) => ({
+        label: item.name || item.callback_type,
+        value: item.callback_type
+      }))
+    }
+  } catch (error) {
+    console.error('获取回调函数列表失败:', error)
+    ElMessage.error('获取回调函数列表失败')
+  }
+}
+
 // 弹窗相关
 const dialogVisible = ref(false)
 const dialogTitle = ref('添加菜单')
@@ -541,22 +578,26 @@ watch(
       } else if (item.field === 'inner_value') {
         item.hidden = formValues.menu_type !== 2
 
-        // 根据inner_type动态更新label和placeholder
+        // 根据inner_type动态更新组件类型、label和placeholder
         if (formValues.inner_type === 'url') {
+          item.component = 'Input' as const
           item.label = '链接地址'
           if (item.componentProps) {
             item.componentProps.placeholder = '请输入链接地址'
+            delete item.componentProps.options // 移除options属性
           }
           if (item.formItemProps && item.formItemProps.rules && item.formItemProps.rules[0]) {
             item.formItemProps.rules[0].message = '链接地址不能为空'
           }
         } else {
-          item.label = '回调函数名称'
+          item.component = 'Select' as const
+          item.label = '回调函数'
           if (item.componentProps) {
-            item.componentProps.placeholder = '请输入回调函数名称'
+            item.componentProps.placeholder = '请选择回调函数'
+            item.componentProps.options = callbackList.value
           }
           if (item.formItemProps && item.formItemProps.rules && item.formItemProps.rules[0]) {
-            item.formItemProps.rules[0].message = '回调函数名称不能为空'
+            item.formItemProps.rules[0].message = '回调函数不能为空'
           }
         }
       }
@@ -594,7 +635,9 @@ const handleStatusChange = async (value) => {
   console.log('状态切换结果:', res)
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // 获取回调函数列表
+  await fetchCallbackList()
   // 组件加载后自动调用首次查询
   searchTableRef.value?.reload()
 })
