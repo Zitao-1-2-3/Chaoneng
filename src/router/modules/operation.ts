@@ -123,6 +123,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
+          path: 'BotPrice',
+          component: () => import('@/operationView/Marketing/BotPrice.vue'),
+          name: 'BotPrice',
+          meta: {
+            title: '机器人价格配置'
+          }
+        },
+        {
           path: 'trx_address_book',
           component: () => import('@/operationView/Marketing/TrxAddressBook.vue'),
           name: 'TrxAddressBook',

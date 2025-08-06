@@ -56,7 +56,6 @@ const open = (botInfo: Record<string, any>) => {
 
   // 设置表单数据
   formMethods.setValues({
-    fee: botInfo.fee || 0,
     month_num: 1
   })
 }

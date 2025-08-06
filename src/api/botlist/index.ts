@@ -17,6 +17,11 @@ export const getDictOneApi = async () => {
   return request.get({ url: '/mock/dict/one' })
 }
 
+// 获取机器人续费价格
+export const getBotRenewPriceApi = () => {
+  return request.get({ url: '/v1/bot/renew_price/get' })
+}
+
 // 获取机器人列表
 export const getBotListApi = (params: any) => {
   return request.get({ url: '/v1/bot/list', params })

@@ -296,6 +296,15 @@ const searchSchema = [
     }
   },
   {
+    field: 'receive_address',
+    component: 'Input' as const,
+    label: '能量接收地址:', // Updated label
+    componentProps: {
+      placeholder: '请输入能量接收地址', // Updated placeholder
+      clearable: true
+    }
+  },
+  {
     field: 'delegate_status', // Updated field name to match status map
     component: 'Select' as const,
     label: '发放状态：', // Updated label

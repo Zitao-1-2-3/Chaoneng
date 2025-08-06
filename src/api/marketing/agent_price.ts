@@ -80,3 +80,13 @@ export const updateAgentPriceStatusApi = (id: number, status: number): Promise<a
     message: '请在 AgentPrice.vue 中直接调用 updateAgentPriceApi'
   } as any)
 }
+
+// 机器人价格配置 - 获取配置列表
+export const getSysConfListApi = (params?: any): Promise<any> => {
+  return request.get({ url: '/v2/manage/sys/list', params })
+}
+
+// 机器人价格配置 - 更新配置
+export const updateSysConfApi = (data: any): Promise<any> => {
+  return request.post({ url: '/v2/manage/sys/update', data })
+}

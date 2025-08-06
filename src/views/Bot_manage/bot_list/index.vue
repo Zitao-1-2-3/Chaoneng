@@ -72,7 +72,7 @@ import { BaseButton } from '@/components/Button'
 import ConsumptionRecord from './components/ConsumptionRecord.vue'
 import RenewBot from './components/RenewBot.vue'
 import BotConfig from './components/BotConfig.vue'
-import { getBotListApi, addBotApi, updateBotApi } from '@/api/botlist'
+import { getBotListApi, addBotApi, updateBotApi, getBotRenewPriceApi } from '@/api/botlist'
 import { Icon } from '@/components/Icon'
 import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
@@ -367,7 +367,7 @@ const handleAdd = () => {
   dialogVisible.value = true
   // 重置表单
   formMethods.setValues({
-    fee: 100,
+    fee: botPrice.value?.amount || 100,
     token: '',
     api_key: '',
     tg_admin: '',
@@ -398,8 +398,14 @@ const handleEdit = (row) => {
 
 // 续费
 const handleRenew = (row) => {
+  // 确保机器人费用信息被正确传递给续费组件
+  const botInfo = {
+    ...row,
+    fee: row.fee || botPrice.value?.amount || 100
+  }
+
   if (renewBotRef.value) {
-    renewBotRef.value.open(row)
+    renewBotRef.value.open(botInfo)
   }
 }
 
@@ -506,8 +512,17 @@ const handleConfigSuccess = () => {
   }
 }
 
+const botPrice = ref<{ id: number; amount: number }>({ id: 0, amount: 0 })
+const getBotPrice = async () => {
+  const res = await getBotRenewPriceApi()
+  if (res.code === '000000') {
+    botPrice.value = res.data
+  }
+}
+
 // 手动触发加载
-onMounted(() => {
+onMounted(async () => {
+  await getBotPrice()
   const query = useRoute().query
   console.log('query', query)
   // 确保组件挂载后可以访问表格实例
