@@ -147,7 +147,15 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
       pageSize: pageSize
     }
 
-    const adaptedParams = adaptRequestParams(finalParams)
+    // 处理排序参数
+    const finalSortedParams: Recordable = { ...finalParams }
+    if (finalParams['sort'] && finalParams['order']) {
+      finalSortedParams['sort_by'] = finalParams['sort']
+      finalSortedParams['order'] = finalParams['order'] === 'ascending' ? 'asc' : 'desc'
+      delete finalSortedParams['sort']
+    }
+
+    const adaptedParams = adaptRequestParams(finalSortedParams)
     return adaptedParams
   }
 

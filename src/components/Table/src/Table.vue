@@ -212,7 +212,7 @@ export default defineComponent({
       default: ''
     }
   },
-  emits: ['update:pageSize', 'update:currentPage', 'register', 'refresh'],
+  emits: ['update:pageSize', 'update:currentPage', 'register', 'refresh', 'sort-change'],
   setup(props, { attrs, emit, slots, expose }) {
     const elTableRef = ref<ComponentRef<typeof ElTable>>()
 
@@ -341,6 +341,8 @@ export default defineComponent({
       delete bindValue.columns
       delete bindValue.data
       delete bindValue.align
+      // 添加排序事件处理
+      bindValue['onSort-change'] = handleSortChange
       return bindValue
     })
 
@@ -535,6 +537,10 @@ export default defineComponent({
           )
         }
       })
+    }
+
+    const handleSortChange = (data: any) => {
+      emit('sort-change', data)
     }
 
     return () => {

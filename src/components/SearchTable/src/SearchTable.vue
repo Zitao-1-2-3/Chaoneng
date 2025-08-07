@@ -43,6 +43,7 @@
       }"
       @register="tableRegister"
       :scrollbar-always-on="true"
+      @sort-change="handleSortChange"
       v-bind="tableProps"
     >
       <template v-for="item in slotKeys" :key="item" #[item]="data">
@@ -255,6 +256,15 @@ defineExpose({
   searchParams,
   setSearchParams
 })
+
+const handleSortChange = (data: { column: any; prop: string; order: string }) => {
+  // 将排序信息保存到搜索参数中
+  searchParams.value.sort = data.prop
+  searchParams.value.order = data.order
+
+  // 重新加载数据
+  tableMethods.getList()
+}
 </script>
 
 <style scoped>
