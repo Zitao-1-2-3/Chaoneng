@@ -258,7 +258,8 @@ const columns: TableColumn[] = [
   {
     field: 'in_mount',
     label: '充值金额',
-    // width: 150,
+    sortable: 'custom',
+    minWidth: 120,
     formatter: (row) => (row.in_mount ? `${row.in_mount} ${row.in_unit || 'TRX'}` : '-')
   },
   {
@@ -297,6 +298,7 @@ const columns: TableColumn[] = [
   {
     field: 'create_time',
     label: '创建时间',
+    sortable: 'custom',
     minWidth: 120,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   },
@@ -309,6 +311,7 @@ const columns: TableColumn[] = [
   {
     field: 'finish_time',
     label: '完成时间',
+    sortable: 'custom',
     minWidth: 120,
     formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
   },
@@ -355,9 +358,28 @@ const searchSchema = [
   {
     field: 'query',
     component: 'Input' as const,
-    label: 'TG用户信息',
+    label: {
+      tips: 'TG用户名/TG用户昵称/机器人名称/订单类型',
+      text: '关键词'
+    },
     componentProps: {
-      placeholder: '请输入TG用户名或TG用户昵称'
+      placeholder: '请输入关键词'
+    }
+  },
+  {
+    field: 'receive_address',
+    component: 'Input' as const,
+    label: '收款地址',
+    componentProps: {
+      placeholder: '请输入收款地址'
+    }
+  },
+  {
+    field: 'pay_address',
+    component: 'Input' as const,
+    label: '支付地址',
+    componentProps: {
+      placeholder: '请输入支付地址'
     }
   }
 ]
@@ -385,7 +407,17 @@ const getStatusText = (status: number): string => {
 // API 封装
 const fetchRechargeOrderList = async (params: any) => {
   try {
-    const response = await getRechargeOrderListApi(params)
+    // 处理排序参数
+    const adaptedParams = { ...params }
+
+    // 如果有排序参数，转换为接口需要的格式
+    if (params.sort && params.order) {
+      adaptedParams.sort_by = params.sort
+      adaptedParams.order = params.order === 'ascending' ? 'asc' : 'desc'
+      delete adaptedParams.sort
+    }
+
+    const response = await getRechargeOrderListApi(adaptedParams)
     return response.data
   } catch (error) {
     console.error('获取充值订单列表失败:', error)
