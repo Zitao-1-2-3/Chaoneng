@@ -97,23 +97,29 @@ const columns: TableColumn[] = [
   {
     field: 'trx_mount',
     label: 'TRX余额',
+    sortable: 'custom',
+
     formatter: (row) => `${row.trx_mount || 0} TRX`
   },
   {
     field: 'usdt_mount',
+    sortable: 'custom',
     label: 'USDT余额',
+    hidden: true,
     formatter: (row) => `${row.usdt_mount || 0} USDT`
   },
   {
     field: 'create_time',
     label: '创建时间',
     width: 180,
+    sortable: 'custom',
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
   },
   {
     field: 'update_time',
     label: '更新时间',
     width: 180,
+    sortable: 'custom',
     formatter: (row) => (row.update_time ? formatToDateTime(row.update_time * 1000) : '-')
   }
 ]

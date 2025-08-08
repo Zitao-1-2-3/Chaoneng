@@ -228,9 +228,12 @@ const searchSchema = reactive<FormSchema[]>([
   {
     field: 'query',
     component: 'Input',
-    label: '关键字：',
+    label: {
+      tips: '机器人订单ID / TG用户名称 / 机器人名称 / 能量接收地址',
+      text: '关键字'
+    },
     componentProps: {
-      placeholder: '订单ID / TG用户名称 / 能量接收地址'
+      placeholder: '请输入关键字'
     }
   },
   {

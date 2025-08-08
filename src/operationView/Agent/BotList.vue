@@ -144,6 +144,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'account_num',
     label: '用户数量',
+    sortable: 'custom',
     slots: {
       default: (data: any) => {
         return (
@@ -160,7 +161,8 @@ const columns = ref<TableColumn[]>([
   },
   {
     field: 'order_count',
-    label: '交易订单数'
+    label: '交易订单数',
+    sortable: 'custom'
   },
   {
     field: 'status',

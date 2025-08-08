@@ -10,12 +10,12 @@
         @search="handleSearch"
         :show-add-button="false"
       >
-        <!-- <template #searchButtons>
+        <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
-        </template> -->
+        </template>
       </SearchTable>
     </ContentWrap>
   </div>
@@ -39,6 +39,7 @@ import {
 import { ContentWrap } from '@/components/ContentWrap'
 import { isEmpty } from 'lodash-es'
 import { useRouter } from 'vue-router'
+import { downloadByData } from '@/utils/download'
 // 引用SearchTable实例
 const searchTableRef = ref()
 const router = useRouter()
@@ -75,25 +76,17 @@ const getAgentLedgerList = async (params?: any): Promise<{ list: any[]; total?: 
   }
 }
 
-// 导出数据API
-const exportAgentLedger = async (params: AgentLedgerQueryParams) => {
-  try {
-    ElMessage.success('导出已开始，请稍候')
-    await exportAgentLedgerApi(params)
-  } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
-  }
-}
-
 // 搜索表单配置
 const searchSchema = ref<FormSchema[]>([
   {
     field: 'query',
     component: 'Input',
-    label: '关键字',
+    label: {
+      text: '关键字',
+      tips: '机器人名称/代理信息/关联订单ID'
+    },
     componentProps: {
-      placeholder: '请输入代理信息/关联订单ID'
+      placeholder: '请输入关键字'
     }
   },
   {
@@ -169,6 +162,10 @@ const columns = ref<TableColumn[]>([
     label: '代理名称'
   },
   {
+    field: 'bot_name',
+    label: '机器人名称'
+  },
+  {
     field: 'describe',
     label: '交易类型'
   },
@@ -236,15 +233,26 @@ const handleSearch = (params) => {
 // 处理导出
 const handleExport = async () => {
   try {
-    // 获取当前搜索参数
-    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    await exportAgentLedger(params as AgentLedgerQueryParams)
+    const params = await searchTableRef.value?.searchMethods.getFormData()
+    const res = await exportAgentLedgerApi(params)
+    // 使用下载工具处理 blob 数据
+    // Ensure res.data is a Blob before passing
+    if (res.data instanceof Blob) {
+      downloadByData(res.data, '代理账单.xlsx')
+
+      ElMessage.success('账单导出成功')
+    } else {
+      console.error('Export failed: Response data is not a Blob', res.data)
+      ElMessage.error('导出失败: 文件数据格式错误')
+    }
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    console.error('账单导出失败:', error)
+    // Try to provide a more specific error message
+    const errorMsg =
+      (error as any)?.response?.data?.message || (error as Error)?.message || '账单导出失败'
+    ElMessage.error(errorMsg)
   }
 }
-
 // 页面加载时自动查询
 onMounted(() => {
   searchTableRef.value?.reload()

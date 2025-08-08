@@ -296,6 +296,15 @@ const searchSchema = [
     }
   },
   {
+    field: 'bot_address',
+    component: 'Input' as const,
+    label: '收款钱包地址:', // Updated label
+    componentProps: {
+      placeholder: '请输入收款钱包地址', // Updated placeholder
+      clearable: true
+    }
+  },
+  {
     field: 'receive_address',
     component: 'Input' as const,
     label: '能量接收地址:', // Updated label

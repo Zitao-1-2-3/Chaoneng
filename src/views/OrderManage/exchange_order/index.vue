@@ -409,6 +409,14 @@ const searchSchema = [
     }
   },
   {
+    field: 'query',
+    component: 'Input' as const,
+    label: '关键字',
+    componentProps: {
+      placeholder: '请输入关键字'
+    }
+  },
+  {
     field: 'status',
     component: 'Select' as const,
     label: '订单状态',

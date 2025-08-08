@@ -163,6 +163,7 @@ const columns: TableColumn[] = [
   {
     field: 'usdt_mount',
     label: 'USDT余额',
+    hidden: true,
     formatter: (row) => `${row.usdt_mount || 0} USDT`
   },
   {

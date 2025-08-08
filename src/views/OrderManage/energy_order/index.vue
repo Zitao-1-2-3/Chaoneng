@@ -273,6 +273,33 @@ const actionColumn: TableColumn = {
 // 搜索表单配置
 const searchSchema = [
   {
+    field: 'query',
+    component: 'Input' as const,
+    label: {
+      text: '关键字',
+      tips: 'TG用户名/TG昵称/机器人名称'
+    },
+    componentProps: {
+      placeholder: '请输入关键字'
+    }
+  },
+  {
+    field: 'receive_address',
+    component: 'Input' as const,
+    label: '能量接收地址',
+    componentProps: {
+      placeholder: '请输入能量接收地址'
+    }
+  },
+  {
+    field: 'bot_address',
+    component: 'Input' as const,
+    label: '收款钱包地址',
+    componentProps: {
+      placeholder: '请输入收款钱包地址'
+    }
+  },
+  {
     field: 'order_num',
     component: 'Input' as const,
     label: '订单号',

@@ -54,8 +54,14 @@ export const getAgentLedgerListApi = (
  * @returns Promise<IResponse> (假设导出操作不返回特定数据结构)
  */
 export const exportAgentLedgerApi = (params: AgentLedgerQueryParams): Promise<IResponse> => {
+  console.log('params', params)
+
   // 注意：此 URL 和方法基于 Ledger.vue 中的 exportAgentLedgerApi 调用，请确认是否正确
   // 通常导出是大文件，可能是 POST 请求，或者 GET 请求直接下载
   // 这里假设是 POST 请求，并将参数放在 body 中
-  return request.post({ url: '/v2/manage/agent_balance/export', data: params })
+  return request.get({
+    url: '/v2/manage/agent_balance/export',
+    params: params,
+    responseType: 'blob'
+  })
 }

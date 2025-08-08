@@ -318,7 +318,7 @@ const columns: TableColumn[] = [
   {
     field: 'action',
     label: '操作',
-    // width: 100,
+    minWidth: 120,
     slots: {
       default: ({ row }) => {
         return (
