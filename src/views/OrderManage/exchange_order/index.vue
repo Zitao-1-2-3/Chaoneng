@@ -413,7 +413,7 @@ const searchSchema = [
     component: 'Input' as const,
     label: '关键字',
     componentProps: {
-      placeholder: '请输入关键字'
+      placeholder: '请输入机器人名称'
     }
   },
   {
