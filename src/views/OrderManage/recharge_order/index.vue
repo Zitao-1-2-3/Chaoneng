@@ -359,11 +359,24 @@ const searchSchema = [
     field: 'query',
     component: 'Input' as const,
     label: {
-      tips: 'TG用户名/TG用户昵称/机器人名称/订单类型',
+      tips: 'TG用户名/TG用户昵称/机器人名称',
       text: '关键词'
     },
     componentProps: {
       placeholder: '请输入关键词'
+    }
+  },
+  {
+    field: 'order_type',
+    component: 'Select' as const,
+    label: '订单类型',
+    componentProps: {
+      options: [
+        { label: '全部', value: '' },
+        { label: '充值TRX', value: 1 },
+        { label: '充值USDT', value: 2 }
+      ],
+      placeholder: '请选择订单类型'
     }
   },
   {
