@@ -20,12 +20,12 @@
           buttonPosition: 'center'
         }"
       >
-        <!-- <template #searchButtons>
+        <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
-        </template> -->
+        </template>
       </SearchTable>
 
       <!-- 订单详情弹窗 -->
@@ -55,7 +55,7 @@ import type {
 } from '@/api/exchange_transaction/types'
 import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
-
+import { downloadByData } from '@/utils/download'
 // 引用
 const searchTableRef = ref<SearchTableExpose>()
 const orderDetailRef = ref()
@@ -66,8 +66,14 @@ const totalCount = ref(0)
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    await exportExchangeOrderApi(params as ExchangeOrderListParams)
-    ElMessage.success('导出成功')
+    const res = await exportExchangeOrderApi(params as ExchangeOrderListParams)
+    if (res.data instanceof Blob) {
+      downloadByData(res.data, '闪兑订单列表.xlsx')
+      ElMessage.success('导出成功')
+    } else {
+      console.error('Export failed: Response data is not a Blob', res.data)
+      ElMessage.error('导出失败: 文件数据格式错误')
+    }
   } catch (error) {
     console.error('导出失败:', error)
     ElMessage.error('导出失败')

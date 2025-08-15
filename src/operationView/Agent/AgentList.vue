@@ -11,12 +11,12 @@
         <template #leftToolbar>
           <BaseButton type="primary" @click="handleAddAgent">新增代理</BaseButton>
         </template>
-        <!-- <template #searchButtons>
+        <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
-        </template> -->
+        </template>
       </SearchTable>
     </ContentWrap>
 
@@ -49,6 +49,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import RechargeDialog from './components/RechargeDialog.vue'
 import AgentForm from './components/AgentForm.vue'
+import { downloadByData } from '@/utils/download'
 
 // 状态管理
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
@@ -60,8 +61,14 @@ const currentAccount = ref<AgentItem>()
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    await exportAgentListApi(params as AgentListParams)
-    ElMessage.success('导出成功')
+    const res = await exportAgentListApi(params as AgentListParams)
+    if (res.data instanceof Blob) {
+      downloadByData(res.data, '代理列表.xlsx')
+      ElMessage.success('导出成功')
+    } else {
+      console.error('Export failed: Response data is not a Blob', res.data)
+      ElMessage.error('导出失败: 文件数据格式错误')
+    }
   } catch (error) {
     console.error('导出失败:', error)
     ElMessage.error('导出失败')

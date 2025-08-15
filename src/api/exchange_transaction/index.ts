@@ -65,7 +65,8 @@ export const resendTrxApi = (params: ResendTrxParams) => {
 export const exportExchangeOrderApi = (params: ExchangeOrderListParams) => {
   return request.get<IResponse<boolean>>({
     url: '/v2/manage/exchange_order/export',
-    params
+    params,
+    responseType: 'blob'
   })
 }
 

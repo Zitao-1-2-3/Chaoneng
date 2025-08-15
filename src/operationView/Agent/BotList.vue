@@ -11,12 +11,12 @@
         :show-add-button="false"
       >
         <!-- 可以根据需要添加自定义按钮，这里暂时留空 -->
-        <!-- <template #searchButtons>
+        <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
-        </template> -->
+        </template>
       </SearchTable>
     </ContentWrap>
   </div>
@@ -41,6 +41,7 @@ import {
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import { useRoute, useRouter } from 'vue-router'
+import { downloadByData } from '@/utils/download'
 
 const route = useRoute()
 const router = useRouter()
@@ -244,8 +245,14 @@ const handleUpdateStatus = (id: number | string, status: number, actionText: str
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    await exportAgentBotListApi(params)
-    ElMessage.success('导出已开始，请稍候')
+    const res = await exportAgentBotListApi(params)
+    if (res.data instanceof Blob) {
+      downloadByData(res.data, '机器人列表.xlsx')
+      ElMessage.success('导出已开始，请稍候')
+    } else {
+      console.error('Export failed: Response data is not a Blob', res.data)
+      ElMessage.error('导出失败: 文件数据格式错误')
+    }
   } catch (error) {
     console.error('导出失败:', error)
     ElMessage.error('导出失败')

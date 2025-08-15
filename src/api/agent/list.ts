@@ -101,8 +101,9 @@ export const updateAgentApi = (data: UpdateAgentPayload): Promise<IResponse> => 
 }
 
 export const exportAgentListApi = (params: AgentListParams) => {
-  return request.get<IResponse<boolean>>({
+  return request.get<IResponse<Blob>>({
     url: '/v2/manage/agent/export',
-    params
+    params,
+    responseType: 'blob'
   })
 }

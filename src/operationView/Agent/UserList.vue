@@ -10,7 +10,12 @@
         ref="searchTableRef"
         @ready="onSearchTableReady"
       >
-        <!-- 可按需添加自定义按钮 -->
+        <template #searchButtons>
+          <BaseButton type="primary" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
+          </BaseButton>
+        </template>
       </SearchTable>
     </ContentWrap>
   </div>
@@ -23,12 +28,14 @@ import { ElMessage, ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
+import { Icon } from '@/components/Icon'
 import { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
-import { getUserListApi } from '@/api/agent/user_list'
+import { getUserListApi, exportUserListApi } from '@/api/agent/user_list'
 import { getAgentBotListApi } from '@/api/agent/bot'
 import { useRoute, useRouter } from 'vue-router'
 import { nextTick } from 'vue'
+import { downloadByData } from '@/utils/download'
 
 const route = useRoute()
 const router = useRouter()
@@ -77,7 +84,7 @@ const columns: TableColumn[] = [
     field: 'tg_bot_id',
     label: '机器人ID',
     slots: {
-      default: ({ row }) => {
+      default: ({ row }: any) => {
         return (
           <ElLink type="primary" onClick={() => openBotList(row.bot_info.tg_bot_id)}>
             {row.tg_bot_id}
@@ -98,7 +105,6 @@ const columns: TableColumn[] = [
     field: 'trx_mount',
     label: 'TRX余额',
     sortable: 'custom',
-
     formatter: (row) => `${row.trx_mount || 0} TRX`
   },
   {
@@ -171,6 +177,26 @@ const openBotList = (botId: number) => {
 
 function onSearchTableReady(instance) {
   instance.reload()
+}
+
+// 处理导出
+const handleExport = async () => {
+  try {
+    const params = await searchTableRef.value?.searchMethods.getFormData()
+    const res = await exportUserListApi(params)
+    if (res.data instanceof Blob) {
+      downloadByData(res.data, '机器人用户列表.xlsx')
+      ElMessage.success('用户列表导出成功')
+    } else {
+      console.error('Export failed: Response data is not a Blob', res.data)
+      ElMessage.error('导出失败: 文件数据格式错误')
+    }
+  } catch (error) {
+    console.error('用户列表导出失败:', error)
+    const errorMsg =
+      (error as any)?.response?.data?.message || (error as Error)?.message || '用户列表导出失败'
+    ElMessage.error(errorMsg)
+  }
 }
 
 onMounted(async () => {

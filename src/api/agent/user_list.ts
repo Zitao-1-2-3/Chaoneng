@@ -14,7 +14,7 @@ export const getUserListApi = (params: UserListQueryParams) => {
 
 export const exportUserListApi = (params: UserListQueryParams) => {
   return request.get({
-    url: '/manage/agent_bot/user_list/export',
+    url: '/manage/agent_bot/user_export',
     params,
     responseType: 'blob'
   })
