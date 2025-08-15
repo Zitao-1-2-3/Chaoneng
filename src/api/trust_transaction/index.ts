@@ -97,3 +97,11 @@ export const exportTrustTransactionApi = (params: HostedOrderQueryParams) => {
     params
   })
 }
+
+//手动回收重置托管订单
+export const handRecycleTrustTransactionApi = (data: { id: number }) => {
+  return request.post<IResponse<boolean>>({
+    url: '/v2/manage/manage_order/hand_recycle',
+    data
+  })
+}

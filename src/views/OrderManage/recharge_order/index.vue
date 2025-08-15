@@ -9,10 +9,13 @@
         ref="searchTableRef"
         @search="onSearch"
       >
-        <!-- 自定义搜索按钮 -->
-        <!-- <template #searchButtons>
-          <BaseButton @click="handleExport" disabled>导出订单</BaseButton>
-        </template> -->
+        <!-- 添加导出按钮 -->
+        <template #searchButtons>
+          <BaseButton type="primary" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出订单
+          </BaseButton>
+        </template>
       </SearchTable>
 
       <!-- 详情弹窗 -->
@@ -48,6 +51,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
+import { Icon } from '@/components/Icon'
 import { Descriptions } from '@/components/Descriptions'
 import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
@@ -59,6 +63,7 @@ import {
 } from '@/api/recharge_order'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
+import { downloadByData } from '@/utils/download'
 
 const router = useRouter()
 const route = useRoute()
@@ -125,7 +130,6 @@ const orderDetailSchema = computed(() => {
         }
       }
     },
-    // { field: 'pay_unit', label: '支付单位' },
     { field: 'describe', label: '备注', span: 24 },
     {
       field: 'create_time',
@@ -169,7 +173,6 @@ const rechargeDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
     { field: 'to_address', label: '收款地址', span: 24 },
     { field: 'owner_address', label: '支付地址', span: 24 },
-    // { field: 'number', label: '区块号', span: 24 },
     {
       field: 'hash',
       label: '交易哈希',
@@ -198,12 +201,10 @@ const columns: TableColumn[] = [
   {
     field: 'order_id',
     label: '订单号'
-    // minWidth: 150
   },
   {
     field: 'tg_name',
     label: 'TG用户名',
-    // minWidth: 150,
     slots: {
       default: ({ row }) => {
         return (
@@ -225,12 +226,10 @@ const columns: TableColumn[] = [
   {
     field: 'tg_nickname',
     label: 'TG用户昵称'
-    // width: 150
   },
   {
     field: 'bot_name',
     label: '机器人名称',
-    // width: 150,
     slots: {
       default: ({ row }) => {
         return (
@@ -252,7 +251,6 @@ const columns: TableColumn[] = [
   {
     field: 'order_type',
     label: '订单类型',
-    // width: 150,
     formatter: (row) => (row.order_type == 1 ? '充值TRX' : '充值USDT')
   },
   {
@@ -265,14 +263,12 @@ const columns: TableColumn[] = [
   {
     field: 'pay_mount',
     label: '支付金额',
-    // width: 150,
     formatter: (row) =>
       row.pay_mount && row.pay_mount !== '0' ? `${row.pay_mount} ${row.pay_unit || ''}` : '-'
   },
   {
     field: 'status',
     label: '订单状态',
-    // width: 150,
     slots: {
       default: ({ row }) => {
         const type = getStatusType(row.status)
@@ -302,12 +298,6 @@ const columns: TableColumn[] = [
     minWidth: 120,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   },
-  // {
-  //   field: 'pay_time',
-  //   label: '支付时间',
-  //   // minWidth: 180,
-  //   formatter: (row) => (row.pay_time ? formatToDateTime(row.pay_time) : '-')
-  // },
   {
     field: 'finish_time',
     label: '完成时间',
@@ -462,15 +452,20 @@ const handleViewDetail = async (row: any) => {
 // 导出订单
 const handleExport = async () => {
   try {
-    // 获取当前搜索条件
-    const searchParams = searchTableRef.value
-      ? (searchTableRef.value.$attrs as any).params || {}
-      : {}
-    await exportRechargeOrderApi(searchParams)
-    ElMessage.success('导出成功')
+    const params = await searchTableRef.value?.searchMethods.getFormData()
+    const res = await exportRechargeOrderApi(params)
+    if (res.data instanceof Blob) {
+      downloadByData(res.data, '充值订单列表.xlsx')
+      ElMessage.success('订单导出成功')
+    } else {
+      console.error('Export failed: Response data is not a Blob', res.data)
+      ElMessage.error('导出失败: 文件数据格式错误')
+    }
   } catch (error) {
-    console.error('导出订单失败:', error)
-    ElMessage.error('导出订单失败')
+    console.error('订单导出失败:', error)
+    const errorMsg =
+      (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
+    ElMessage.error(errorMsg)
   }
 }
 

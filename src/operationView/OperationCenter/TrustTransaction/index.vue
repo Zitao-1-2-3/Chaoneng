@@ -51,7 +51,11 @@ import RetrieveAsset from './components/RetrieveAsset.vue'
 import ResendEnergy from './components/ResendEnergy.vue'
 import TrustTransactionDetail from './components/TrustTransactionDetail.vue'
 import { BaseButton } from '@/components/Button'
-import { getTrustTransactionListApi, exportTrustTransactionApi } from '@/api/trust_transaction' // 新增导入
+import {
+  getTrustTransactionListApi,
+  exportTrustTransactionApi,
+  handRecycleTrustTransactionApi
+} from '@/api/trust_transaction' // 新增导入
 import type { HostedOrder, TrustTransactionQueryParams } from '@/api/trust_transaction/types' // 新增导入
 import { ContentWrap } from '@/components/ContentWrap'
 import { formatToWan } from '@/utils'
@@ -122,12 +126,6 @@ const getRecycleStatusText = (recycleTime: number) => {
 // --- Table Columns Configuration ---
 const columns = reactive<TableColumn[]>([
   { field: 'order_id', label: '订单ID', minWidth: 150 },
-  {
-    field: 'transactionType',
-    label: '交易类型',
-    minWidth: 100,
-    formatter: (row) => (row.describe?.includes('托管') ? '托管' : '未知')
-  },
   { field: 'tg_name', label: 'TG用户名称', minWidth: 120 },
   {
     field: 'tg_bot_id',
@@ -267,7 +265,7 @@ const searchSchema = reactive<FormSchema[]>([
 const actionColumn: TableColumn = {
   field: 'action',
   label: '操作',
-  minWidth: 120,
+  minWidth: 240,
   fixed: 'right' as const,
   slots: {
     default: ({ row }) => {
@@ -282,6 +280,9 @@ const actionColumn: TableColumn = {
           <BaseButton type="primary" onClick={() => handleResend(row)} disabled>
             补发能量
           </BaseButton> */}
+          <BaseButton type="primary" onClick={() => handleRecycleTrust(row)}>
+            回收与重置
+          </BaseButton>
           <BaseButton type="primary" onClick={() => handleDetail(row)}>
             详情
           </BaseButton>
@@ -343,6 +344,16 @@ const handleRecycle = (row: HostedOrder) => {
 
 const handleResend = (row: HostedOrder) => {
   resendEnergyRef.value?.open(row)
+}
+
+const handleRecycleTrust = async (row: HostedOrder) => {
+  const res = await handRecycleTrustTransactionApi({
+    id: row.id
+  })
+  if (res.code === '000000') {
+    ElMessage.success('操作成功')
+    searchTableRef.value?.tableMethods.getList()
+  }
 }
 
 const handleDetail = (row: HostedOrder) => {

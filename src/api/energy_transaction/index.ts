@@ -77,7 +77,7 @@ export const updateEnergyTransactionStatusApi = (data: UpdateStatusParams) => {
  */
 export const exportEnergyTransactionApi = (params: EnergyTransactionQueryParams) => {
   return request.get({
-    url: '/v1/operation/energy-transaction/export',
+    url: '/v2/manage/energy_order/export',
     params,
     responseType: 'blob'
   })

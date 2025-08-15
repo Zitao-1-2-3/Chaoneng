@@ -117,3 +117,7 @@ export const rechargeUserBalanceApi = (data: {
 }) => {
   return request.post({ url: '/v1/user/bot/tg_user/change_balance', data })
 }
+
+export const exportTgUserListApi = (params: any) => {
+  return request.get({ url: '/v1/user/bot/tg_user/export', params, responseType: 'blob' })
+}

@@ -27,12 +27,12 @@
         }"
         @ready="onSearchTableReady"
       >
-        <!-- <template #searchButtons>
+        <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
-        </template> -->
+        </template>
       </SearchTable>
 
       <!-- 详情弹窗 -->
@@ -86,6 +86,7 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute } from 'vue-router'
 import { formatToWan } from '@/utils'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
+import { downloadByData } from '@/utils/download'
 
 const { t } = useI18n()
 const { required } = useValidator()
@@ -97,12 +98,22 @@ const isLoaded = ref(false)
 // 导出
 const handleExport = async () => {
   try {
-    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    await exportEnergyTransactionApi(params as EnergyTransactionQueryParams)
-    ElMessage.success('导出成功')
+    const params = await searchTableRef.value?.searchMethods.getFormData()
+    const res = await exportEnergyTransactionApi(params)
+
+    if (res.data instanceof Blob) {
+      downloadByData(res.data, '能量订单列表.xlsx')
+
+      ElMessage.success('订单导出成功')
+    } else {
+      console.error('Export failed: Response data is not a Blob', res.data)
+      ElMessage.error('导出失败: 文件数据格式错误')
+    }
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    console.error('订单导出失败:', error)
+    const errorMsg =
+      (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
+    ElMessage.error(errorMsg)
   }
 }
 

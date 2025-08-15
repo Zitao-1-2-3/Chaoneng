@@ -11,6 +11,10 @@
         @ready="onSearchTableReady"
       >
         <template #searchButtons>
+          <BaseButton type="primary" @click="handleExport" style="margin-right: 10px">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出
+          </BaseButton>
           <BaseButton type="primary" @click="openMassSendDialog()" style="margin-right: 10px"
             >群发消息</BaseButton
           >
@@ -59,11 +63,17 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
+import { Icon } from '@/components/Icon'
 import { Form, FormSchema } from '@/components/Form'
 import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import { getTgUserListApi, sendMessageToUserApi, getUserBalanceRecordsApi } from '@/api/tgUser'
+import {
+  getTgUserListApi,
+  sendMessageToUserApi,
+  getUserBalanceRecordsApi,
+  exportTgUserListApi
+} from '@/api/tgUser'
 import { getBotListApi } from '@/api/botlist'
 import { useValidator } from '@/hooks/web/useValidator'
 import { useClipboard } from '@/hooks/web/useClipboard'
@@ -74,6 +84,7 @@ import RechargeDialog from './components/RechargeDialog.vue'
 import BalanceRecordDialog from './components/BalanceRecordDialog.vue'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
 import { nextTick } from 'vue'
+import { downloadByData } from '@/utils/download'
 
 const route = useRoute()
 const router = useRouter()
@@ -244,6 +255,7 @@ const fetchAccountList = async (params: any) => {
     return { list: [], total: 0 }
   }
 }
+
 // useSearchTable hooks 只保留searchTableRef
 const { searchTableRef } = useSearchTable({
   searchSchema: searchSchema.value,
@@ -271,22 +283,18 @@ const openRechargeDialog = (row: any) => {
 
 // 充值成功回调
 const handleRechargeSuccess = () => {
-  // ElMessage.success('充值成功') // 这条消息可以在 RechargeDialog 内部处理，父组件刷新即可
-  // 刷新表格数据
   searchTableRef.value?.reload()
 }
 
-// 修改：余额记录处理函数
+// 余额记录处理函数
 const handleBalanceRecord = (accountIdValue: number | string) => {
   if (!accountIdValue) {
     ElMessage.warning('无法获取用户ID，无法查看余额记录')
     return
   }
-  console.log(`Opening balance record for account ID: ${accountIdValue}`) // 添加日志
-  currentAccountId.value = accountIdValue // 设置当前要查询的账户 ID
-  balanceRecordDialogVisible.value = true // 打开余额记录弹窗
-  // 移除旧的 ElMessage.info
-  // ElMessage.info('打开余额记录，需要实现相关组件')
+  console.log(`Opening balance record for account ID: ${accountIdValue}`)
+  currentAccountId.value = accountIdValue
+  balanceRecordDialogVisible.value = true
 }
 
 // 发送消息相关
@@ -310,6 +318,26 @@ const openMassSendRecordDialog = () => {
 // 消息发送成功处理
 const handleMessageSent = () => {
   messageDialogVisible.value = false
+}
+
+// 处理导出
+const handleExport = async () => {
+  try {
+    const params = await searchTableRef.value?.searchMethods.getFormData()
+    const res = await exportTgUserListApi(params)
+    if (res.data instanceof Blob) {
+      downloadByData(res.data, 'TG用户列表.xlsx')
+      ElMessage.success('用户列表导出成功')
+    } else {
+      console.error('Export failed: Response data is not a Blob', res.data)
+      ElMessage.error('导出失败: 文件数据格式错误')
+    }
+  } catch (error) {
+    console.error('用户列表导出失败:', error)
+    const errorMsg =
+      (error as any)?.response?.data?.message || (error as Error)?.message || '用户列表导出失败'
+    ElMessage.error(errorMsg)
+  }
 }
 
 // SearchTable ready事件处理

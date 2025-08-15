@@ -13,10 +13,12 @@
         ref="searchTableRef"
         @search="onSearch"
       >
-        <!-- 自定义搜索按钮 -->
-        <!-- <template #searchButtons>
-          <BaseButton @click="handleExport" disabled>导出订单</BaseButton>
-        </template> -->
+        <template #searchButtons>
+          <BaseButton type="primary" @click="handleExport">
+            <Icon icon="ep:download" class="mr-5px" />
+            导出订单
+          </BaseButton>
+        </template>
       </SearchTable>
 
       <!-- 订单详情弹窗 (使用新组件) -->
@@ -44,7 +46,7 @@
 import { ref, onMounted, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElTag, ElLink } from 'element-plus'
+import { ElButton, ElTag, ElLink, ElMessage } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
@@ -62,6 +64,8 @@ import {
 import OrderDetailDialog from './components/OrderDetailDialog.vue'
 import formatEnergyNum from '../helpers/formatEnergyNum'
 import isEmpty from 'lodash-es/isEmpty'
+import { Icon } from '@/components/Icon'
+import { downloadByData } from '@/utils/download'
 
 // const { t } = useI18n()
 const router = useRouter()
@@ -449,18 +453,21 @@ const handleTransactionDetail = async (row: any) => {
 // 导出订单
 const handleExport = async () => {
   try {
-    const paramsToExport = currentSearchParams.value
-    // console.log('导出参数:', paramsToExport);
-    const validParams = Object.entries(paramsToExport)
-      .filter(([, value]) => value !== undefined && value !== null && value !== '')
-      .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {})
+    const params = await searchTableRef.value?.searchMethods.getFormData()
+    const res = await exportEnergyOrderApi(params)
+    if (res.data instanceof Blob) {
+      downloadByData(res.data, '能量订单列表.xlsx')
 
-    await exportEnergyOrderApi(validParams)
-    // ElMessage.success removed
-    console.log('导出请求已发送') // Log success instead
+      ElMessage.success('订单导出成功')
+    } else {
+      console.error('Export failed: Response data is not a Blob', res.data)
+      ElMessage.error('导出失败: 文件数据格式错误')
+    }
   } catch (error) {
-    console.error('导出订单失败:', error)
-    // ElMessage.error removed
+    console.error('订单导出失败:', error)
+    const errorMsg =
+      (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
+    ElMessage.error(errorMsg)
   }
 }
 
