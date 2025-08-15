@@ -88,7 +88,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operationView/OperationCenter/RechargeOrder/index.vue'),
           name: 'RechargeOrder',
           meta: {
-            hidden: true,
             title: '充值订单'
           }
         }
