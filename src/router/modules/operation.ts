@@ -60,6 +60,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
       },
       children: [
         {
+          path: 'recharge_order',
+          component: () => import('@/operationView/OperationCenter/RechargeOrder/index.vue'),
+          name: 'RechargeOrder',
+          meta: {
+            title: '充值订单'
+          }
+        },
+        {
           path: 'energy_transaction',
           component: () => import('@/operationView/OperationCenter/EnergyTransaction/index.vue'),
           name: 'EnergyTransactionList',
@@ -81,14 +89,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'CustodyDetails',
           meta: {
             title: '托管明细'
-          }
-        },
-        {
-          path: 'recharge_order',
-          component: () => import('@/operationView/OperationCenter/RechargeOrder/index.vue'),
-          name: 'RechargeOrder',
-          meta: {
-            title: '充值订单'
           }
         }
       ]
