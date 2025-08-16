@@ -203,6 +203,10 @@ const columns: TableColumn[] = [
     label: '订单号'
   },
   {
+    field: 'user_name',
+    label: '代理名称'
+  },
+  {
     field: 'tg_name',
     label: 'TG用户名',
     slots: {
