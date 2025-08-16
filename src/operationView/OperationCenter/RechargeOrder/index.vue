@@ -353,7 +353,7 @@ const searchSchema = [
     field: 'query',
     component: 'Input' as const,
     label: {
-      tips: 'TG用户名/TG用户昵称/机器人名称',
+      tips: 'TG用户名/TG用户昵称/机器人名称/代理名称',
       text: '关键词'
     },
     componentProps: {
