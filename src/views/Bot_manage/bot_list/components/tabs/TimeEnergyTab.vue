@@ -172,6 +172,27 @@ const timeEnergySchema = reactive<FormSchema[]>([
     colProps: {
       span: 12
     }
+  },
+  {
+    field: 'day_30_price',
+    component: 'InputNumber' as const,
+    label: '30天租赁价格',
+    componentProps: {
+      placeholder: '请输入30天租赁价格',
+      min: 0,
+      precision: 1,
+      remark: () => {
+        const costKey = 'day_30_price'
+        const costPrice = computedAgentPrices.value[costKey]
+        return costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
+      }
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '30天租赁价格不能为空' }]
+    },
+    colProps: {
+      span: 12
+    }
   }
 ])
 

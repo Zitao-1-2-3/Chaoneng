@@ -148,6 +148,15 @@ const baseFormSchema = reactive<FormSchema[]>([
     componentProps: {
       // ... InputNumber props
     }
+  },
+  {
+    field: 'price_day_30',
+    component: 'InputNumber',
+    label: '30天价格：',
+    hidden: true,
+    componentProps: {
+      // ... InputNumber props
+    }
   }
   // {
   //   field: 'status',
