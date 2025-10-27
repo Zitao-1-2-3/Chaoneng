@@ -184,7 +184,8 @@ export function useBotConfig() {
               day_1_price: timeEnergyConfig.day_1_price,
               day_3_price: timeEnergyConfig.day_3_price,
               day_7_price: timeEnergyConfig.day_7_price,
-              day_15_price: timeEnergyConfig.day_15_price
+              day_15_price: timeEnergyConfig.day_15_price,
+              day_30_price: timeEnergyConfig.day_30_price
             })
             return true
           } catch (error) {
