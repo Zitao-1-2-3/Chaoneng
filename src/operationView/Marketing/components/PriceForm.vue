@@ -204,6 +204,7 @@ const updateFormSchemaVisibility = (priceType: number | string) => {
       case 'price_day_3':
       case 'price_day_7':
       case 'price_day_15':
+      case 'price_day_30':
         // 类型 5(按天数) 显示
         isVisible = type === 5
         isRequired = isVisible
@@ -218,7 +219,8 @@ const updateFormSchemaVisibility = (priceType: number | string) => {
           'price_day_1',
           'price_day_3',
           'price_day_7',
-          'price_day_15'
+          'price_day_15',
+          'price_day_30'
         ].includes(item.field)
     }
 
@@ -264,7 +266,8 @@ const open = async (params: OpenParams) => {
     price_day_1: currentData.value.price_day_1 ?? null,
     price_day_3: currentData.value.price_day_3 ?? null,
     price_day_7: currentData.value.price_day_7 ?? null,
-    price_day_15: currentData.value.price_day_15 ?? null
+    price_day_15: currentData.value.price_day_15 ?? null,
+    price_day_30: currentData.value.price_day_30 ?? null
     // status: currentData.value.status === undefined ? 1 : Number(currentData.value.status)
   })
 }
@@ -325,7 +328,8 @@ const submitLogic = async (formData: FormData) => {
       price_day_1: Number(formData.price_day_1) || 0,
       price_day_3: Number(formData.price_day_3) || 0,
       price_day_7: Number(formData.price_day_7) || 0,
-      price_day_15: Number(formData.price_day_15) || 0
+      price_day_15: Number(formData.price_day_15) || 0,
+      price_day_30: Number(formData.price_day_30) || 0
       // status: Number(formData.status)
     }
 

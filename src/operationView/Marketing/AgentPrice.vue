@@ -157,6 +157,7 @@ const columns = reactive<any[]>([
             <span>3天: {formatPrice(row.price_day_3)} TRX</span>
             <span>7天: {formatPrice(row.price_day_7)} TRX</span>
             <span>15天: {formatPrice(row.price_day_15)} TRX</span>
+            <span>30天: {formatPrice(row.price_day_30)} TRX</span>
           </div>
         )
       } else if (type === 6) {
@@ -287,6 +288,7 @@ const handleToggleStatus = async (row: AgentPriceVO) => {
       price_day_3: Number(row.price_day_3) || 0,
       price_day_7: Number(row.price_day_7) || 0,
       price_day_15: Number(row.price_day_15) || 0,
+      price_day_30: Number(row.price_day_30) || 0,
       status: newStatus // 使用新的状态
       // 不包含 createTime, updateTime, tableIndex, creatorName 等无关字段
     }
