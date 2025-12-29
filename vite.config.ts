@@ -144,23 +144,23 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
       cssTarget: ['chrome31']
     },
     server: {
-      port: 4000,
+      port: env.VITE_SYSTEM_TYPE === 'Management' ? 4010 : 4011,
       proxy: {
         // 选项写法
 
         '/v1': {
-          target: 'http://192.168.31.250:2404',
+          target: 'http://192.168.31.16:2404',
           changeOrigin: true,
           rewrite: (path) => path
         },
         '/v2': {
-          target: 'http://192.168.31.250:2404',
+          target: 'http://192.168.31.16:2404',
           changeOrigin: true,
           rewrite: (path) => path
         },
 
         '/api': {
-          target: 'http://127.0.0.1:8000',
+          target: 'http://192.168.31.16:2404',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, '')
         },

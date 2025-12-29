@@ -104,7 +104,7 @@ const columns = reactive<TableColumn[]>([
   },
   {
     field: 'trx_price',
-    label: '兑换TRX汇率',
+    label: '兑换汇率',
     minWidth: 120,
     formatter: (row) => row.trx_price || '-' // 显示价格，如 0.28114
   },
@@ -116,23 +116,37 @@ const columns = reactive<TableColumn[]>([
   },
   {
     field: 'exchange_amount', // 对应截图的 "支出TRX数量"
-    label: '支出TRX数量',
+    label: '支出数量',
     minWidth: 150,
     formatter: (row) => `${row.exchange_amount || ''}${row.exchange_unit || ''}`.trim() // 格式如 71.13957TRX
+  },
+  {
+    field: 'order_type',
+    label: '交易类型',
+    minWidth: 140,
+    slots: {
+      default: ({ row }: { row: ExchangeOrderListItem }) => {
+        const orderTypeMap: Record<number, { label: string; color: string }> = {
+          1: { label: 'USDT  → TRX', color: '#67C23A' }, // 绿色
+          2: { label: 'TRX  → USDT', color: '#409EFF' } // 蓝色
+        }
+        const typeInfo = orderTypeMap[row.order_type] || { label: '未知', color: '#909399' }
+        return <span style={{ color: typeInfo.color, fontWeight: '500' }}>{typeInfo.label}</span>
+      }
+    }
   },
   {
     field: 'plate_profit',
     label: '平台利润',
     minWidth: 120,
-    formatter: (row) =>
-      row.plate_profit ? `${row.plate_profit}${row.exchange_unit || ''}`.trim() : '-' // 格式如 3.55698TRX
+    formatter: (row) => (row.plate_profit ? `${row.plate_profit}TRX`.trim() : '-') // 格式如 3.55698TRX
   },
+
   {
     field: 'agent_out_amount', // 对应截图的 "代理扣款"
     label: '代理扣款',
     minWidth: 150,
-    formatter: (row) =>
-      row.agent_out_amount ? `${row.agent_out_amount}${row.exchange_unit || ''}`.trim() : '-' // 格式如 74.69655TRX
+    formatter: (row) => (row.agent_out_amount ? `${row.agent_out_amount}TRX`.trim() : '-') // 格式如 74.69655TRX
   },
   {
     field: 'status',

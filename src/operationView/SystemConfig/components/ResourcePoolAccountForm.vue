@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, computed, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
@@ -112,6 +112,7 @@ const buildSchema = (type: number | string | undefined): FormSchema[] => {
       placeholder: '请选择配置类型',
       options: [
         { label: 'TRX池子', value: 1 },
+        { label: 'USDT池子', value: 2 },
         { label: '能量池子', value: 3 }
       ],
       onChange: handleConfigTypeChange
@@ -122,7 +123,8 @@ const buildSchema = (type: number | string | undefined): FormSchema[] => {
   }
 
   let specificSchema: FormSchema[] = []
-  if (numericType === 1) {
+  if (numericType === 1 || numericType === 2) {
+    // TRX池子和USDT池子使用相同的Schema（空数组，只需要基础字段）
     specificSchema = trxPoolSchema
   } else if (numericType === 3) {
     specificSchema = energyPoolSchema
@@ -166,7 +168,7 @@ const formSchema = ref<FormSchema[]>(buildSchema(1)) // 默认使用 TRX 池子 
 
 // 使用表单Hook
 const { formRegister, formMethods } = useForm()
-const { setValues, getFormData, getElFormExpose, getFormExpose } = formMethods
+const { setValues, getFormData, getElFormExpose } = formMethods
 
 // 打开弹窗
 const open = async (params: OpenParams) => {
@@ -207,6 +209,7 @@ const open = async (params: OpenParams) => {
     valuesToSet.amount_limit = currentData.value.amount_limit ?? undefined
     valuesToSet.permission_name = currentData.value.permission_name || ''
   }
+  // TRX池子(1) 和 USDT池子(2) 只需要基础字段，不需要额外设置
   await setValues(valuesToSet)
 }
 
@@ -238,8 +241,8 @@ const handleSubmit = async () => {
       // 能量池子
       dataToSubmit.amount_limit = formData.amount_limit
       dataToSubmit.permission_name = formData.permission_name
-    } else if (configTypeNum === 1) {
-      // TRX 池子 - 确保不提交能量池字段 (如果清理逻辑未生效)
+    } else if (configTypeNum === 1 || configTypeNum === 2) {
+      // TRX 池子 和 USDT 池子 - 确保不提交能量池字段 (如果清理逻辑未生效)
       delete dataToSubmit.amount_limit
       delete dataToSubmit.permission_name
     } else {

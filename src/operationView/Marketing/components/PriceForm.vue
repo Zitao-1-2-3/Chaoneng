@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, computed, watch, nextTick } from 'vue'
+import { ref, reactive, computed, nextTick } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
 import type { FormItemRule } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
@@ -94,6 +94,16 @@ const baseFormSchema = reactive<FormSchema[]>([
       // ... 其他 InputNumber props
     }
     // required 规则也应动态添加
+  },
+  {
+    field: 'price_usdt',
+    component: 'InputNumber',
+    label: '闪兑费率(U-T)：',
+    hidden: true,
+    componentProps: {
+      placeholder: '请输入百分比, 如 0.14',
+      precision: 2
+    }
   },
   {
     field: 'price_trx_65000',
@@ -188,9 +198,19 @@ const updateFormSchemaVisibility = (priceType: number | string) => {
         // 类型 1(闪租), 3(按笔数), 4(闪兑), 6(激活) 显示 (移除类型 2 托管)
         isVisible = [1, 3, 4, 6].includes(type)
         isRequired = isVisible
-        item.label = type === 4 ? '闪兑费率(%)：' : type === 6 ? '激活单价(TRX)：' : 'TRX价格/笔：'
+        item.label =
+          type === 4 ? '闪兑费率(U-T)：' : type === 6 ? '激活单价(TRX)：' : 'TRX价格/笔：'
         if (item.componentProps) {
-          item.componentProps.placeholder = type === 4 ? '请输入百分比, 如 5' : '请输入TRX价格'
+          item.componentProps.placeholder = type === 4 ? '请输入百分比, 如 10.5' : '请输入TRX价格'
+        }
+        break
+      case 'price_usdt':
+        // 类型 4(闪兑) 显示
+        isVisible = type === 4
+        isRequired = false // price_usdt 是可选的
+        item.label = '闪兑费率(T-U)：'
+        if (item.componentProps) {
+          item.componentProps.placeholder = '请输入百分比, 如 0.14'
         }
         break
       case 'price_trx_65000':
@@ -198,7 +218,9 @@ const updateFormSchemaVisibility = (priceType: number | string) => {
         // 类型 2(托管) 显示
         isVisible = type === 2
         isRequired = isVisible
-        item.componentProps.precision = 2
+        if (item.componentProps) {
+          item.componentProps.precision = 2
+        }
         break
       case 'price_day_1':
       case 'price_day_3':
@@ -208,12 +230,15 @@ const updateFormSchemaVisibility = (priceType: number | string) => {
         // 类型 5(按天数) 显示
         isVisible = type === 5
         isRequired = isVisible
-        item.componentProps.precision = 2
+        if (item.componentProps) {
+          item.componentProps.precision = 2
+        }
         break
       default:
         // price_type, status 总是可见
         isVisible = ![
           'price_trx',
+          'price_usdt',
           'price_trx_65000',
           'price_trx_131000',
           'price_day_1',
@@ -261,6 +286,7 @@ const open = async (params: OpenParams) => {
   setValues({
     price_type: initialPriceType,
     price_trx: currentData.value.price_trx ?? null,
+    price_usdt: currentData.value.price_usdt ?? null,
     price_trx_65000: currentData.value.price_trx_65000 ?? null,
     price_trx_131000: currentData.value.price_trx_131000 ?? null,
     price_day_1: currentData.value.price_day_1 ?? null,
@@ -320,7 +346,7 @@ const handleSubmit = async () => {
 const submitLogic = async (formData: FormData) => {
   submitting.value = true
   try {
-    const submitData = {
+    const submitData: any = {
       price_type: Number(formData.price_type),
       price_trx: Number(formData.price_trx) || 0,
       price_trx_65000: Number(formData.price_trx_65000) || 0,
@@ -331,6 +357,15 @@ const submitLogic = async (formData: FormData) => {
       price_day_15: Number(formData.price_day_15) || 0,
       price_day_30: Number(formData.price_day_30) || 0
       // status: Number(formData.status)
+    }
+
+    // 如果是闪兑类型(4)，且 price_usdt 有值，则添加到提交数据中
+    if (
+      submitData.price_type === 4 &&
+      formData.price_usdt !== null &&
+      formData.price_usdt !== undefined
+    ) {
+      submitData.price_usdt = Number(formData.price_usdt) || 0
     }
 
     if (formMode.value === 'add') {

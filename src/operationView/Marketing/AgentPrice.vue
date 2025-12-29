@@ -148,7 +148,13 @@ const columns = reactive<any[]>([
         content = <div>{formatPrice(row.price_trx, 2)} TRX/笔</div>
       } else if (type === 4) {
         // 闪兑
-        content = <div>{formatPrice(row.price_trx, 2)}%(u兑换T)</div>
+        content = (
+          <>
+            <div>
+              {formatPrice(row.price_trx, 2)}%(u兑换T);{formatPrice(row.price_usdt, 2)}%(T兑换u)
+            </div>
+          </>
+        )
       } else if (type === 5) {
         // 按天数
         content = (

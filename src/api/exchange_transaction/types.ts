@@ -4,7 +4,7 @@ export interface ExchangeOrderListItem {
   order_id: string // 订单号
   username: string // 用户名 (TG名?)
   user_id: number // 用户ID
-  order_type: number // 1: U->T, 2: T->U
+  order_type: number // 1: USDT 兑换 TRX, 2: TRX 兑换 USDT
   order_amount: string // 支付金额 (Decimal as string)
   pay_unit: string // 支付单位 (USDT)
   exchange_amount: string // 用户获得/平台支出 (Decimal as string)

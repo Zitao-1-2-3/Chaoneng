@@ -271,6 +271,8 @@ export function useBotConfig() {
               min_trx_balance: flashExchangeConfig.min_trx_balance || 0,
               profit_usdt_to_trx: flashExchangeConfig.profit_usdt_to_trx || 0,
               max_usdt_to_trx: flashExchangeConfig.max_usdt_to_trx || 0,
+              profit_trx_to_usdt: flashExchangeConfig.profit_trx_to_usdt || 0,
+              max_trx_to_usdt: flashExchangeConfig.max_trx_to_usdt || 0,
               stock_notice: flashExchangeConfig.stock_notice || false,
               stock_notice_trx_amount: flashExchangeConfig.stock_notice_trx_amount || 0
             }

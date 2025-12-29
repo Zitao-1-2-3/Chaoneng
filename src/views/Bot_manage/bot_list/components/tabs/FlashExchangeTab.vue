@@ -10,10 +10,10 @@
 </template>
 
 <script setup lang="tsx">
-import { reactive, defineExpose, ref, watchEffect, onMounted, defineProps, computed } from 'vue'
-import { Form, FormSchema, FormSetProps } from '@/components/Form'
+import { reactive, ref, watchEffect, onMounted, computed } from 'vue'
+import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
-import { ElInputNumber, ElCheckbox } from 'element-plus'
+import { ElCheckbox } from 'element-plus'
 import Tips from '@/components/Tips/src/Tips.vue'
 
 // 表单相关
@@ -122,6 +122,40 @@ const flashExchangeSchema = reactive<FormSchema[]>([
       slots: {
         suffix: () => {
           return <div>TRX</div>
+        }
+      }
+    }
+  },
+  {
+    field: 'profit_trx_to_usdt',
+    component: 'InputNumber' as const,
+    label: {
+      text: 'TRX兑USDT利润（百分比）',
+      tips: '例如，输入15，就是15%'
+    },
+    componentProps: {
+      placeholder: '请输入利润金额',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '利润金额是必填项' }]
+    }
+  },
+  {
+    field: 'max_trx_to_usdt',
+    component: 'InputNumber' as const,
+    label: {
+      text: 'TRX兑USDT可兑换上限',
+      tips: '单次可兑换TRX上限(TRX兑换USDT)'
+    },
+    componentProps: {
+      placeholder: '请输入兑换上限',
+      min: 0,
+      precision: 2,
+      slots: {
+        suffix: () => {
+          return <div>USDT</div>
         }
       }
     }

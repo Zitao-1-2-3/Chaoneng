@@ -124,7 +124,7 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
   },
 
   {
-    label: '支出TRX数量',
+    label: '支出数量',
     field: 'exchange_amount',
     span: 8,
     slots: { default: (data) => formatAmount(data.exchange_amount, data.exchange_unit) }
@@ -161,7 +161,7 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
     slots: { default: (data) => data.in_to_address || '-' }
   },
   {
-    label: '系统发放TRX hash',
+    label: orderDetail.value?.order_type === 1 ? '系统发放TRX hash' : '系统发放USDT hash',
     field: 'out_txid',
     span: 16,
     slots: {
@@ -178,7 +178,7 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
     }
   },
   {
-    label: '用户转USDT hash',
+    label: orderDetail.value?.order_type === 1 ? '用户转USDT hash' : '用户转TRX hash',
     field: 'in_txid',
     span: 16,
     slots: {

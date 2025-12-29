@@ -36,7 +36,10 @@
       <!-- 交易详情弹窗 - 综合版 -->
       <Dialog v-model="transactionDialogVisible" :title="'交易详情'">
         <ElTabs v-model="activeTransactionTab" class="transaction-tabs">
-          <ElTabPane name="in" label=" 用户转USDT hash">
+          <ElTabPane
+            name="in"
+            :label="orderDetail.value?.order_type === 1 ? '用户转USDT hash' : '用户转TRX hash'"
+          >
             <Descriptions
               :schema="transactionInSchema"
               :data="transactionDetail"
@@ -44,7 +47,10 @@
               border
             />
           </ElTabPane>
-          <ElTabPane name="out" label="系统发放TRX hash">
+          <ElTabPane
+            name="out"
+            :label="orderDetail.value?.order_type === 1 ? '系统发放TRX hash' : '系统发放USDT hash'"
+          >
             <Descriptions
               :schema="transactionOutSchema"
               :data="transactionDetail"
@@ -90,6 +96,7 @@ import {
 } from '@/api/exchange_order'
 import { Icon } from '@/components/Icon'
 import { downloadByData } from '@/utils/download'
+import { ExchangeOrderListItem } from '@/api/exchange_transaction'
 
 // const { t } = useI18n()
 const router = useRouter()
@@ -201,8 +208,8 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
       }
     }
   },
-  { field: 'in_to_address', label: '发送人', span: 24 },
-  { field: 'in_from_address', label: '接收人', span: 24 },
+  { field: 'in_to_address', label: '接收人', span: 24 },
+  { field: 'in_from_address', label: '发送人', span: 24 },
   // {
   //   field: 'in_number',
   //   label: '区块号',
@@ -261,8 +268,8 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
       }
     }
   },
-  { field: 'out_to_address', label: '发送人', span: 24 },
-  { field: 'out_from_address', label: '接收人', span: 24 },
+  { field: 'out_to_address', label: '接收人', span: 24 },
+  { field: 'out_from_address', label: '发送人', span: 24 },
   {
     field: 'order_amount',
     label: 'USDT数量',
@@ -347,6 +354,20 @@ const columns: TableColumn[] = [
   {
     field: 'trx_price',
     label: '兑换汇率'
+  },
+  {
+    field: 'order_type',
+    label: '订单类型',
+    slots: {
+      default: ({ row }: { row: ExchangeOrderListItem }) => {
+        const orderTypeMap: Record<number, { label: string; color: string }> = {
+          1: { label: 'USDT  → TRX', color: '#67C23A' }, // 绿色
+          2: { label: 'TRX  → USDT', color: '#409EFF' } // 蓝色
+        }
+        const typeInfo = orderTypeMap[row.order_type] || { label: '未知', color: '#909399' }
+        return <span style={{ color: typeInfo.color, fontWeight: '500' }}>{typeInfo.label}</span>
+      }
+    }
   },
   {
     field: 'status',

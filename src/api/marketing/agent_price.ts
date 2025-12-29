@@ -6,13 +6,15 @@ export interface AgentPriceVO {
   id: number
   // price_type: 1:闪租, 2:托管, 3:按笔数, 4:闪兑, 5:按天数, 6:首次激活 (更新注释)
   price_type: number
-  price_trx: number // 用于多种类型：托管价格/笔, 闪兑费率(%), 闪租/按笔数价格/笔, 首次激活单价
+  price_trx: number // 用于多种类型：托管价格/笔, 闪兑费率(T-U)(%), 闪租/按笔数价格/笔, 首次激活单价
+  price_usdt?: number // 闪兑 - TRX兑USDT的费率(%)
   price_trx_65000: number // 托管 - 65000能量价格(TRX)
   price_trx_131000: number // 托管 - 131000能量价格(TRX)
   price_day_1: number // 按天数 - 1天价格(TRX)
   price_day_3: number // 按天数 - 3天价格(TRX)
   price_day_7: number // 按天数 - 7天价格(TRX)
   price_day_15: number // 按天数 - 15天价格(TRX)
+  price_day_30?: number // 按天数 - 30天价格(TRX)
   // status: number // 1: 启用, 2: 禁用
   creator_name?: string
   create_time?: string
@@ -24,12 +26,14 @@ export interface AddPriceParams {
   // price_type: 1:闪租, 2:托管, 3:按笔数, 4:闪兑, 5:按天数, 6:首次激活 (更新注释)
   price_type: number
   price_trx?: number
+  price_usdt?: number // 闪兑 - TRX兑USDT的费率(%)
   price_trx_65000?: number
   price_trx_131000?: number
   price_day_1?: number
   price_day_3?: number
   price_day_7?: number
   price_day_15?: number
+  price_day_30?: number
   // status: number // 1: 启用, 2: 禁用
 }
 
