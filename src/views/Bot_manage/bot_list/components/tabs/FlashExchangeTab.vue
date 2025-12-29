@@ -136,7 +136,16 @@ const flashExchangeSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '请输入利润金额',
       min: 0,
-      precision: 2
+      precision: 2,
+      remark: () => {
+        const costKey = 'flash_change_price_trx_to_usdt'
+        const costPrice = computedAgentPrices.value[costKey]
+        return (
+          <>
+            <p>成本：{costPrice !== undefined ? `${costPrice} TRX` : 'N/A'}</p>
+          </>
+        )
+      }
     },
     formItemProps: {
       rules: [{ required: true, message: '利润金额是必填项' }]

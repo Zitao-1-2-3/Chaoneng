@@ -38,7 +38,7 @@
         <ElTabs v-model="activeTransactionTab" class="transaction-tabs">
           <ElTabPane
             name="in"
-            :label="orderDetail.value?.order_type === 1 ? '用户转USDT hash' : '用户转TRX hash'"
+            :label="transactionDetail?.order_type === 1 ? '用户转USDT hash' : '用户转TRX hash'"
           >
             <Descriptions
               :schema="transactionInSchema"
@@ -49,7 +49,7 @@
           </ElTabPane>
           <ElTabPane
             name="out"
-            :label="orderDetail.value?.order_type === 1 ? '系统发放TRX hash' : '系统发放USDT hash'"
+            :label="transactionDetail?.order_type === 1 ? '系统发放TRX hash' : '系统发放USDT hash'"
           >
             <Descriptions
               :schema="transactionOutSchema"
@@ -229,10 +229,10 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
   //   }
   // },
   {
-    field: 'user_get_amount',
-    label: 'TRX数量',
+    field: 'order_amount',
+    label: '数量',
     formatter: (row) => {
-      return row.user_get_amount
+      return row.order_amount
     }
   },
   {
@@ -271,11 +271,11 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
   { field: 'out_to_address', label: '接收人', span: 24 },
   { field: 'out_from_address', label: '发送人', span: 24 },
   {
-    field: 'order_amount',
-    label: 'USDT数量',
+    field: 'user_get_amount',
+    label: '数量',
     formatter: (row) => {
-      if (!row.order_amount) return '0'
-      return row.order_amount
+      if (!row.user_get_amount) return '0'
+      return row.user_get_amount
     }
   },
   // {
