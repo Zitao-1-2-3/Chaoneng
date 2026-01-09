@@ -85,7 +85,7 @@ const getStatusType = (status: number | undefined): 'success' | 'warning' | 'inf
 
 const formatAmount = (amount: string | number | undefined, unit: string | undefined) => {
   const amountStr = amount ?? '-'
-  return amountStr !== '-' && unit ? `${amountStr}${unit}` : amountStr.toString()
+  return amountStr !== '-' ? `${amountStr}` : amountStr.toString()
 }
 
 // const formatRate = (rate: string | number | undefined) => {
