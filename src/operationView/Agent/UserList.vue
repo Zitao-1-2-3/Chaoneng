@@ -150,13 +150,31 @@ const searchSchema = computed<FormSchema[]>(() => [
     componentProps: {
       placeholder: '请输入用户名/昵称'
     }
+  },
+  {
+    field: 'dateRange',
+    component: 'DatePicker' as const,
+    label: '创建时间',
+    componentProps: {
+      type: 'datetimerange',
+      valueFormat: 'x',
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期'
+    }
   }
 ])
 
 // API 封装 - 获取账户信息（用 operationView/Agent 的接口）
 const fetchAccountList = async (params: any) => {
   try {
-    const response = await getUserListApi(params)
+    // 处理时间范围
+    const apiParams = { ...params }
+    if (params.dateRange && params.dateRange.length === 2) {
+      apiParams.start_time = params.dateRange[0]
+      apiParams.end_time = params.dateRange[1]
+      delete apiParams.dateRange
+    }
+    const response = await getUserListApi(apiParams)
     return response.data
   } catch (error) {
     console.error('获取用户列表失败:', error)
@@ -183,7 +201,14 @@ function onSearchTableReady(instance) {
 const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
-    const res = await exportUserListApi(params)
+    // 处理时间范围
+    const exportParams = { ...params }
+    if (params.dateRange && params.dateRange.length === 2) {
+      exportParams.start_time = params.dateRange[0]
+      exportParams.end_time = params.dateRange[1]
+      delete exportParams.dateRange
+    }
+    const res = await exportUserListApi(exportParams)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '机器人用户列表.xlsx')
       ElMessage.success('用户列表导出成功')

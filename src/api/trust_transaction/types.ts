@@ -96,8 +96,11 @@ export interface HostedOrderQueryParams {
   page_size?: number // 每页数量 - Changed from pageSize
   query?: string // 关键字 (替换 keyword)
   status?: number // 托管状态 (见 HostedOrder.manage_status 定义)
+  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
   startTime?: number // 查询范围：开始时间戳 (毫秒) - CamelCase
   endTime?: number // 查询范围：结束时间戳 (毫秒) - CamelCase
+  start_time?: number // API 使用的开始时间 (时间戳，与 startTime 二选一)
+  end_time?: number // API 使用的结束时间 (时间戳，与 endTime 二选一)
 }
 
 // 托管订单数据结构 (Updated based on Go struct)

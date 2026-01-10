@@ -384,6 +384,17 @@ const searchSchema = [
     componentProps: {
       placeholder: '请输入支付地址'
     }
+  },
+  {
+    field: 'dateRange',
+    component: 'DatePicker' as const,
+    label: '创建时间',
+    componentProps: {
+      type: 'datetimerange',
+      valueFormat: 'x',
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期'
+    }
   }
 ]
 
@@ -420,6 +431,13 @@ const fetchRechargeOrderList = async (params: any) => {
       delete adaptedParams.sort
     }
 
+    // 处理时间范围
+    if (params.dateRange && params.dateRange.length === 2) {
+      adaptedParams.start_time = params.dateRange[0]
+      adaptedParams.end_time = params.dateRange[1]
+      delete adaptedParams.dateRange
+    }
+
     const response = await getRechargeOrderListApi(adaptedParams)
     return response.data
   } catch (error) {
@@ -453,7 +471,14 @@ const handleViewDetail = async (row: any) => {
 const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
-    const res = await exportRechargeOrderApi(params)
+    // 处理时间范围
+    const exportParams = { ...params }
+    if (params.dateRange && params.dateRange.length === 2) {
+      exportParams.start_time = params.dateRange[0]
+      exportParams.end_time = params.dateRange[1]
+      delete exportParams.dateRange
+    }
+    const res = await exportRechargeOrderApi(exportParams)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '充值订单列表.xlsx')
       ElMessage.success('订单导出成功')

@@ -61,7 +61,14 @@ const currentAccount = ref<AgentItem>()
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    const res = await exportAgentListApi(params as AgentListParams)
+    // 处理时间范围
+    const exportParams: any = { ...params }
+    if (params.dateRange && params.dateRange.length === 2) {
+      exportParams.start_time = params.dateRange[0]
+      exportParams.end_time = params.dateRange[1]
+      delete exportParams.dateRange
+    }
+    const res = await exportAgentListApi(exportParams as AgentListParams)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '代理列表.xlsx')
       ElMessage.success('导出成功')
@@ -90,7 +97,14 @@ const STATUS_CONFIG = {
 // API 调用
 const getAgentList = async (params?: any) => {
   try {
-    const res = await getAgentListApi(params)
+    // 处理时间范围
+    const apiParams = { ...params }
+    if (params?.dateRange && params.dateRange.length === 2) {
+      apiParams.start_time = params.dateRange[0]
+      apiParams.end_time = params.dateRange[1]
+      delete apiParams.dateRange
+    }
+    const res = await getAgentListApi(apiParams)
     const data = (res?.data as any) || {}
     return {
       list: data.list || data.items || [],
@@ -133,6 +147,17 @@ const searchSchema = ref<FormSchema[]>([
       placeholder: '请选择状态',
       clearable: true,
       options: STATUS_OPTIONS
+    }
+  },
+  {
+    field: 'dateRange',
+    component: 'DatePicker',
+    label: '创建时间',
+    componentProps: {
+      type: 'datetimerange',
+      valueFormat: 'x',
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期'
     }
   }
 ])

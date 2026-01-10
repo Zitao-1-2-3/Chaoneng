@@ -7,6 +7,9 @@ export interface AgentQueryParams {
   status?: number | string // 状态：'' 或 undefined 表示全部, 1 表示启用, 2 表示禁用
   current_page?: number
   page_size?: number
+  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
+  start_time?: number // API 使用的开始时间 (时间戳)
+  end_time?: number // API 使用的结束时间 (时间戳)
 }
 
 // 定义代理列表项类型 (根据示例数据调整)
@@ -28,6 +31,9 @@ export interface AgentListParams {
   status?: number | string // 状态：'' 或 undefined 表示全部, 1 表示启用, 2 表示禁用
   current_page?: number
   page_size?: number
+  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
+  start_time?: number // API 使用的开始时间 (时间戳)
+  end_time?: number // API 使用的结束时间 (时间戳)
 }
 
 // 定义列表接口返回结构 (假设 data 结构)

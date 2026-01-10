@@ -32,6 +32,9 @@ export interface EnergyTransactionQueryParams {
   recoveryStatus?: number
   pageSize?: number
   currentPage?: number // 与后端确认分页参数名 (currentPage vs pageNo vs page)
+  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
+  start_time?: number // API 使用的开始时间 (时间戳)
+  end_time?: number // API 使用的结束时间 (时间戳)
 }
 
 // 状态更新参数

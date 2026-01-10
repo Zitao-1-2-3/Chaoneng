@@ -14,6 +14,9 @@ export interface PageParam {
 }
 export interface RechargeOrderQueryParams extends PageParam {
   query?: string // 关键字搜索 (代理信息/TG用户名等)
+  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
+  start_time?: number // API 使用的开始时间 (时间戳)
+  end_time?: number // API 使用的结束时间 (时间戳)
 }
 
 export const getRechargeOrderListApi = (params: RechargeOrderQueryParams) => {

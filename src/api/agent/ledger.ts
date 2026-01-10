@@ -26,6 +26,9 @@ export interface AgentLedgerQueryParams {
   status?: number | string // 扣款状态
   current_page?: number
   page_size?: number
+  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
+  start_time?: number // API 使用的开始时间 (时间戳)
+  end_time?: number // API 使用的结束时间 (时间戳)
 }
 
 /**

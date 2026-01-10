@@ -99,7 +99,14 @@ const isLoaded = ref(false)
 const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
-    const res = await exportEnergyTransactionApi(params)
+    // 处理时间范围
+    const exportParams = { ...params }
+    if (params.dateRange && params.dateRange.length === 2) {
+      exportParams.start_time = params.dateRange[0]
+      exportParams.end_time = params.dateRange[1]
+      delete exportParams.dateRange
+    }
+    const res = await exportEnergyTransactionApi(exportParams)
 
     if (res.data instanceof Blob) {
       downloadByData(res.data, '能量订单列表.xlsx')
@@ -358,8 +365,18 @@ const searchSchema = [
         { label: '福利', value: 6 }
       ]
     }
+  },
+  {
+    field: 'dateRange',
+    component: 'DatePicker' as const,
+    label: '创建时间',
+    componentProps: {
+      type: 'datetimerange',
+      valueFormat: 'x',
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期'
+    }
   }
-  // Removed order_type and original status fields
 ]
 
 // 表单配置
@@ -544,8 +561,15 @@ const totalCount = ref(0)
 // 获取能量交易列表
 const fetchDataWrapper = async (params: any = {}) => {
   try {
-    // 直接将 params 传递给 API
-    const response = await getEnergyTransactionListApi(params)
+    // 处理时间范围
+    const apiParams = { ...params }
+    if (params.dateRange && params.dateRange.length === 2) {
+      apiParams.start_time = params.dateRange[0]
+      apiParams.end_time = params.dateRange[1]
+      delete apiParams.dateRange
+    }
+    // 将处理后的 params 传递给 API
+    const response = await getEnergyTransactionListApi(apiParams)
 
     if (response && response.data) {
       // 根据API的返回结构，正确处理数据

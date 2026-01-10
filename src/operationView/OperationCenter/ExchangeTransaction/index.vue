@@ -66,7 +66,14 @@ const totalCount = ref(0)
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    const res = await exportExchangeOrderApi(params as ExchangeOrderListParams)
+    // 处理时间范围
+    const exportParams = { ...params } as any
+    if (params.dateRange && params.dateRange.length === 2) {
+      exportParams.start_time = params.dateRange[0]
+      exportParams.end_time = params.dateRange[1]
+      delete exportParams.dateRange
+    }
+    const res = await exportExchangeOrderApi(exportParams as ExchangeOrderListParams)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '闪兑订单列表.xlsx')
       ElMessage.success('导出成功')
@@ -214,8 +221,18 @@ const searchSchema = reactive<FormSchema[]>([
       ],
       clearable: true
     }
+  },
+  {
+    field: 'dateRange',
+    component: 'DatePicker',
+    label: '创建时间',
+    componentProps: {
+      type: 'datetimerange',
+      valueFormat: 'x',
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期'
+    }
   }
-  // 移除 dateRange 等其他搜索字段
 ])
 
 // 操作列配置
@@ -262,15 +279,15 @@ const handleResendSuccess = () => {
 // 请求闪兑明细列表数据
 const fetchExchangeTransactionList = async (params: any) => {
   try {
-    // 移除 createTimeRange 的处理逻辑，因为搜索条件已改变
-    // const { createTimeRange, ...restParams } = params;
-    const queryParams: ExchangeOrderListParams = { ...params } // 直接使用 params
-    // if (createTimeRange && createTimeRange.length === 2) {
-    //   queryParams.start_time = Number(createTimeRange[0]);
-    //   queryParams.end_time = Number(createTimeRange[1]);
-    // }
+    // 处理时间范围
+    const queryParams: any = { ...params }
+    if (params.dateRange && params.dateRange.length === 2) {
+      queryParams.start_time = params.dateRange[0]
+      queryParams.end_time = params.dateRange[1]
+      delete queryParams.dateRange
+    }
 
-    const res = (await getExchangeOrderListApi(queryParams)) as any
+    const res = (await getExchangeOrderListApi(queryParams as ExchangeOrderListParams)) as any
 
     if (res?.data) {
       totalCount.value = res.data.total || 0

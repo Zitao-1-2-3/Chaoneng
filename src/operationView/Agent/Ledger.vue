@@ -54,14 +54,22 @@ const orderTypeMap = () => {
     7: '闪租',
     8: '激活',
     9: '机器人续费',
-    10: '后台手动变更'
+    10: '后台手动变更',
+    20: '福利订单'
   }
 }
 
 // 定义API函数调用
 const getAgentLedgerList = async (params?: any): Promise<{ list: any[]; total?: number }> => {
   try {
-    const res = await getAgentLedgerListApi(params)
+    // 处理时间范围
+    const apiParams = { ...params }
+    if (params?.dateRange && params.dateRange.length === 2) {
+      apiParams.start_time = params.dateRange[0]
+      apiParams.end_time = params.dateRange[1]
+      delete apiParams.dateRange
+    }
+    const res = await getAgentLedgerListApi(apiParams)
     return {
       list: res.data.list || [],
       total: res.data.totalCount || 0
@@ -100,6 +108,17 @@ const searchSchema = ref<FormSchema[]>([
         label: value,
         value: key
       }))
+    }
+  },
+  {
+    field: 'dateRange',
+    component: 'DatePicker',
+    label: '创建时间',
+    componentProps: {
+      type: 'datetimerange',
+      valueFormat: 'x',
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期'
     }
   }
 ])
@@ -234,7 +253,14 @@ const handleSearch = (params) => {
 const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
-    const res = await exportAgentLedgerApi(params)
+    // 处理时间范围
+    const exportParams = { ...params }
+    if (params.dateRange && params.dateRange.length === 2) {
+      exportParams.start_time = params.dateRange[0]
+      exportParams.end_time = params.dateRange[1]
+      delete exportParams.dateRange
+    }
+    const res = await exportAgentLedgerApi(exportParams)
     // 使用下载工具处理 blob 数据
     // Ensure res.data is a Blob before passing
     if (res.data instanceof Blob) {

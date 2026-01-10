@@ -74,7 +74,14 @@ const detailRef = ref()
 const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
-    const res = await exportTrustTransactionApi(params as TrustTransactionQueryParams)
+    // 处理时间范围
+    const exportParams = { ...params } as any
+    if (params.dateRange && params.dateRange.length === 2) {
+      exportParams.start_time = params.dateRange[0]
+      exportParams.end_time = params.dateRange[1]
+      delete exportParams.dateRange
+    }
+    const res = await exportTrustTransactionApi(exportParams as TrustTransactionQueryParams)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '托管订单列表.xlsx')
 
@@ -261,13 +268,13 @@ const searchSchema = reactive<FormSchema[]>([
   {
     field: 'dateRange',
     component: 'DatePicker',
-    label: '使用时间：',
+    label: '创建时间',
     componentProps: {
       type: 'datetimerange',
       valueFormat: 'x',
-      placeholder: ['开始时间', '结束时间']
-    },
-    hidden: true
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期'
+    }
   }
 ])
 

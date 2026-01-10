@@ -31,6 +31,7 @@ export interface ExchangeOrderListParams {
   user_id?: number
   status?: number // 订单状态
   order_type?: number // 订单类型
+  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
   start_time?: number // 创建时间范围 (Unix timestamp - seconds)
   end_time?: number // 创建时间范围 (Unix timestamp - seconds)
   // Add other searchable fields if backend supports them
