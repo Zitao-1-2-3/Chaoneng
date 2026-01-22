@@ -48,18 +48,14 @@
         </template>
       </Dialog>
     </ContentWrap>
-    <!-- 添加回收组件 -->
-    <RecycleEnergy ref="recycleEnergyRef" @success="handleRecycleSuccess" />
-    <!-- 添加补发组件 -->
-    <ResendEnergy ref="resendEnergyRef" @success="handleResendSuccess" />
     <!-- 添加详情组件 -->
     <OrderDetail ref="orderDetailRef" />
   </div>
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, onMounted, nextTick, h } from 'vue'
-import { ElButton, ElMessage, ElMessageBox, ElTag } from 'element-plus'
+import { ref, reactive, h } from 'vue'
+import { ElButton, ElMessage, ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
@@ -68,20 +64,13 @@ import { useForm } from '@/hooks/web/useForm'
 import { useI18n } from '@/hooks/web/useI18n'
 import { useValidator } from '@/hooks/web/useValidator'
 import { BaseButton } from '@/components/Button'
-import RecycleEnergy from './components/RecycleEnergy.vue'
-import ResendEnergy from './components/ResendEnergy.vue'
 import OrderDetail from './components/OrderDetail.vue'
 import {
   getEnergyTransactionListApi,
-  getEnergyTransactionDetailApi,
   updateEnergyTransactionStatusApi,
   exportEnergyTransactionApi, // 新增导入
-  EnergyTransactionOrder,
-  EnergyTransactionQueryParams,
-  EnergyTransactionResponse,
   handleRecycleApi
 } from '@/api/energy_transaction'
-import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute } from 'vue-router'
 import { formatToWan } from '@/utils'
@@ -90,10 +79,7 @@ import { downloadByData } from '@/utils/download'
 
 const { t } = useI18n()
 const { required } = useValidator()
-const recycleEnergyRef = ref()
-const resendEnergyRef = ref()
 const orderDetailRef = ref()
-const isLoaded = ref(false)
 
 // 导出
 const handleExport = async () => {
@@ -193,7 +179,10 @@ const columns = [
           3: '批量下单',
           4: '闪租',
           5: '激活',
-          6: '福利'
+          6: '福利',
+          7: '按笔数-带宽',
+          8: '接口调用-按笔数',
+          9: '接口调用-带宽'
         }
         const typeColorMap: Record<number, ElTagType> = {
           1: 'primary',
@@ -201,7 +190,10 @@ const columns = [
           3: 'warning',
           4: 'danger',
           5: 'info',
-          6: 'primary'
+          6: 'primary',
+          7: 'success',
+          8: 'warning',
+          9: 'danger'
         }
         const text = typeMap[type] || '未知类型'
         const tagType = typeColorMap[type] || 'info'
@@ -284,12 +276,6 @@ const actionColumn = {
       const row = data.row
       return (
         <>
-          {/* <BaseButton type="warning" disabled onClick={() => handleRecycle(row)}>
-            回收
-          </BaseButton>
-          <BaseButton type="success" disabled onClick={() => handleResend(row)}>
-            补发
-          </BaseButton> */}
           <BaseButton type="danger" onClick={() => handleStop(row)}>
             停止代理
           </BaseButton>
@@ -362,7 +348,10 @@ const searchSchema = [
         { label: '批量下单', value: 3 },
         { label: '闪租', value: 4 },
         { label: '激活', value: 5 },
-        { label: '福利', value: 6 }
+        { label: '福利', value: 6 },
+        { label: '按笔数-带宽', value: 7 },
+        { label: '接口调用-按笔数', value: 8 },
+        { label: '接口调用-带宽', value: 9 }
       ]
     }
   },
@@ -508,20 +497,6 @@ const handleAdd = () => {
   })
 }
 
-// 回收操作
-const handleRecycle = (row) => {
-  if (recycleEnergyRef.value) {
-    recycleEnergyRef.value.open(row)
-  }
-}
-
-// 补发操作
-const handleResend = (row) => {
-  if (resendEnergyRef.value) {
-    resendEnergyRef.value.open(row)
-  }
-}
-
 // 详情操作
 const handleDetail = (row) => {
   if (orderDetailRef.value) {
@@ -536,19 +511,14 @@ const handleSubmit = async () => {
   await elForm?.validate(async (valid) => {
     if (!valid) return
 
-    const formData = await formMethods.getFormData()
-
     try {
-      // 这里应该调用真实的API，但是目前API文件中没有添加能量交易的API
-      // 暂时用updateEnergyTransactionStatusApi代替
+      // TODO: 这里应该调用真实的API，目前暂时用updateEnergyTransactionStatusApi代替
       await updateEnergyTransactionStatusApi({
         id: '123', // 这里应该是真实的ID
         issueStatus: 1
       })
       ElMessage.success(dialogType.value === 'add' ? '添加成功' : '编辑成功')
       dialogVisible.value = false
-
-      // 刷新表格数据
       searchTableRef.value?.reload()
     } catch (error) {
       console.error('提交失败:', error)
@@ -620,9 +590,6 @@ const fetchEnergyTransactionDelete = async () => {
 
 // 数据加载完成回调
 const handleDataLoaded = ({ data, total, success }) => {
-  nextTick(() => {
-    isLoaded.value = true
-  })
   if (!success) {
     ElMessage.error('加载数据失败')
   } else if (data?.length === 0 && total === 0) {
@@ -633,20 +600,6 @@ const handleDataLoaded = ({ data, total, success }) => {
 // 数据加载错误回调
 const handleLoadError = () => {
   ElMessage.error('加载数据失败，请稍后重试')
-}
-
-// 回收成功回调
-const handleRecycleSuccess = () => {
-  if (searchTableRef.value) {
-    searchTableRef.value.reload()
-  }
-}
-
-// 补发成功回调
-const handleResendSuccess = () => {
-  if (searchTableRef.value) {
-    searchTableRef.value.reload()
-  }
 }
 
 const handleStop = async (row) => {
@@ -662,7 +615,7 @@ const handleStop = async (row) => {
 }
 
 const route = useRoute()
-const { searchTableRef, searchTableInstance, handleReady } = useSearchTable({
+const { searchTableRef } = useSearchTable({
   searchSchema,
   tableColumns: columns,
   fetchDataApi: fetchDataWrapper,
@@ -671,8 +624,6 @@ const { searchTableRef, searchTableInstance, handleReady } = useSearchTable({
   immediate: false // 由ready事件控制首次加载
 })
 
-// 手动触发加载
-// 移除setTimeout，改为ready事件
 function onSearchTableReady(instance) {
   const query = route.query
   instance.setSearchParams({ query: query.query })

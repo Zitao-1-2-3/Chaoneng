@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { ref, defineEmits, nextTick, computed } from 'vue'
+import { ref, nextTick, computed } from 'vue'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
@@ -25,6 +25,7 @@ interface AgentFormData {
   username: string
   email: string
   password: string
+  gift_bandwidth?: number
   status?: number
 }
 
@@ -63,6 +64,21 @@ const agentFormSchema = computed<FormSchema[]>(() => [
     componentProps: {
       placeholder: isEdit.value ? '留空则不修改密码' : '请输入登录密码'
     }
+  },
+  {
+    field: 'gift_bandwidth',
+    label: '是否赠送带宽',
+    component: 'RadioGroup' as const,
+    componentProps: {
+      options: [
+        { label: '开启', value: 1 },
+        { label: '关闭', value: 0 }
+      ]
+    },
+    defaultValue: 0,
+    colProps: {
+      span: 24
+    }
   }
 ])
 
@@ -91,7 +107,8 @@ async function openDialog(mode: 'add' | 'edit' = 'add', data: Partial<AgentFormD
   await formMethods.setValues({
     username: isEdit.value ? '' : '',
     email: data.email || '',
-    password: ''
+    password: '',
+    gift_bandwidth: data.gift_bandwidth ?? 0
   })
 }
 
@@ -132,7 +149,8 @@ async function handleAdd(formData: AgentFormData) {
   const payload: AddAgentPayload = {
     username: formData.username,
     email: formData.email,
-    password: formData.password
+    password: formData.password,
+    gift_bandwidth: formData.gift_bandwidth
   }
   await addAgentApi(payload)
   ElMessage.success('新增代理成功')
@@ -144,6 +162,7 @@ async function handleEdit(formData: AgentFormData) {
     id: originalData.value.id!,
     username: originalData.value.username,
     email: formData.email,
+    gift_bandwidth: formData.gift_bandwidth,
     status: originalData.value.status
   }
 
@@ -168,8 +187,26 @@ defineExpose({ openDialog })
       :showActionButtonGroup="false"
       label-width="180px"
     />
+    <div class="gift-bandwidth-description">
+      <p class="description-text">说明：开启状态，购买按笔数/托管两种类型订单，赠送 400点 带宽</p>
+    </div>
     <template #footer>
       <BaseButton type="primary" @click="onSubmit">提交</BaseButton>
     </template>
   </Dialog>
 </template>
+
+<style scoped>
+.gift-bandwidth-description {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.description-text {
+  padding-left: 180px; /* 与表单标签宽度对齐 */
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #666;
+}
+</style>

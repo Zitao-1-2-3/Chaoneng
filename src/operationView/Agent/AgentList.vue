@@ -180,6 +180,13 @@ const columns = ref<TableColumn[]>([
   { field: 'total_trx_amount', label: 'TRX收入' },
   { field: 'total_usdt_amount', label: 'USDT收入' },
   {
+    field: 'gift_bandwidth',
+    label: '是否赠送带宽',
+    formatter: (row: AgentItem) => {
+      return row.gift_bandwidth === 1 ? '赠送' : '不赠送'
+    }
+  },
+  {
     field: 'status',
     label: '状态',
     formatter: (row: AgentItem) => {

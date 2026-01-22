@@ -121,6 +121,7 @@ export interface HostedOrder {
   pay_unit: string // 支付单位 (varchar(10))
   status: number // 订单状态 (int unsigned, 1:已完成, 2:待支付, 3:已取消)
   manage_status: number // 托管状态 (int unsigned, 1:托管中, 2:已取消托管)
+  resource_type: number // 资源类型 (int unsigned, 1:能量, 2:带宽)
   create_time: number // 创建时间 (int unsigned, timestamp)
   finish_time: number // 完成时间 (int64, timestamp)
   describe: string // 描述 (varchar(256))

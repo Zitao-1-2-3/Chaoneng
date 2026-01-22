@@ -53,8 +53,8 @@ const searchTableRef = ref()
 const resourceTypeMap = {
   1: 'TRX池子',
   2: 'USDT池子',
-  3: '能量池子'
-  // 4: '带宽池子'
+  3: '能量池子',
+  4: '带宽池子'
 }
 
 const columns = ref<TableColumn[]>([
@@ -179,8 +179,8 @@ const searchSchema = reactive<FormSchema[]>([
         { label: '全部', value: '' },
         { label: 'TRX池子', value: 1 },
         { label: 'USDT池子', value: 2 },
-        { label: '能量池子', value: 3 }
-        // { label: '带宽池子', value: 4 }
+        { label: '能量池子', value: 3 },
+        { label: '带宽池子', value: 4 }
       ]
     }
   },

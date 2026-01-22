@@ -58,7 +58,6 @@ import {
 } from '@/api/trust_transaction' // 新增导入
 import type { HostedOrder, TrustTransactionQueryParams } from '@/api/trust_transaction/types' // 新增导入
 import { ContentWrap } from '@/components/ContentWrap'
-import { formatToWan } from '@/utils'
 import { useRouter, RouterLink } from 'vue-router'
 import { downloadByData } from '@/utils/download'
 
@@ -163,6 +162,23 @@ const columns = reactive<TableColumn[]>([
   },
   { field: 'bot_name', label: '机器人名称', minWidth: 120 },
   {
+    field: 'resource_type',
+    label: '订单类型',
+    minWidth: 100,
+    slots: {
+      default: ({ row }) => {
+        // resource_type: 1表示能量，2表示带宽
+        const resourceType = Number(row.resource_type)
+        const typeMap = {
+          1: { text: '能量', type: 'success' },
+          2: { text: '带宽', type: 'primary' }
+        }
+        const typeInfo = typeMap[resourceType] || { text: '未知', type: 'info' }
+        return <ElTag type={typeInfo.type}>{typeInfo.text}</ElTag>
+      }
+    }
+  },
+  {
     field: 'manage_status',
     label: '托管状态',
     minWidth: 100,
@@ -178,7 +194,7 @@ const columns = reactive<TableColumn[]>([
     field: 'energy_num',
     label: '能量数量',
     minWidth: 100,
-    formatter: (row) => formatToWan(row.energy_num)
+    formatter: (row) => row.energy_num || '0'
   },
   { field: 'energy_rent_text', label: '能量有效期', minWidth: 100 },
   {
@@ -261,6 +277,20 @@ const searchSchema = reactive<FormSchema[]>([
         { label: '全部', value: '' },
         { label: '托管中', value: 1 },
         { label: '已取消托管', value: 2 }
+      ],
+      clearable: true
+    }
+  },
+  {
+    field: 'resource_type',
+    component: 'Select',
+    label: '订单类型：',
+    componentProps: {
+      placeholder: '请选择订单类型',
+      options: [
+        { label: '全部', value: '' },
+        { label: '能量', value: 1 },
+        { label: '带宽', value: 2 }
       ],
       clearable: true
     }

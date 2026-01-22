@@ -23,7 +23,6 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { BaseButton } from '@/components/Button'
 import { formatToDateTime } from '@/utils/dateUtil'
 import type { HostedOrder } from '@/api/trust_transaction/types'
-import { formatToWan } from '@/utils'
 
 const dialogVisible = ref(false)
 const currentRowData = ref<HostedOrder | null>(null)
@@ -59,106 +58,141 @@ const getRecycleStatusText = (recycleTime: number) => {
 }
 
 // --- Descriptions Schema Definition ---
-const detailSchema = computed<DescriptionsSchema[]>(() => [
-  { field: 'order_id', label: '订单ID' },
-  { field: 'username', label: 'TG用户名', slots: { default: (data) => data.username || '-' } },
-  { field: 'tg_id', label: 'TG用户ID' },
-  { field: 'bot_name', label: '机器人名称', slots: { default: (data) => data.bot_name || '-' } },
-  { field: 'tg_bot_id', label: '机器人ID' },
-  {
-    field: 'manage_status',
-    label: '托管状态',
-    slots: {
-      default: (data) => {
-        const statusInfo = getManageStatus(data.manage_status)
-        return h(ElTag, { type: statusInfo.type }, () => statusInfo.text)
+const detailSchema = computed<DescriptionsSchema[]>(() => {
+  // 根据当前数据确定资源类型名称
+  const data = currentRowData.value
+  const resourceType = Number(data?.resource_type)
+  const resourceName = resourceType === 2 ? '带宽' : '能量'
+
+  return [
+    { field: 'order_id', label: '订单ID' },
+    { field: 'username', label: 'TG用户名', slots: { default: (data) => data.username || '-' } },
+    { field: 'tg_id', label: 'TG用户ID' },
+    { field: 'bot_name', label: '机器人名称', slots: { default: (data) => data.bot_name || '-' } },
+    { field: 'tg_bot_id', label: '机器人ID' },
+    {
+      field: 'resource_type',
+      label: '订单类型',
+      slots: {
+        default: (data) => {
+          // resource_type: 1表示能量，2表示带宽
+          const resourceType = Number(data?.resource_type || data.resource_type)
+          const typeMap = {
+            1: { text: '能量', type: 'success' },
+            2: { text: '带宽', type: 'primary' }
+          }
+          const typeInfo = typeMap[resourceType] || { text: '未知', type: 'info' }
+          return h(ElTag, { type: typeInfo.type }, () => typeInfo.text)
+        }
+      }
+    },
+    {
+      field: 'manage_status',
+      label: '托管状态',
+      slots: {
+        default: (data) => {
+          const statusInfo = getManageStatus(data.manage_status)
+          return h(ElTag, { type: statusInfo.type }, () => statusInfo.text)
+        }
+      }
+    },
+    {
+      field: 'energy_num',
+      label: `${resourceName}数量`,
+      slots: { default: (data) => data.energy_num || '0' }
+    },
+    {
+      field: 'energy_rent_text',
+      label: `${resourceName}有效期`
+    },
+    {
+      field: 'order_amount',
+      label: '订单金额',
+      slots: { default: (data) => `${data.order_amount || '0'}${data.pay_unit || ''}` }
+    },
+    {
+      field: 'pay_amount',
+      label: '扣款金额',
+      slots: { default: (data) => `${data.pay_amount || '0'}${data.pay_unit || ''}` }
+    },
+    {
+      field: 'delegate_status',
+      label: '补充状态',
+      slots: { default: (data) => getHandleStatusText(data.delegate_status) }
+    },
+    {
+      field: 'describe',
+      label: '描述',
+      slots: { default: (data) => data.describe || '-' }
+    },
+    {
+      field: 'create_time',
+      label: '创建时间',
+      slots: {
+        default: (data) => (data.create_time ? formatToDateTime(data.create_time * 1000) : '-')
+      }
+    },
+    {
+      field: 'recycle_time',
+      label: '回收时间',
+      slots: {
+        default: (data) => (data.recycle_time ? formatToDateTime(data.recycle_time * 1000) : '-')
+      }
+    },
+    {
+      field: 'finish_time',
+      label: '完成时间',
+      slots: {
+        default: (data) => (data.finish_time ? formatToDateTime(data.finish_time * 1000) : '-')
+      }
+    },
+    {
+      field: 'recycle_time',
+      label: '回收状态',
+      slots: { default: (data) => getRecycleStatusText(data.recycle_time) }
+    },
+    {
+      field: 'recycle_txid',
+      label: '回收hash',
+      span: 24,
+      slots: {
+        default: (data) =>
+          h(
+            ElLink,
+            {
+              type: 'primary',
+              href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.recycle_txid}`,
+              target: '_blank'
+            },
+            () => data.recycle_txid || '-'
+          )
+      }
+    },
+    {
+      field: 'address',
+      label: `${resourceName}接收地址`,
+      span: 24,
+      slots: { default: (data) => data.address }
+    },
+    {
+      field: 'txid',
+      label: '交易hash',
+      span: 24,
+      slots: {
+        default: (data) =>
+          h(
+            ElLink,
+            {
+              type: 'primary',
+              href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.txid}`,
+              target: '_blank'
+            },
+            () => data.txid || '-'
+          )
       }
     }
-  },
-  {
-    field: 'energy_num',
-    label: '能量数量',
-    slots: { default: (data) => formatToWan(data.energy_num) }
-  },
-  { field: 'energy_rent_text', label: '能量有效期' },
-  {
-    field: 'order_amount',
-    label: '订单金额',
-    slots: { default: (data) => `${data.order_amount || '0'}${data.pay_unit || ''}` }
-  },
-  {
-    field: 'pay_amount',
-    label: '扣款金额',
-    slots: { default: (data) => `${data.pay_amount || '0'}${data.pay_unit || ''}` }
-  },
-  {
-    field: 'delegate_status',
-    label: '补充状态',
-    slots: { default: (data) => getHandleStatusText(data.delegate_status) }
-  },
-  { field: 'describe', label: '描述', slots: { default: (data) => data.describe || '-' } },
-  {
-    field: 'create_time',
-    label: '创建时间',
-    slots: {
-      default: (data) => (data.create_time ? formatToDateTime(data.create_time * 1000) : '-')
-    }
-  },
-  {
-    field: 'recycle_time',
-    label: '回收时间',
-    slots: {
-      default: (data) => (data.recycle_time ? formatToDateTime(data.recycle_time * 1000) : '-')
-    }
-  },
-  {
-    field: 'finish_time',
-    label: '完成时间',
-    slots: {
-      default: (data) => (data.finish_time ? formatToDateTime(data.finish_time * 1000) : '-')
-    }
-  },
-  {
-    field: 'recycle_time',
-    label: '回收状态',
-    slots: { default: (data) => getRecycleStatusText(data.recycle_time) }
-  },
-  {
-    field: 'recycle_txid',
-    label: '回收hash',
-    span: 24,
-    slots: {
-      default: (data) =>
-        h(
-          ElLink,
-          {
-            type: 'primary',
-            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.recycle_txid}`,
-            target: '_blank'
-          },
-          () => data.recycle_txid || '-'
-        )
-    }
-  },
-  { field: 'address', label: '能量接收地址', span: 24, slots: { default: (data) => data.address } },
-  {
-    field: 'txid',
-    label: '交易hash',
-    span: 24,
-    slots: {
-      default: (data) =>
-        h(
-          ElLink,
-          {
-            type: 'primary',
-            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.txid}`,
-            target: '_blank'
-          },
-          () => data.txid || '-'
-        )
-    }
-  }
-])
+  ]
+})
 
 // --- Methods ---
 const open = (rowData: HostedOrder) => {

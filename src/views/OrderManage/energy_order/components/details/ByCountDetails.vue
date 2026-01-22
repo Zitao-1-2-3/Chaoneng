@@ -28,13 +28,6 @@ const apiTotalCount = ref(0)
 
 const byCountDetailSchema = computed((): DescriptionsSchema[] => [
   { field: 'stroke_num', label: '租用笔数' },
-  // {
-  //   field: 'order_amount',
-  //   label: '订单金额',
-  //   slots: {
-  //     default: (data: any) => h('span', {}, `${data.order_amount ?? '-'} ${data.pay_unit ?? ''}`)
-  //   }
-  // }
   {
     field: 'stroke_ext.price_trx',
     label: '能量TRX价格',

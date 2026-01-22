@@ -107,5 +107,27 @@ export const getBatchActiveListApi = (id: string | number, params: PageParams) =
   })
 }
 
+/**
+ * 获取带宽订单详情
+ * @param id 订单ID
+ */
+export const getBandwidthOrderDetailApi = (id: string) => {
+  return request.get<ApiResponse<EnergyTransactionOrder>>({
+    url: `/v2/manage/bandwidth_order/detail/${id}`
+  })
+}
+
+/**
+ * 获取带宽按笔数详情列表
+ * @param id 主订单 ID
+ * @param params 分页参数
+ */
+export const getBandwidthCountListApi = (id: string | number, params: PageParams) => {
+  return request.get<ApiResponse<ListResult<EnergyCountListItem>>>({
+    url: `/v2/manage/bandwidth_count/list/${id}`,
+    params
+  })
+}
+
 // 导出所有类型
 export * from './types'

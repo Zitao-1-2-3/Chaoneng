@@ -22,6 +22,7 @@ export interface AgentItem {
   trx_mount: string | number // TRX余额 (替代 trx_balance, 类型调整)
   total_trx_amount: string | number // TRX收入 (替代 trx_income, 类型调整)
   total_usdt_amount: string | number // USDT收入 (替代 usdt_income, 类型调整)
+  gift_bandwidth: number // 是否赠送带宽 [0:不赠送 1:赠送]
   status: number // 状态 (示例值为 0, 需确认 0/1/2 的含义)
   create_time: string | number // 创建时间 (示例值为 0)
 }
@@ -77,6 +78,7 @@ export interface AddAgentPayload {
   username: string // 代理名称
   email: string // 联系方式
   password: string // 登录密码
+  gift_bandwidth?: number // 是否赠送带宽 [0:不赠送 1:赠送]
 }
 
 // 定义编辑代理参数类型
@@ -85,6 +87,7 @@ export interface UpdateAgentPayload {
   username?: string // 代理名称（可选）
   email?: string // 联系方式（可选）
   password?: string // 登录密码（可选，留空不修改）
+  gift_bandwidth?: number // 是否赠送带宽 [0:不赠送 1:赠送]（可选）
   status?: number // 状态（可选）
 }
 

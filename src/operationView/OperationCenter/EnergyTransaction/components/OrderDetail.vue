@@ -28,18 +28,10 @@
 
 <script setup lang="tsx">
 import { ref, reactive, computed, defineAsyncComponent, h } from 'vue'
-import {
-  ElButton,
-  ElDescriptions,
-  ElDescriptionsItem,
-  ElTag,
-  ElMessage,
-  ElTabs,
-  ElTabPane
-} from 'element-plus'
+import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { getEnergyTransactionDetailApi } from '@/api/energy_transaction'
+import { getEnergyTransactionDetailApi, getBandwidthOrderDetailApi } from '@/api/energy_transaction'
 import { formatToWan } from '@/utils'
 import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 
@@ -49,6 +41,9 @@ const BatchOrderDetails = defineAsyncComponent(() => import('./details/BatchOrde
 const FlashRentDetails = defineAsyncComponent(() => import('./details/FlashRentDetails.vue'))
 const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
 const WealOrderDetails = defineAsyncComponent(() => import('./details/WealOrderDetails.vue'))
+const BandwidthCountDetails = defineAsyncComponent(
+  () => import('./details/BandwidthCountDetails.vue')
+)
 
 const visible = ref(false)
 const currentOrder = ref<any | null>(null)
@@ -73,8 +68,16 @@ const commonDetailSchema = reactive<any[]>([
     label: '支付金额',
     field: 'order_amount',
     slots: {
-      default: (data) =>
-        data?.order_amount !== undefined ? `${data.order_amount} ${data.pay_unit || ''}` : '暂无'
+      default: (data) => {
+        // 当订单类型为7、8、9时，支付金额固定为0 TRX
+        const orderType = Number(data?.order_type)
+        if (orderType === 7 || orderType === 8 || orderType === 9) {
+          return '0 TRX'
+        }
+        return data?.order_amount !== undefined
+          ? `${data.order_amount} ${data.pay_unit || ''}`
+          : '暂无'
+      }
     }
   },
   {
@@ -131,14 +134,27 @@ const commonDetailSchema = reactive<any[]>([
   }
 ])
 
-const orderTypeMap = { 1: '按笔数', 2: '按时间', 3: '批量下单', 4: '闪租', 5: '激活', 6: '福利' }
+const orderTypeMap = {
+  1: '按笔数',
+  2: '按时间',
+  3: '批量下单',
+  4: '闪租',
+  5: '激活',
+  6: '福利',
+  7: '按笔数-带宽',
+  8: '接口调用-按笔数',
+  9: '接口调用-带宽'
+}
 const orderTypeColorMap = {
   1: 'primary',
   2: 'success',
   3: 'warning',
   4: 'danger',
   5: 'info',
-  6: 'primary'
+  6: 'primary',
+  7: 'success',
+  8: 'warning',
+  9: 'danger'
 }
 const statusMap = { 1: '已完成', 2: '待支付' }
 const statusColorMap = { 1: 'success', 2: 'warning' }
@@ -174,6 +190,10 @@ const detailComponent = computed(() => {
       return ActivationDetails
     case 6:
       return WealOrderDetails
+    case 7: // 按笔数-带宽
+    case 8: // 接口调用-按笔数
+    case 9: // 接口调用-带宽
+      return BandwidthCountDetails
     default:
       return null
   }
@@ -189,12 +209,15 @@ const detailTabLabel = computed(() => {
     3: '批量下单详情',
     4: '闪租详情',
     5: '激活详情',
-    6: '福利详情'
+    6: '福利详情',
+    7: '按笔数-带宽详情',
+    8: '接口调用-按笔数详情',
+    9: '接口调用-带宽详情'
   }
   return typeTextMap[type] || '详情'
 })
 
-const open = async (row: { id: string | number }) => {
+const open = async (row: { id: string | number; order_type?: number }) => {
   if (!row || !row.id) {
     ElMessage.error('无效的订单信息')
     return
@@ -204,16 +227,51 @@ const open = async (row: { id: string | number }) => {
   currentOrder.value = null
 
   try {
-    const response = await getEnergyTransactionDetailApi(String(row.id))
+    let detailData: any = null
 
-    if (response && response.code === '000000' && response.data) {
-      currentOrder.value = response.data
+    // 根据订单类型调用不同的API
+    if (row.order_type === 7) {
+      // 按笔数-带宽类型：调用带宽订单详情API
+      const response = await getBandwidthOrderDetailApi(String(row.id))
+      if (response && response.code === '000000' && response.data) {
+        detailData = response.data
+        // 确保order_type与列表数据一致
+        detailData.order_type = row.order_type
+      } else {
+        ElMessage.warning(response?.msg || '未获取到带宽订单详情数据')
+        currentOrder.value = null
+        return
+      }
+    } else if (row.order_type === 8 || row.order_type === 9) {
+      // 接口调用类型：复用带宽订单详情API
+      const response = await getBandwidthOrderDetailApi(String(row.id))
+      if (response && response.code === '000000' && response.data) {
+        detailData = response.data
+        // 确保order_type与列表数据一致
+        detailData.order_type = row.order_type
+      } else {
+        ElMessage.warning(response?.msg || '未获取到接口调用订单详情数据')
+        currentOrder.value = null
+        return
+      }
     } else {
-      ElMessage.warning(response?.message || response?.msg || '未获取到订单详情数据或数据格式错误')
-      currentOrder.value = null
+      // 其他类型：调用原有的能量交易详情API
+      const response = await getEnergyTransactionDetailApi(String(row.id))
+      if (response && response.code === '000000' && response.data) {
+        detailData = response.data
+        // 如果详情API返回的order_type与列表数据不一致，使用列表数据的order_type
+        if (row.order_type && detailData.order_type !== row.order_type) {
+          detailData.order_type = row.order_type
+        }
+      } else {
+        ElMessage.warning(response?.msg || '未获取到订单详情数据或数据格式错误')
+        currentOrder.value = null
+        return
+      }
     }
+
+    currentOrder.value = detailData
   } catch (error: any) {
-    console.error('获取订单详情失败:', error)
     ElMessage.error(`获取订单详情失败: ${error?.message || '请检查网络或联系管理员'}`)
     currentOrder.value = null
   }
