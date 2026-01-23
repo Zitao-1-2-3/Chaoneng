@@ -260,7 +260,7 @@ const actionColumn: TableColumn = {
           <BaseButton
             type="success"
             onClick={() => handleTransactionDetail(row)}
-            disabled={[1, 3, 5].includes(row.order_type)}
+            disabled={[3, 5].includes(row.order_type)}
           >
             交易详情
           </BaseButton>

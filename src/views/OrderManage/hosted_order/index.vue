@@ -50,28 +50,24 @@
 import { ref, onMounted, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRouter, useRoute } from 'vue-router'
-import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane, ElLink } from 'element-plus'
+import { ElButton, ElTag, ElMessage, ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Descriptions } from '@/components/Descriptions'
-// import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import {
   getHostedOrderListApi,
   getHostedOrderDetailApi,
-  exportHostedOrderApi,
-  getTransactionDetailApi
+  exportHostedOrderApi
 } from '@/api/hosted_order'
 import formatEnergyNum from '@/views/OrderManage/helpers/formatEnergyNum'
 import { Icon } from '@/components/Icon'
 import { downloadByData } from '@/utils/download'
 
-// const { t } = useI18n()
 const router = useRouter()
-const route = useRoute()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 
 // 订单详情相关
@@ -90,6 +86,20 @@ const hostedDetailSchema = computed(() => {
     { field: 'nickname', label: 'TG用户昵称' },
     { field: 'tg_bot_id', label: '机器人ID' },
     { field: 'bot_name', label: '机器人名称' },
+    {
+      field: 'resource_type',
+      label: '订单类型',
+      slots: {
+        default: (row: any) => {
+          if (!row || row.resource_type === undefined) return h('span', '-')
+          const typeText =
+            row.resource_type === 1 ? '能量' : row.resource_type === 2 ? '带宽' : '未知'
+          const typeColor =
+            row.resource_type === 1 ? 'success' : row.resource_type === 2 ? 'warning' : 'info'
+          return h(ElTag, { type: typeColor, size: 'small' }, () => typeText)
+        }
+      }
+    },
     {
       field: 'order_amount',
       label: '订单金额',
@@ -129,7 +139,6 @@ const hostedDetailSchema = computed(() => {
       label: '支付类型',
       slots: {
         default: (row: any) => {
-          // if (!row || !row.payType) return h('span', '-')
           return h('span', row.pay_type == 2 ? '波场钱包转账' : '余额支付')
         }
       }
@@ -185,16 +194,6 @@ const hostedDetailSchema = computed(() => {
         }
       }
     }
-    // {
-    //   field: 'payTime',
-    //   label: '支付时间',
-    //   slots: {
-    //     default: (row: any) => {
-    //       if (!row || !row.payTime) return h('span', '-')
-    //       return h('span', formatToDateTime(row.payTime))
-    //     }
-    //   }
-    // }
   ]
   return schema
 })
@@ -234,7 +233,6 @@ const transactionDetailSchema = computed(() => {
         }
       }
     },
-    // { field: 'energy_rent_text', label: '能量有效期' },
     {
       field: 'energy_num',
       label: '能量数',
@@ -310,6 +308,20 @@ const columns: TableColumn[] = [
           },
           () => row.bot_name
         )
+      }
+    }
+  },
+  {
+    field: 'resource_type',
+    label: '订单类型',
+    slots: {
+      default: ({ row }) => {
+        if (!row || row.resource_type === undefined) return h('span', '-')
+        const typeText =
+          row.resource_type === 1 ? '能量' : row.resource_type === 2 ? '带宽' : '未知'
+        const typeColor =
+          row.resource_type === 1 ? 'success' : row.resource_type === 2 ? 'warning' : 'info'
+        return h(ElTag, { type: typeColor, size: 'small' }, () => typeText)
       }
     }
   },

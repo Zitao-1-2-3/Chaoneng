@@ -13,8 +13,6 @@ import Icon from '@/components/Icon/src/Icon.vue'
 const { getPrefixCls } = useDesign()
 const prefixCls = getPrefixCls('panel')
 
-// const loading = ref(true) // Remove local loading state
-
 // Define Interface (ensure this matches the structure passed from Analysis.vue)
 interface ApiStatisticsData {
   day_energy_income?: string
@@ -45,18 +43,11 @@ const props = defineProps<{
   isLoading: boolean
 }>()
 
-// Remove local statsData
-// const statsData = reactive<Partial<ApiStatisticsData>>({});
-
 // Helper function
 const parseNum = (val: string | number | undefined): number => {
   if (typeof val === 'number') return val
   return parseFloat(val || '0') || 0
 }
-
-// Remove getStatistics function
-// const getStatistics = async () => { ... }
-// getStatistics() // Remove initial call
 
 // Update computed properties to use props.statistics
 const dayEnergyIncome = computed(() => parseNum(props.statistics.day_energy_income))
