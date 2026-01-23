@@ -169,3 +169,5 @@
 2. 超能运营 (Operation) pnpm dev:o 或 pnpm run dev:o
 
 通用开发命令pnpm dev
+
+git 提交需要加前缀git commit -m "feat: 新增用户注册功能" git commit -m "fix: 修复登录页面bug" git commit -m "docs: 更新API文档"
