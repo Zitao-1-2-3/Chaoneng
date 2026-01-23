@@ -282,8 +282,4 @@ defineExpose({
 .order-detail-tabs .el-tabs__content {
   min-height: 150px;
 }
-
-/* :deep(.descriptions-label) {
-  width: 100px;
-} */
 </style>
