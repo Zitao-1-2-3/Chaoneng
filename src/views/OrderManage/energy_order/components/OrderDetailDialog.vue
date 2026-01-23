@@ -124,7 +124,10 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
             3: '批量下单',
             4: '闪租',
             5: '激活',
-            6: '福利'
+            6: '福利',
+            7: '按笔数-带宽',
+            8: '接口调用-按笔数',
+            9: '接口调用-带宽'
           }
           const typeColorMap: Record<
             number,
@@ -135,7 +138,10 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
             3: 'warning',
             4: 'danger',
             5: 'info',
-            6: 'primary'
+            6: 'primary',
+            7: 'success',
+            8: 'warning',
+            9: 'danger'
           }
           const orderTypeNum =
             typeof data.order_type === 'string' ? parseInt(data.order_type, 10) : data.order_type

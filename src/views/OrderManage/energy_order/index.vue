@@ -52,14 +52,12 @@ import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Descriptions } from '@/components/Descriptions'
-// import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import {
   getEnergyOrderListApi,
   getEnergyOrderDetailApi,
-  exportEnergyOrderApi,
-  getTransactionDetailApi
+  exportEnergyOrderApi
 } from '@/api/energy_order'
 import OrderDetailDialog from './components/OrderDetailDialog.vue'
 import formatEnergyNum from '../helpers/formatEnergyNum'
@@ -67,9 +65,7 @@ import isEmpty from 'lodash-es/isEmpty'
 import { Icon } from '@/components/Icon'
 import { downloadByData } from '@/utils/download'
 
-// const { t } = useI18n()
 const router = useRouter()
-const route = useRoute()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const totalCount = ref(0)
 const orderDialogVisible = ref(false)
@@ -138,7 +134,10 @@ const columns: TableColumn[] = [
           3: '批量下单',
           4: '闪租',
           5: '激活',
-          6: '福利'
+          6: '福利',
+          7: '按笔数-带宽',
+          8: '接口调用-按笔数',
+          9: '接口调用-带宽'
         }
         // Assign fixed color types
         const typeColorMap: Record<number, 'primary' | 'success' | 'warning' | 'danger' | 'info'> =
@@ -148,7 +147,10 @@ const columns: TableColumn[] = [
             3: 'warning',
             4: 'danger',
             5: 'info',
-            6: 'primary'
+            6: 'primary',
+            7: 'success',
+            8: 'warning',
+            9: 'danger'
           }
 
         const orderTypeNum =
@@ -231,12 +233,6 @@ const columns: TableColumn[] = [
     width: 180,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   },
-  // {
-  //   field: 'pay_time',
-  //   label: '支付时间',
-  //   width: 180,
-  //   formatter: (row) => (row.pay_time ? formatToDateTime(row.pay_time) : '-')
-  // },
   {
     field: 'finish_time',
     label: '完成时间',
@@ -323,7 +319,10 @@ const searchSchema = [
         { label: '批量下单', value: 3 },
         { label: '闪租', value: 4 },
         { label: '激活', value: 5 },
-        { label: '福利', value: 6 }
+        { label: '福利', value: 6 },
+        { label: '按笔数-带宽', value: 7 },
+        { label: '接口调用-按笔数', value: 8 },
+        { label: '接口调用-带宽', value: 9 }
       ],
       placeholder: '请选择订单类型'
     }
@@ -378,7 +377,6 @@ const fetchEnergyOrderList = async (params: any) => {
     const response = await getEnergyOrderListApi(params)
     totalCount.value = response.data.totalCount
     currentSearchParams.value = params
-    // console.log('Updated search params after fetch:', currentSearchParams.value);
     return response.data
   } catch (error) {
     console.error('获取能量订单列表失败:', error)
@@ -410,7 +408,6 @@ const handleViewDetail = async (orderId: number | string) => {
   }
 }
 
-// 查看交易详情 (实际调用订单详情API)
 const handleTransactionDetail = async (row: any) => {
   const orderId = row.id || row.order_id // 使用订单ID获取详情
   const txid = row.txid // 保留 txid 用于可能的显示或参考
@@ -472,11 +469,9 @@ const handleExport = async () => {
 }
 
 const onSearch = (params: any) => {
-  // console.log('搜索事件触发，参数:', params);
   currentSearchParams.value = params
 }
 
-// transactionDetailSchema updated for order status display
 const transactionDetailSchema = computed((): DescriptionsSchema[] => [
   {
     field: 'txid', // Ensure 'txid' is in getEnergyOrderDetailApi response
@@ -553,7 +548,6 @@ const transactionDetailSchema = computed((): DescriptionsSchema[] => [
         h('span', {}, data.finish_time ? formatToDateTime(data.finish_time) : '-')
     }
   }
-  // Add/Remove/Adjust other fields based precisely on getEnergyOrderDetailApi response structure
 ])
 
 onMounted(() => {

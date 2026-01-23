@@ -32,7 +32,6 @@ import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { getEnergyTransactionDetailApi, getBandwidthOrderDetailApi } from '@/api/energy_transaction'
-import { formatToWan } from '@/utils'
 import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 
 const ByCountDetails = defineAsyncComponent(() => import('./details/ByCountDetails.vue'))
@@ -51,7 +50,10 @@ const activeTab = ref('basic')
 
 const commonDetailSchema = reactive<any[]>([
   { label: '订单号', field: 'order_num' },
-  { label: '用户名', field: 'username', slots: { default: (data) => data?.username || '-' } },
+  { label: '用户名', field: 'tg_name', slots: { default: (data) => data?.tg_name || '-' } },
+  { label: '机器人ID', field: 'bot_id' },
+  { label: '机器人用户名', field: 'bot_name' },
+  { label: '代理名称', field: 'username' },
   {
     label: '订单类型',
     field: 'order_type',
@@ -82,10 +84,10 @@ const commonDetailSchema = reactive<any[]>([
   },
   {
     label: '能量数',
-    field: 'energy_num',
-    slots: {
-      default: (data) => (data?.energy_num ? `${formatToWan(data.energy_num)}` : '-')
-    }
+    field: 'energy_num'
+    // slots: {
+    //   default: (data) => (data?.energy_num ? `${formatToWan(data.energy_num)}` : '-')
+    // }
   },
   {
     label: '接收地址',
