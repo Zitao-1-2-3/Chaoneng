@@ -4,7 +4,7 @@ import { CountTo } from '@/components/CountTo'
 import { useDesign } from '@/hooks/web/useDesign'
 // import { useI18n } from '@/hooks/web/useI18n' // Keep if needed for other text
 // import { ref, reactive } from 'vue' // Remove ref, reactive
-import { computed, defineProps } from 'vue' // Import defineProps
+import { computed } from 'vue'
 // import { getDailyStatisticsApi } from '@/api/statistics' // Remove API import
 import Icon from '@/components/Icon/src/Icon.vue'
 
@@ -35,6 +35,8 @@ interface ApiStatisticsData {
   total_active_income?: string
   day_active_cost?: string
   total_active_cost?: string
+  day_bandwidth_cost?: string
+  total_bandwidth_cost?: string
 }
 
 // Define props
@@ -75,10 +77,19 @@ const dayActiveIncome = computed(() => parseNum(props.statistics.day_active_inco
 const totalActiveIncome = computed(() => parseNum(props.statistics.total_active_income))
 const dayActiveCost = computed(() => parseNum(props.statistics.day_active_cost))
 const totalActiveCost = computed(() => parseNum(props.statistics.total_active_cost))
+const dayBandwidthCost = computed(() => {
+  const value = props.statistics.day_bandwidth_cost
+  return value !== undefined ? String(value) : '0'
+})
+const totalBandwidthCost = computed(() => {
+  const value = props.statistics.total_bandwidth_cost
+  return value !== undefined ? String(value) : '0'
+})
 </script>
 
 <template>
   <ElRow :gutter="16" justify="space-between" :class="prefixCls">
+    <!-- 第一行：4个卡片 -->
     <!-- 今日能量收入 -->
     <ElCol :xs="24" :sm="12" :md="6" :lg="6" :xl="6">
       <ElCard shadow="hover" class="mb-[20px]">
@@ -241,6 +252,7 @@ const totalActiveCost = computed(() => parseNum(props.statistics.total_active_co
       </ElCard>
     </ElCol>
 
+    <!-- 第二行：3个卡片 -->
     <!-- 今日新增代理 -->
     <ElCol :xs="24" :sm="12" :md="8" :lg="8" :xl="8">
       <ElCard shadow="hover" class="mb-[20px]">
@@ -360,20 +372,74 @@ const totalActiveCost = computed(() => parseNum(props.statistics.total_active_co
       </ElCard>
     </ElCol>
   </ElRow>
+  <!-- 新增带宽支出行：两个卡片各占一半 -->
+  <ElRow :gutter="16" justify="space-between" :class="prefixCls">
+    <ElCol :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
+      <ElCard shadow="hover" class="mb-[20px]">
+        <ElSkeleton :loading="props.isLoading" animated :rows="3">
+          <template #default>
+            <div class="min-h-[100px] flex justify-between">
+              <div class="flex items-center">
+                <div class="p-4 inline-block rounded-[6px] text-[#f44336] hover:bg-[#f44336] group">
+                  <Icon
+                    icon="mdi:network-outline"
+                    :size="50"
+                    class="group-hover:text-white transition duration-300 ease-out"
+                  />
+                </div>
+              </div>
+              <div class="flex flex-col justify-between text-right break-all min-w-0">
+                <div class="text-[16px] text-gray-500 mb-2"> 今日带宽支出 </div>
+                <div class="text-[20px] font-bold flex items-center justify-end min-w-0">
+                  {{ dayBandwidthCost }}
+                </div>
+                <div class="text-[12px] text-gray-400 mt-[4px]">
+                  <span>总带宽支出 </span>
+                  {{ totalBandwidthCost }}
+                </div>
+              </div>
+            </div>
+          </template>
+        </ElSkeleton>
+      </ElCard>
+    </ElCol>
+
+    <ElCol :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
+      <ElCard shadow="hover" class="mb-[20px]">
+        <ElSkeleton :loading="props.isLoading" animated :rows="3">
+          <template #default>
+            <div class="min-h-[100px] flex justify-between">
+              <div class="flex items-center">
+                <div class="p-4 inline-block rounded-[6px] text-[#9c27b0] hover:bg-[#9c27b0] group">
+                  <Icon
+                    icon="mdi:chart-line-variant"
+                    :size="50"
+                    class="group-hover:text-white transition duration-300 ease-out"
+                  />
+                </div>
+              </div>
+              <div class="flex flex-col justify-between text-right break-all min-w-0">
+                <div class="text-[16px] text-gray-500 mb-2"> 总带宽支出 </div>
+                <div class="text-[20px] font-bold flex items-center justify-end min-w-0">
+                  {{ totalBandwidthCost }}
+                </div>
+                <div class="text-[12px] text-gray-400 mt-[4px]">
+                  <span>今日带宽支出 </span>
+                  {{ dayBandwidthCost }}
+                </div>
+              </div>
+            </div>
+          </template>
+        </ElSkeleton>
+      </ElCard>
+    </ElCol>
+  </ElRow>
 </template>
 
 <style lang="less" scoped>
 @prefix-cls: ~'@{adminNamespace}-panel';
 
-// 仅保留 :deep 样式或者将来可以移除的样式
-// .@{prefix-cls} {
-//   // ... 大部分内容已移至模板
-// }
-
 :deep(.el-card__body) {
   padding: 0.75rem !important; // 暂时保留，看是否能通过 ElCard prop 或其他方式替代
 }
-
-// 移除了 .ml-*, .text-*, .font-*, .flex*, .justify-*, .items-*, .p-*, .rounded-*, 等类
-// 移除了面板项的颜色、背景和悬停样式，因为它们已内联到模板中
 </style>

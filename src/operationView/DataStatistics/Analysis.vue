@@ -29,6 +29,8 @@ interface ApiStatisticsData {
   total_active_income?: string
   day_active_cost?: string
   total_active_cost?: string
+  day_bandwidth_cost?: string
+  total_bandwidth_cost?: string
   day_total?: { day: string; energy_income: string }[]
   last_week_user_num?: { day: string; num: number }[]
 }
