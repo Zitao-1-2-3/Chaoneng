@@ -394,36 +394,6 @@ const totalBandwidthCost = computed(() => {
         </ElSkeleton>
       </ElCard>
     </ElCol>
-
-    <ElCol :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
-      <ElCard shadow="hover" class="mb-[20px]">
-        <ElSkeleton :loading="props.isLoading" animated :rows="3">
-          <template #default>
-            <div class="min-h-[100px] flex justify-between">
-              <div class="flex items-center">
-                <div class="p-4 inline-block rounded-[6px] text-[#9c27b0] hover:bg-[#9c27b0] group">
-                  <Icon
-                    icon="mdi:chart-line-variant"
-                    :size="50"
-                    class="group-hover:text-white transition duration-300 ease-out"
-                  />
-                </div>
-              </div>
-              <div class="flex flex-col justify-between text-right break-all min-w-0">
-                <div class="text-[16px] text-gray-500 mb-2"> 总带宽支出 </div>
-                <div class="text-[20px] font-bold flex items-center justify-end min-w-0">
-                  {{ totalBandwidthCost }}
-                </div>
-                <div class="text-[12px] text-gray-400 mt-[4px]">
-                  <span>今日带宽支出 </span>
-                  {{ dayBandwidthCost }}
-                </div>
-              </div>
-            </div>
-          </template>
-        </ElSkeleton>
-      </ElCard>
-    </ElCol>
   </ElRow>
 </template>
 

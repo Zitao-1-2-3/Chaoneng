@@ -31,6 +31,7 @@ import { ref, reactive, computed, defineAsyncComponent, h } from 'vue'
 import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { formatToDateTime } from '@/utils/dateUtil'
+import { formatToWan } from '@/utils'
 import { getEnergyTransactionDetailApi, getBandwidthOrderDetailApi } from '@/api/energy_transaction'
 import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 
@@ -73,7 +74,7 @@ const commonDetailSchema = reactive<any[]>([
       default: (data) => {
         // 当订单类型为7、8、9时，支付金额固定为0 TRX
         const orderType = Number(data?.order_type)
-        if (orderType === 7 || orderType === 8 || orderType === 9) {
+        if (orderType === 7 || orderType === 9) {
           return '0 TRX'
         }
         return data?.order_amount !== undefined
@@ -84,10 +85,14 @@ const commonDetailSchema = reactive<any[]>([
   },
   {
     label: '能量数',
-    field: 'energy_num'
-    // slots: {
-    //   default: (data) => (data?.energy_num ? `${formatToWan(data.energy_num)}` : '-')
-    // }
+    field: 'energy_num',
+    slots: {
+      default: (data) => {
+        const orderType = Number(data?.order_type)
+        const value = orderType === 7 || orderType === 9 ? data?.bandwidth_num : data?.energy_num
+        return value
+      }
+    }
   },
   {
     label: '接收地址',
