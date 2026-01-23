@@ -191,7 +191,9 @@ const detailComponent = computed(() => {
     case 6:
       return WealOrderDetails
     case 7: // 按笔数-带宽
-    case 8: // 接口调用-按笔数
+      return BandwidthCountDetails
+    case 8: // 接口调用-按笔数 (使用原有逻辑)
+      return ByCountDetails
     case 9: // 接口调用-带宽
       return BandwidthCountDetails
     default:
@@ -230,27 +232,17 @@ const open = async (row: { id: string | number; order_type?: number }) => {
     let detailData: any = null
 
     // 根据订单类型调用不同的API
-    if (row.order_type === 7) {
-      // 按笔数-带宽类型：调用带宽订单详情API
+    if (row.order_type === 7 || row.order_type === 9) {
+      // 按笔数-带宽类型和接口调用-带宽类型：调用带宽订单详情API
       const response = await getBandwidthOrderDetailApi(String(row.id))
       if (response && response.code === '000000' && response.data) {
         detailData = response.data
         // 确保order_type与列表数据一致
         detailData.order_type = row.order_type
       } else {
-        ElMessage.warning(response?.msg || '未获取到带宽订单详情数据')
-        currentOrder.value = null
-        return
-      }
-    } else if (row.order_type === 8 || row.order_type === 9) {
-      // 接口调用类型：复用带宽订单详情API
-      const response = await getBandwidthOrderDetailApi(String(row.id))
-      if (response && response.code === '000000' && response.data) {
-        detailData = response.data
-        // 确保order_type与列表数据一致
-        detailData.order_type = row.order_type
-      } else {
-        ElMessage.warning(response?.msg || '未获取到接口调用订单详情数据')
+        const errorMsg =
+          row.order_type === 7 ? '未获取到带宽订单详情数据' : '未获取到接口调用订单详情数据'
+        ElMessage.warning((response as any)?.msg || errorMsg)
         currentOrder.value = null
         return
       }
@@ -264,7 +256,7 @@ const open = async (row: { id: string | number; order_type?: number }) => {
           detailData.order_type = row.order_type
         }
       } else {
-        ElMessage.warning(response?.msg || '未获取到订单详情数据或数据格式错误')
+        ElMessage.warning((response as any)?.msg || '未获取到订单详情数据或数据格式错误')
         currentOrder.value = null
         return
       }
@@ -291,7 +283,7 @@ defineExpose({
   min-height: 150px;
 }
 
-:deep(.descriptions-label) {
-  /* width: 100px; */
-}
+/* :deep(.descriptions-label) {
+  width: 100px;
+} */
 </style>

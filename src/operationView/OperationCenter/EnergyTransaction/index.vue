@@ -169,7 +169,7 @@ const columns = [
   {
     field: 'order_type',
     label: '订单类型',
-    width: 100,
+    width: 120,
     slots: {
       default: ({ row }) => {
         const type = Number(row.order_type)
