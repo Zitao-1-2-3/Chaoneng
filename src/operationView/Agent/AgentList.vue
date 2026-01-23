@@ -245,6 +245,7 @@ const handleEditAgent = (row: AgentItem) => {
     id: row.id,
     username: row.user_name,
     email: row.email,
+    gift_bandwidth: row.gift_bandwidth,
     status: row.status
   })
 }
