@@ -32,14 +32,14 @@ const byCountDetailSchema = computed((): DescriptionsSchema[] => [
     field: 'stroke_ext.price_trx',
     label: '能量TRX价格',
     slots: {
-      default: (data: any) => h('span', {}, `${data.stroke_ext.price_trx + ' TRX'}`)
+      default: (data: any) => h('span', {}, `${data.stroke_ext?.price_trx || '-'}`)
     }
   },
   {
     field: 'stroke_ext.price_usdt',
     label: '能量USDT价格',
     slots: {
-      default: (data: any) => h('span', {}, `${data.stroke_ext.price_usdt + ' USDT'}`)
+      default: (data: any) => h('span', {}, `${data.stroke_ext?.price_usdt || '-'}`)
     }
   }
 ])

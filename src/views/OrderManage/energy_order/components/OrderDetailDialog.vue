@@ -14,6 +14,9 @@ const ByTimeDetails = defineAsyncComponent(() => import('./details/ByTimeDetails
 const BatchOrderDetails = defineAsyncComponent(() => import('./details/BatchOrderDetails.vue'))
 const FlashRentDetails = defineAsyncComponent(() => import('./details/FlashRentDetails.vue'))
 const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
+const BandwidthCountDetails = defineAsyncComponent(
+  () => import('./details/BandwidthCountDetails.vue')
+)
 
 const props = defineProps({
   modelValue: {
@@ -269,6 +272,12 @@ const detailComponent = computed(() => {
       return FlashRentDetails
     case 5:
       return ActivationDetails
+    case 7: // 按笔数-带宽
+      return BandwidthCountDetails
+    case 8: // 接口调用-按笔数 (使用原有逻辑)
+      return ByCountDetails
+    case 9: // 接口调用-带宽
+      return BandwidthCountDetails
     default:
       return null
   }
@@ -281,7 +290,10 @@ const detailTabLabel = computed(() => {
     2: '时间详情',
     3: '批量订单详情',
     4: '闪租详情',
-    5: '激活详情'
+    5: '激活详情',
+    7: '按笔数-带宽详情',
+    8: '接口调用-按笔数详情',
+    9: '接口调用-带宽详情'
   }
   return type ? typeTextMap[type] || '详情' : '详情'
 })
@@ -293,7 +305,10 @@ const detailTabName = computed(() => {
     2: 'byTime',
     3: 'batchOrder',
     4: 'flashRent',
-    5: 'activate' // Using 'activate' as name, matching original code logic if needed
+    5: 'activate',
+    7: 'bandwidthCount',
+    8: 'apiByCount',
+    9: 'apiBandwidth'
   }
   // Return a unique name for the tab based on type, fallback to 'details'
   return type ? typeNameMap[type] || `details-${type}` : 'details'

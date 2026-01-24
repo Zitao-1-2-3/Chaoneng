@@ -5,9 +5,19 @@ export const getEnergyOrderListApi = (params: any) => {
   return request.get({ url: '/v1/order/energy_order/list', params })
 }
 
+// 获取带宽订单列表
+export const getBandwidthOrderListApi = (params: any) => {
+  return request.get({ url: '/v1/order/bandwidth_order/list', params })
+}
+
 // 获取能量订单详情
 export const getEnergyOrderDetailApi = (id: string | number) => {
   return request.get({ url: `/v1/order/energy_order/detail/${id}` })
+}
+
+// 获取带宽订单详情
+export const getBandwidthOrderDetailApi = (id: string | number) => {
+  return request.get({ url: `/v1/order/bandwidth_order/detail/${id}` })
 }
 
 // 获取交易详情

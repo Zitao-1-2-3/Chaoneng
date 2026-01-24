@@ -57,6 +57,7 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import {
   getEnergyOrderListApi,
   getEnergyOrderDetailApi,
+  getBandwidthOrderDetailApi,
   exportEnergyOrderApi
 } from '@/api/energy_order'
 import OrderDetailDialog from './components/OrderDetailDialog.vue'
@@ -215,14 +216,13 @@ const columns: TableColumn[] = [
     width: 100,
     slots: {
       default: ({ row }) => {
-        // Simplified status color mapping
         const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
           1: 'success', // 已完成
           2: 'warning', // 已支付
           3: 'danger' // 支付失败
         }
-        const type = statusColorMap[row.status] || 'info' // Use simplified map
-        const text = getStatusTextForTable(row.status) // Keep text helper for clarity
+        const type = statusColorMap[row.status] || 'info'
+        const text = getStatusTextForTable(row.status)
         return h(ElTag, { type }, () => text)
       }
     }
@@ -250,10 +250,9 @@ const actionColumn: TableColumn = {
   slots: {
     default: (data: any) => {
       const row = data.row
-      const orderId = row.id || row.order_id // 获取订单ID
       return (
         <>
-          <BaseButton type="primary" onClick={() => handleViewDetail(orderId)}>
+          <BaseButton type="primary" onClick={() => handleViewDetail(row)}>
             订单详情
           </BaseButton>
 
@@ -379,30 +378,35 @@ const fetchEnergyOrderList = async (params: any) => {
     currentSearchParams.value = params
     return response.data
   } catch (error) {
-    console.error('获取能量订单列表失败:', error)
-    // ElMessage.error removed
     return { list: [], total: 0 }
   }
 }
 
 // 查看订单详情
-const handleViewDetail = async (orderId: number | string) => {
+const handleViewDetail = async (row: any) => {
+  const orderId = row.id || row.order_id
   if (!orderId) {
-    console.warn('无效的订单ID') // Changed to console.warn
-    // ElMessage.warning removed
     return
   }
   try {
-    const response = await getEnergyOrderDetailApi(orderId)
+    let response: any = null
+
+    // 根据订单类型调用不同的API
+    if (row.order_type === 7 || row.order_type === 9) {
+      // 按笔数-带宽类型和接口调用-带宽类型：调用带宽订单详情API
+      response = await getBandwidthOrderDetailApi(orderId)
+    } else {
+      // 其他类型：调用原有的能量订单详情API
+      response = await getEnergyOrderDetailApi(orderId)
+    }
+
     if (response && response.data) {
       selectedOrderDetail.value = response.data
       orderDialogVisible.value = true
     } else {
-      console.error('获取订单详情失败: 无效的响应') // Changed to console.error
       // ElMessage.error removed
     }
   } catch (error) {
-    console.error('获取订单详情失败:', error)
     // ElMessage.error removed
     selectedOrderDetail.value = null
   }
@@ -413,20 +417,26 @@ const handleTransactionDetail = async (row: any) => {
   const txid = row.txid // 保留 txid 用于可能的显示或参考
 
   if (!orderId) {
-    console.warn('无法获取订单ID以查看详情')
     return
   }
 
   try {
-    // 调用订单详情 API
-    const response = await getEnergyOrderDetailApi(orderId)
+    let response: any = null
+
+    // 根据订单类型调用不同的API
+    if (row.order_type === 7 || row.order_type === 9) {
+      // 按笔数-带宽类型和接口调用-带宽类型：调用带宽订单详情API
+      response = await getBandwidthOrderDetailApi(orderId)
+    } else {
+      // 其他类型：调用原有的能量订单详情API
+      response = await getEnergyOrderDetailApi(orderId)
+    }
 
     if (response && response.data) {
       // 将获取到的订单详情数据赋值给交易详情变量
       transactionDetail.value = response.data
       transactionDialogVisible.value = true // 打开交易详情弹窗
     } else {
-      console.error('获取订单详情失败 (用于交易详情): 无效的响应', orderId)
       // API 调用失败时，显示基础信息
       transactionDetail.value = {
         order_id: orderId,
@@ -436,7 +446,6 @@ const handleTransactionDetail = async (row: any) => {
       transactionDialogVisible.value = true
     }
   } catch (error) {
-    console.error('获取订单详情失败 (用于交易详情):', error)
     // 发生错误时，显示基础信息
     transactionDetail.value = {
       order_id: orderId,
@@ -457,11 +466,9 @@ const handleExport = async () => {
 
       ElMessage.success('订单导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
       ElMessage.error('导出失败: 文件数据格式错误')
     }
   } catch (error) {
-    console.error('订单导出失败:', error)
     const errorMsg =
       (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
     ElMessage.error(errorMsg)
@@ -472,161 +479,91 @@ const onSearch = (params: any) => {
   currentSearchParams.value = params
 }
 
-const transactionDetailSchema = computed((): DescriptionsSchema[] => [
-  {
-    field: 'txid', // Ensure 'txid' is in getEnergyOrderDetailApi response
-    label: '交易哈希',
-    span: 24,
-    slots: {
-      default: (data: any) => {
-        if (!data || !data.txid) return h('span', '-')
-        return h(
-          ElLink,
-          {
-            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.txid}`,
-            type: 'primary',
-            target: '_blank'
-          },
-          () => data.txid
-        )
-      }
-    }
-  },
-  { field: 'from_address', label: '发起地址', span: 24 }, // Ensure 'from_address' is present
-  { field: 'receive_address', label: '能量接收地址', span: 24 }, // Ensure 'receive_address' is present
-  {
-    field: 'status', // Use the order status field from getEnergyOrderDetailApi response
-    label: '订单状态', // Label changed to reflect it's order status now
-    slots: {
-      default: (data: any) => {
-        if (data?.status === undefined) return h('span', '-')
+const transactionDetailSchema = computed((): DescriptionsSchema[] => {
+  const orderType = transactionDetail.value?.order_type
+  const isEnergy = orderType === 7 || orderType === 9
 
-        // Use the same status mapping as the main table/order detail dialog
-        const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
-          1: 'success', // 已完成
-          2: 'warning', // 已支付
-          3: 'danger' // 支付失败
+  return [
+    {
+      field: 'txid',
+      label: '交易哈希',
+      span: 24,
+      slots: {
+        default: (data: any) => {
+          if (!data || !data.txid) return h('span', '-')
+          return h(
+            ElLink,
+            {
+              href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.txid}`,
+              type: 'primary',
+              target: '_blank'
+            },
+            () => data.txid
+          )
         }
-        const statusTextMap: Record<number, string> = {
-          1: '已完成',
-          2: '已支付',
-          3: '支付失败'
-        }
-        const numericStatus =
-          typeof data.status === 'string' ? parseInt(data.status, 10) : data.status
-        if (isNaN(numericStatus)) {
-          return h(ElTag, { type: 'info', size: 'small' }, () => String(data.status || '未知'))
-        }
-        const type = statusColorMap[numericStatus] || 'info'
-        const text = statusTextMap[numericStatus] || '-'
-        return h(ElTag, { type: type, size: 'small' }, () => text)
       }
-    }
-  },
-  {
-    field: 'energy_num',
-    label: '能量数量',
-    slots: {
-      default: (data: any) => h('span', {}, formatEnergyNum(data.energy_num))
-    }
-  }, // Ensure 'energy_num' is present
-  {
-    field: 'create_time',
-    label: '创建时间',
-    span: 24,
-    slots: {
-      default: (data: any) =>
-        h('span', {}, data.create_time ? formatToDateTime(data.create_time) : '-')
-    }
-  },
-  {
-    field: 'finish_time',
-    label: '完成时间',
-    span: 24,
-    slots: {
-      default: (data: any) =>
-        h('span', {}, data.finish_time ? formatToDateTime(data.finish_time) : '-')
-    }
-  }
-])
+    },
+    { field: 'from_address', label: '发起地址', span: 24 },
+    {
+      field: 'receive_address',
+      label: isEnergy ? '带宽接收地址' : '能量接收地址',
+      span: 24
+    },
+    {
+      field: 'status',
+      label: '订单状态',
+      slots: {
+        default: (data: any) => {
+          if (data?.status === undefined) return h('span', '-')
 
-const transactionDetailSchema1 = computed((): DescriptionsSchema[] => [
-  {
-    field: 'txid', // Ensure 'txid' is in getEnergyOrderDetailApi response
-    label: '交易哈希',
-    span: 24,
-    slots: {
-      default: (data: any) => {
-        if (!data || !data.txid) return h('span', '-')
-        return h(
-          ElLink,
-          {
-            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.txid}`,
-            type: 'primary',
-            target: '_blank'
-          },
-          () => data.txid
-        )
+          const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
+            1: 'success', // 已完成
+            2: 'warning', // 已支付
+            3: 'danger' // 支付失败
+          }
+          const statusTextMap: Record<number, string> = {
+            1: '已完成',
+            2: '已支付',
+            3: '支付失败'
+          }
+          const numericStatus =
+            typeof data.status === 'string' ? parseInt(data.status, 10) : data.status
+          if (isNaN(numericStatus)) {
+            return h(ElTag, { type: 'info', size: 'small' }, () => String(data.status || '未知'))
+          }
+          const type = statusColorMap[numericStatus] || 'info'
+          const text = statusTextMap[numericStatus] || '-'
+          return h(ElTag, { type: type, size: 'small' }, () => text)
+        }
+      }
+    },
+    {
+      field: 'energy_num',
+      label: isEnergy ? '带宽数量' : '能量数量',
+      slots: {
+        default: (data: any) => h('span', {}, formatEnergyNum(data.energy_num))
+      }
+    },
+    {
+      field: 'create_time',
+      label: '创建时间',
+      span: 24,
+      slots: {
+        default: (data: any) =>
+          h('span', {}, data.create_time ? formatToDateTime(data.create_time) : '-')
+      }
+    },
+    {
+      field: 'finish_time',
+      label: '完成时间',
+      span: 24,
+      slots: {
+        default: (data: any) =>
+          h('span', {}, data.finish_time ? formatToDateTime(data.finish_time) : '-')
       }
     }
-  },
-  { field: 'from_address', label: '发起地址', span: 24 }, // Ensure 'from_address' is present
-  { field: 'receive_address', label: '能量接收地址', span: 24 }, // Ensure 'receive_address' is present
-  {
-    field: 'status', // Use the order status field from getEnergyOrderDetailApi response
-    label: '订单状态', // Label changed to reflect it's order status now
-    slots: {
-      default: (data: any) => {
-        if (data?.status === undefined) return h('span', '-')
-
-        // Use the same status mapping as the main table/order detail dialog
-        const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
-          1: 'success', // 已完成
-          2: 'warning', // 已支付
-          3: 'danger' // 支付失败
-        }
-        const statusTextMap: Record<number, string> = {
-          1: '已完成',
-          2: '已支付',
-          3: '支付失败'
-        }
-        const numericStatus =
-          typeof data.status === 'string' ? parseInt(data.status, 10) : data.status
-        if (isNaN(numericStatus)) {
-          return h(ElTag, { type: 'info', size: 'small' }, () => String(data.status || '未知'))
-        }
-        const type = statusColorMap[numericStatus] || 'info'
-        const text = statusTextMap[numericStatus] || '-'
-        return h(ElTag, { type: type, size: 'small' }, () => text)
-      }
-    }
-  },
-  {
-    field: 'energy_num',
-    label: '带宽数量',
-    slots: {
-      default: (data: any) => h('span', {}, formatEnergyNum(data.energy_num))
-    }
-  }, // Ensure 'energy_num' is present
-  {
-    field: 'create_time',
-    label: '创建时间',
-    span: 24,
-    slots: {
-      default: (data: any) =>
-        h('span', {}, data.create_time ? formatToDateTime(data.create_time) : '-')
-    }
-  },
-  {
-    field: 'finish_time',
-    label: '完成时间',
-    span: 24,
-    slots: {
-      default: (data: any) =>
-        h('span', {}, data.finish_time ? formatToDateTime(data.finish_time) : '-')
-    }
-  }
-])
+  ]
+})
 
 onMounted(() => {
   const query = useRoute().query
@@ -635,7 +572,6 @@ onMounted(() => {
       searchTableRef.value.setSearchParams({
         order_num: query.order_num
       })
-      console.log('手动触发数据刷新')
       searchTableRef.value.reload()
     }
   }, 100)
