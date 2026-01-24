@@ -8,7 +8,7 @@ import LockPage from './components/LockPage.vue'
 import { useLockStore } from '@/store/modules/lock'
 import { useUserStore } from '@/store/modules/user'
 import { useRouter } from 'vue-router'
-import ChangePasswordDialog from './components/ChangePasswordDialog.vue'
+import ChangePasswordDialog from './components/ChangepasswordDialog.vue'
 import { isOperationSystem } from '@/utils/system'
 
 const { push } = useRouter()
