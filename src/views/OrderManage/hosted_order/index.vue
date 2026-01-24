@@ -80,6 +80,10 @@ const transactionDetail = ref<any>({})
 
 // 托管详情Schema
 const hostedDetailSchema = computed(() => {
+  const resourceType = orderDetail.value?.resource_type
+  const isEnergy = resourceType === 1
+  const isBandwidth = resourceType === 2
+
   const schema: DescriptionsSchema[] = [
     { field: 'order_id', label: '订单号' },
     { field: 'tg_name', label: 'TG用户名' },
@@ -145,14 +149,17 @@ const hostedDetailSchema = computed(() => {
     },
     {
       field: 'energy_num',
-      label: '能量数量',
+      label: isEnergy ? '能量数量' : isBandwidth ? '带宽数量' : '数量',
       slots: {
         default: (row: any) => {
           return h('span', formatEnergyNum(row.energy_num))
         }
       }
     },
-    { field: 'energy_rent_text', label: '能量有效期' },
+    {
+      field: 'energy_rent_text',
+      label: isEnergy ? '能量有效期' : isBandwidth ? '带宽有效期' : '有效期'
+    },
     { field: 'stroke_num', label: '笔数' },
     {
       field: 'txid',
@@ -200,6 +207,10 @@ const hostedDetailSchema = computed(() => {
 
 // 交易详情schema
 const transactionDetailSchema = computed(() => {
+  const resourceType = transactionDetail.value?.resource_type
+  const isEnergy = resourceType === 1
+  const isBandwidth = resourceType === 2
+
   const schema: DescriptionsSchema[] = [
     {
       field: 'txid',
@@ -235,7 +246,7 @@ const transactionDetailSchema = computed(() => {
     },
     {
       field: 'energy_num',
-      label: '能量数',
+      label: isEnergy ? '能量数' : isBandwidth ? '带宽数' : '数量',
       slots: {
         default: (row: any) => {
           const energy_num = row.energy_num
@@ -332,12 +343,12 @@ const columns: TableColumn[] = [
   },
   {
     field: 'energy_num',
-    label: '能量数量',
+    label: '数量',
     formatter: (row) => formatEnergyNum(row.energy_num)
   },
   {
     field: 'energy_rent_text',
-    label: '能量有效期'
+    label: '有效期'
   },
   {
     field: 'status',

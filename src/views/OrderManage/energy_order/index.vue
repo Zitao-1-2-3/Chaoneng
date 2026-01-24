@@ -550,6 +550,84 @@ const transactionDetailSchema = computed((): DescriptionsSchema[] => [
   }
 ])
 
+const transactionDetailSchema1 = computed((): DescriptionsSchema[] => [
+  {
+    field: 'txid', // Ensure 'txid' is in getEnergyOrderDetailApi response
+    label: '交易哈希',
+    span: 24,
+    slots: {
+      default: (data: any) => {
+        if (!data || !data.txid) return h('span', '-')
+        return h(
+          ElLink,
+          {
+            href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.txid}`,
+            type: 'primary',
+            target: '_blank'
+          },
+          () => data.txid
+        )
+      }
+    }
+  },
+  { field: 'from_address', label: '发起地址', span: 24 }, // Ensure 'from_address' is present
+  { field: 'receive_address', label: '能量接收地址', span: 24 }, // Ensure 'receive_address' is present
+  {
+    field: 'status', // Use the order status field from getEnergyOrderDetailApi response
+    label: '订单状态', // Label changed to reflect it's order status now
+    slots: {
+      default: (data: any) => {
+        if (data?.status === undefined) return h('span', '-')
+
+        // Use the same status mapping as the main table/order detail dialog
+        const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
+          1: 'success', // 已完成
+          2: 'warning', // 已支付
+          3: 'danger' // 支付失败
+        }
+        const statusTextMap: Record<number, string> = {
+          1: '已完成',
+          2: '已支付',
+          3: '支付失败'
+        }
+        const numericStatus =
+          typeof data.status === 'string' ? parseInt(data.status, 10) : data.status
+        if (isNaN(numericStatus)) {
+          return h(ElTag, { type: 'info', size: 'small' }, () => String(data.status || '未知'))
+        }
+        const type = statusColorMap[numericStatus] || 'info'
+        const text = statusTextMap[numericStatus] || '-'
+        return h(ElTag, { type: type, size: 'small' }, () => text)
+      }
+    }
+  },
+  {
+    field: 'energy_num',
+    label: '带宽数量',
+    slots: {
+      default: (data: any) => h('span', {}, formatEnergyNum(data.energy_num))
+    }
+  }, // Ensure 'energy_num' is present
+  {
+    field: 'create_time',
+    label: '创建时间',
+    span: 24,
+    slots: {
+      default: (data: any) =>
+        h('span', {}, data.create_time ? formatToDateTime(data.create_time) : '-')
+    }
+  },
+  {
+    field: 'finish_time',
+    label: '完成时间',
+    span: 24,
+    slots: {
+      default: (data: any) =>
+        h('span', {}, data.finish_time ? formatToDateTime(data.finish_time) : '-')
+    }
+  }
+])
+
 onMounted(() => {
   const query = useRoute().query
   setTimeout(() => {

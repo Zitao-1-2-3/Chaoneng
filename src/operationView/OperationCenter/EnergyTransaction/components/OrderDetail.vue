@@ -31,7 +31,6 @@ import { ref, reactive, computed, defineAsyncComponent, h } from 'vue'
 import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { formatToWan } from '@/utils'
 import { getEnergyTransactionDetailApi, getBandwidthOrderDetailApi } from '@/api/energy_transaction'
 import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 
@@ -84,7 +83,11 @@ const commonDetailSchema = reactive<any[]>([
     }
   },
   {
-    label: '能量数',
+    label: computed(() => {
+      // 根据订单类型动态显示标签
+      const orderType = Number(currentOrder.value?.order_type)
+      return orderType === 7 || orderType === 9 ? '带宽数' : '能量数'
+    }),
     field: 'energy_num',
     slots: {
       default: (data) => {
