@@ -31,6 +31,7 @@ import { ref, reactive, computed, defineAsyncComponent, h } from 'vue'
 import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { formatToDateTime } from '@/utils/dateUtil'
+import { formatToWan } from '@/utils'
 import { getEnergyTransactionDetailApi, getBandwidthOrderDetailApi } from '@/api/energy_transaction'
 import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 
@@ -91,9 +92,9 @@ const commonDetailSchema = reactive<any[]>([
     field: 'energy_num',
     slots: {
       default: (data) => {
-        const orderType = Number(data?.order_type)
-        const value = orderType === 7 || orderType === 9 ? data?.bandwidth_num : data?.energy_num
-        return value
+        const value = data?.energy_num
+        if (value === null || value === undefined || value === '') return '0'
+        return Number(value) >= 10000 ? formatToWan(value as any) : `${value}`
       }
     }
   },

@@ -22,6 +22,7 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { BaseButton } from '@/components/Button'
 import { formatToDateTime } from '@/utils/dateUtil'
+import { formatToWan } from '@/utils'
 import type { HostedOrder } from '@/api/trust_transaction/types'
 
 const dialogVisible = ref(false)
@@ -56,6 +57,8 @@ const getRecycleStatusText = (recycleTime: number) => {
   // Assuming recycle_time is a timestamp in seconds
   return recycleTime > 0 ? `已回收 (${formatToDateTime(recycleTime * 1000)})` : '待回收'
 }
+
+// Note: use project-wide formatter `formatToWan` from `src/utils`
 
 // --- Descriptions Schema Definition ---
 const detailSchema = computed<DescriptionsSchema[]>(() => {
@@ -99,7 +102,13 @@ const detailSchema = computed<DescriptionsSchema[]>(() => {
     {
       field: 'energy_num',
       label: `${resourceName}数量`,
-      slots: { default: (data) => data.energy_num || '0' }
+      slots: {
+        default: (data) => {
+          const v = data?.energy_num
+          if (v === null || v === undefined || v === '') return '0'
+          return Number(v) >= 10000 ? formatToWan(v as any) : `${v}`
+        }
+      }
     },
     {
       field: 'energy_rent_text',

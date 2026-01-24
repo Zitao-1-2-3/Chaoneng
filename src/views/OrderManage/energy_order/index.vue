@@ -541,7 +541,14 @@ const transactionDetailSchema = computed((): DescriptionsSchema[] => {
       field: 'energy_num',
       label: isEnergy ? '带宽数量' : '能量数量',
       slots: {
-        default: (data: any) => h('span', {}, formatEnergyNum(data.energy_num))
+        default: (row: any) => {
+          const val = row?.energy_num
+          if (val === undefined || val === null) return h('span', '-')
+          if (typeof val === 'number' && val > 10000) {
+            return h('span', formatEnergyNum(val))
+          }
+          return h('span', val)
+        }
       }
     },
     {

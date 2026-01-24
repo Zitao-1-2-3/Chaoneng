@@ -2,13 +2,8 @@
 import { ElRow, ElCol, ElCard, ElSkeleton } from 'element-plus'
 import { CountTo } from '@/components/CountTo'
 import { useDesign } from '@/hooks/web/useDesign'
-// import { useI18n } from '@/hooks/web/useI18n' // Keep if needed for other text
-// import { ref, reactive } from 'vue' // Remove ref, reactive
 import { computed } from 'vue'
-// import { getDailyStatisticsApi } from '@/api/statistics' // Remove API import
 import Icon from '@/components/Icon/src/Icon.vue'
-
-// const { t } = useI18n() // Keep if needed
 
 const { getPrefixCls } = useDesign()
 const prefixCls = getPrefixCls('panel')
@@ -31,8 +26,6 @@ interface ApiStatisticsData {
   total_bot_num?: number
   day_active_income?: string
   total_active_income?: string
-  day_active_cost?: string
-  total_active_cost?: string
   day_bandwidth_cost?: string
   total_bandwidth_cost?: string
 }
@@ -66,8 +59,6 @@ const dayBotNum = computed(() => props.statistics.day_bot_num ?? 0)
 const totalBotNum = computed(() => props.statistics.total_bot_num ?? 0)
 const dayActiveIncome = computed(() => parseNum(props.statistics.day_active_income))
 const totalActiveIncome = computed(() => parseNum(props.statistics.total_active_income))
-const dayActiveCost = computed(() => parseNum(props.statistics.day_active_cost))
-const totalActiveCost = computed(() => parseNum(props.statistics.total_active_cost))
 const dayBandwidthCost = computed(() => {
   const value = props.statistics.day_bandwidth_cost
   return value !== undefined ? String(value) : '0'

@@ -24,8 +24,8 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted } from 'vue'
-import { ElButton, ElTag, ElMessage, ElLink } from 'element-plus'
+import { ref } from 'vue'
+import { ElButton, ElMessage, ElLink } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { formatToDateTime } from '@/utils/dateUtil'
@@ -80,6 +80,7 @@ const columns: TableColumn[] = [
           case 7:
           case 8:
           case 9:
+          case 22:
             href = `${href}/energy_order`
 
             break
@@ -209,19 +210,18 @@ const getList = async (params: any = {}) => {
 
     return { list: [], total: 0 }
   } catch (error) {
-    console.error('获取扣款记录失败:', error)
     ElMessage.error('获取扣款记录失败')
     return { list: [], total: 0 }
   }
 }
 
 // 处理搜索
-const onSearch = (params: any) => {
-  console.log('搜索参数:', params)
+const onSearch = () => {
+  // 搜索处理逻辑
 }
 
 // 打开弹窗
-const open = (accountId: number, name: string = '') => {
+const open = (_accountId: number, name: string = '') => {
   dialogVisible.value = true
   accountName.value = name
 

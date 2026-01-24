@@ -152,7 +152,13 @@ const hostedDetailSchema = computed(() => {
       label: isEnergy ? '能量数量' : isBandwidth ? '带宽数量' : '数量',
       slots: {
         default: (row: any) => {
-          return h('span', formatEnergyNum(row.energy_num))
+          const val = row?.energy_num
+          if (val === undefined || val === null) return h('span', '-')
+          // 仅当超过一万时使用格式化函数，否则直接展示原始数值
+          if (typeof val === 'number' && val > 10000) {
+            return h('span', formatEnergyNum(val))
+          }
+          return h('span', val)
         }
       }
     },
@@ -249,8 +255,12 @@ const transactionDetailSchema = computed(() => {
       label: isEnergy ? '能量数' : isBandwidth ? '带宽数' : '数量',
       slots: {
         default: (row: any) => {
-          const energy_num = row.energy_num
-          return h('span', formatEnergyNum(energy_num))
+          const val = row?.energy_num
+          if (val === undefined || val === null) return h('span', '-')
+          if (typeof val === 'number' && val > 10000) {
+            return h('span', formatEnergyNum(val))
+          }
+          return h('span', val)
         }
       }
     },
@@ -499,13 +509,9 @@ const handleViewDetail = async (row: any) => {
 // 查看交易详情
 const handleTransactionDetail = async (row: any) => {
   try {
-    // 尝试从API获取交易详情
+    // 从 API 获取交易详情并展示（若无数据也展示空详情）
     const response = await getHostedOrderDetailApi(row.id)
-    if (response.data) {
-      transactionDetail.value = response.data
-      transactionDialogVisible.value = true
-      return
-    }
+    transactionDetail.value = response.data || {}
     transactionDialogVisible.value = true
   } catch (error) {
     console.error('获取交易详情失败:', error)
@@ -536,7 +542,7 @@ const handleExport = async () => {
 }
 
 const onSearch = (params: any) => {
-  console.log('搜索参数:', params)
+  // 搜索参数处理（已移除调试日志）
 }
 
 onMounted(() => {
@@ -546,7 +552,7 @@ onMounted(() => {
       searchTableRef.value.setSearchParams({
         order_id: query.order_num
       })
-      console.log('手动触发数据刷新')
+      // 手动触发数据刷新
       searchTableRef.value.reload()
     }
   }, 100)

@@ -197,7 +197,3 @@ watch(
     </div>
   </div>
 </template>
-
-<style scoped>
-/* Add component-specific styles if needed */
-</style>

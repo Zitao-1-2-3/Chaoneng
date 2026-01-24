@@ -201,14 +201,14 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       field: 'order_amount',
       label: '订单金额',
       slots: {
-        default: (data: any) => h('span', {}, data.order_amount + ' ' + data.pay_unit)
+        default: (data: any) => h('span', {}, `${data.order_amount || 0} ${data.pay_unit || 'TRX'}`)
       }
     },
     {
       field: 'pay_amount',
       label: '支付金额',
       slots: {
-        default: (data: any) => h('span', {}, data.pay_amount + ' ' + data.pay_unit)
+        default: (data: any) => h('span', {}, `${data.pay_amount || 0} ${data.pay_unit || 'TRX'}`)
       }
     },
     {

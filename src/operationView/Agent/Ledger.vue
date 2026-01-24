@@ -22,20 +22,15 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElTag, ElMessage, ElLink } from 'element-plus'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-import { SearchTable, useSearchTable } from '@/components/SearchTable'
+import { SearchTable } from '@/components/SearchTable'
 import { FormSchema } from '@/components/Form'
 import { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
-import {
-  getAgentLedgerListApi,
-  exportAgentLedgerApi,
-  AgentLedgerQueryParams,
-  AgentLedgerItem
-} from '@/api/agent/ledger'
+import { getAgentLedgerListApi, exportAgentLedgerApi } from '@/api/agent/ledger'
 import { ContentWrap } from '@/components/ContentWrap'
 import { isEmpty } from 'lodash-es'
 import { useRouter } from 'vue-router'
@@ -76,7 +71,6 @@ const getAgentLedgerList = async (params?: any): Promise<{ list: any[]; total?: 
       total: res.data.totalCount || 0
     }
   } catch (error) {
-    console.error('获取代理账单列表失败:', error)
     ElMessage.error('获取代理账单列表失败')
     return {
       list: [],
@@ -141,6 +135,7 @@ const columns = ref<TableColumn[]>([
           case 7:
           case 8:
           case 9:
+          case 22:
             href = `${href}/energy_transaction`
 
             break
@@ -150,9 +145,6 @@ const columns = ref<TableColumn[]>([
           case 2:
             href = `${href}/custody_details`
             break
-          // case 1:
-          //   href = `${href}/recharge_order`
-          //   break
           default:
             href = ''
         }
@@ -169,10 +161,6 @@ const columns = ref<TableColumn[]>([
       }
     }
   },
-  // {
-  //   field: 'user_id',
-  //   label: '代理ID'
-  // },
   {
     field: 'email',
     label: '代理信息'
@@ -246,8 +234,8 @@ const columns = ref<TableColumn[]>([
 ])
 
 // 处理搜索
-const handleSearch = (params) => {
-  console.log('搜索参数:', params)
+const handleSearch = (_params) => {
+  // 搜索处理逻辑
 }
 
 // 处理导出
@@ -269,11 +257,9 @@ const handleExport = async () => {
 
       ElMessage.success('账单导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
       ElMessage.error('导出失败: 文件数据格式错误')
     }
   } catch (error) {
-    console.error('账单导出失败:', error)
     // Try to provide a more specific error message
     const errorMsg =
       (error as any)?.response?.data?.message || (error as Error)?.message || '账单导出失败'
