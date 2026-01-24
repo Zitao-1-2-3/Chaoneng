@@ -365,6 +365,9 @@ const columns: TableColumn[] = [
     label: '订单状态',
     slots: {
       default: ({ row }) => {
+        if (row?.resource_type === 2) {
+          return h('span', '-')
+        }
         const type = getStatusType(row.status)
         const text = getStatusText(row.status)
         return h(ElTag, { type }, () => text)

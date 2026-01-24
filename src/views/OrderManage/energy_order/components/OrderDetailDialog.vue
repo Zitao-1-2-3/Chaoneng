@@ -14,8 +14,8 @@ const ByTimeDetails = defineAsyncComponent(() => import('./details/ByTimeDetails
 const BatchOrderDetails = defineAsyncComponent(() => import('./details/BatchOrderDetails.vue'))
 const FlashRentDetails = defineAsyncComponent(() => import('./details/FlashRentDetails.vue'))
 const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
-const BandwidthCountDetails = defineAsyncComponent(
-  () => import('./details/BandwidthCountDetails.vue')
+const BandwidthOrderListDetails = defineAsyncComponent(
+  () => import('./details/BandwidthOrderListDetails.vue')
 )
 
 const props = defineProps({
@@ -273,11 +273,11 @@ const detailComponent = computed(() => {
     case 5:
       return ActivationDetails
     case 7: // 按笔数-带宽
-      return BandwidthCountDetails
+      return BandwidthOrderListDetails
     case 8: // 接口调用-按笔数 (使用原有逻辑)
       return ByCountDetails
     case 9: // 接口调用-带宽
-      return BandwidthCountDetails
+      return BandwidthOrderListDetails
     default:
       return null
   }
