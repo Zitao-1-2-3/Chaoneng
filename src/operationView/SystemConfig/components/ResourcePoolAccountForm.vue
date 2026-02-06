@@ -124,10 +124,11 @@ const buildSchema = (type: number | string | undefined): FormSchema[] => {
   }
 
   let specificSchema: FormSchema[] = []
-  if (numericType === 1 || numericType === 2 || numericType === 4) {
-    // TRX池子、USDT池子和带宽池子使用相同的Schema（空数组，只需要基础字段）
+  if (numericType === 1 || numericType === 2) {
+    // TRX池子、USDT池子使用相同的Schema（空数组，只需要基础字段）
     specificSchema = trxPoolSchema
-  } else if (numericType === 3) {
+  } else if (numericType === 3 || numericType === 4) {
+    // 能量池子和带宽池子使用相同的Schema
     specificSchema = energyPoolSchema
   }
 
@@ -204,8 +205,8 @@ const open = async (params: OpenParams) => {
     publicKey: currentData.value.publicKey || ''
   }
   // 现在可以安全地用 === 比较数字
-  if (initialConfigType === 3) {
-    // Energy
+  if (initialConfigType === 3 || initialConfigType === 4) {
+    // Energy / Bandwidth
     // 使用 ?? undefined 确保数字字段在没有值时设置为 undefined
     valuesToSet.amount_limit = currentData.value.amount_limit ?? undefined
     valuesToSet.permission_name = currentData.value.permission_name || ''
@@ -238,8 +239,8 @@ const handleSubmit = async () => {
       public_key: formData.publicKey
     }
 
-    if (configTypeNum === 3) {
-      // 能量池子
+    if (configTypeNum === 3 || configTypeNum === 4) {
+      // 能量池子 和 带宽池子
       dataToSubmit.amount_limit = formData.amount_limit
       dataToSubmit.permission_name = formData.permission_name
     } else if (configTypeNum === 1 || configTypeNum === 2) {
