@@ -164,7 +164,7 @@ const flashExchangeSchema = reactive<FormSchema[]>([
       precision: 2,
       slots: {
         suffix: () => {
-          return <div>USDT</div>
+          return <div>TRX</div>
         }
       }
     }
