@@ -1,5 +1,8 @@
 import request from '@/axios'
 import type {
+  BotRenewPrice,
+  BotListParams,
+  BotListResponse,
   BotPaymentConfig,
   BotTimeEnergyConfig,
   BotCountEnergyConfig,
@@ -17,13 +20,35 @@ export const getDictOneApi = async () => {
   return request.get({ url: '/mock/dict/one' })
 }
 
-// 获取机器人续费价格
-export const getBotRenewPriceApi = () => {
+/**
+ * 获取机器人续费价格
+ * @returns Promise<IResponse<BotRenewPrice>> 返回续费价格信息
+ * @example
+ * const res = await getBotRenewPriceApi()
+ * console.log(res.data.amount) // 续费金额
+ */
+export const getBotRenewPriceApi = (): Promise<IResponse<BotRenewPrice>> => {
   return request.get({ url: '/v1/bot/renew_price/get' })
 }
 
-// 获取机器人列表
-export const getBotListApi = (params: any) => {
+/**
+ * 获取机器人列表
+ * @param params 查询参数
+ * @param params.current_page 当前页码
+ * @param params.page_size 每页数量
+ * @param params.query 搜索关键字（机器人名称/Token）
+ * @param params.status 状态：1-启用，2-禁用
+ * @returns Promise<IResponse<BotListResponse>> 返回机器人列表
+ * @example
+ * const res = await getBotListApi({
+ *   current_page: 1,
+ *   page_size: 10,
+ *   status: 1
+ * })
+ * console.log(res.data.list) // 机器人列表
+ * console.log(res.data.totalCount) // 总数量
+ */
+export const getBotListApi = (params: BotListParams): Promise<IResponse<BotListResponse>> => {
   return request.get({ url: '/v1/bot/list', params })
 }
 

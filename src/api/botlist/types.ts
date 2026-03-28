@@ -1,3 +1,44 @@
+/**
+ * 机器人续费价格
+ */
+type BotRenewPrice = {
+  id: number // 价格ID
+  amount: number // 续费金额
+}
+
+/**
+ * 机器人列表查询参数
+ */
+type BotListParams = {
+  current_page?: number // 当前页码
+  page_size?: number // 每页数量
+  query?: string // 搜索关键字（机器人名称/Token）
+  status?: number | string // 状态：1-启用，2-禁用
+}
+
+/**
+ * 机器人列表项
+ */
+type BotListItem = {
+  id: number | string // 机器人ID
+  tg_bot_id?: number | string // TG机器人ID
+  name: string // 机器人名称
+  firstname: string // 机器人用户名
+  username?: string // 机器人用户名（别名）
+  token: string // 机器人Token
+  status: number // 状态：1-启用，2-禁用
+  create_time: string // 创建时间
+  update_time?: string // 更新时间
+}
+
+/**
+ * 机器人列表响应
+ */
+type BotListResponse = {
+  list: BotListItem[] // 机器人列表
+  totalCount: number // 总数量
+}
+
 type BotPaymentConfig = {
   id: number
   botId: number
@@ -51,6 +92,10 @@ type BotFlashExchangeConfig = {
 }
 
 export type {
+  BotRenewPrice,
+  BotListParams,
+  BotListItem,
+  BotListResponse,
   BotPaymentConfig,
   BotTimeEnergyConfig,
   BotCountEnergyConfig,
