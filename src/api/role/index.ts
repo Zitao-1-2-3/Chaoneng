@@ -1,21 +1,88 @@
 import request from '@/axios'
-import type { RoleItem } from './type'
+import type {
+  RoleItem,
+  RoleListData,
+  CreateRolePayload,
+  UpdateRolePayload,
+  PermissionItem
+} from './type'
 
 // 重新导出类型
-export type { RoleItem, RoleListResponse } from './type'
+export type {
+  RoleItem,
+  RoleListData,
+  Pager,
+  CreateRolePayload,
+  UpdateRolePayload,
+  PermissionItem
+} from './type'
 
 // ==================== 新接口（v2） ====================
+
+const ROLE_API_BASE = '/v2/role/'
 
 /**
  * 获取角色列表（新接口）
  * 接口路径：GET /v2/role/list
  * 无参数
  */
-export const getRoleListApi = (): Promise<IResponse<RoleItem[]>> => {
-  return request.get({ url: '/v2/role/list' })
+export const getRoleListApi = (): Promise<IResponse<RoleListData>> => {
+  return request.get({ url: `${ROLE_API_BASE}list` })
 }
 
-// 添加角色
+/**
+ * 获取角色详情（新接口）
+ * 接口路径：GET /v2/role/{id}
+ * 参数：id (角色ID)
+ */
+export const getRoleDetailApi = (id: number): Promise<IResponse<RoleItem>> => {
+  return request.get({ url: `${ROLE_API_BASE}${id}` })
+}
+
+/**
+ * 获取权限列表（新接口）
+ * 接口路径：GET /v2/role/permissions
+ * 无参数
+ * @description 获取系统中所有可用的权限列表，暂未使用
+ */
+export const getPermissionsApi = (): Promise<IResponse<PermissionItem[]>> => {
+  return request.get({ url: `${ROLE_API_BASE}permissions` })
+}
+
+/**
+ * 创建角色（新接口）
+ * 接口路径：POST /v2/role/create
+ * 参数：name, permissions, status
+ */
+export const createRoleApi = (data: CreateRolePayload): Promise<IResponse> => {
+  return request.post({ url: `${ROLE_API_BASE}create`, data })
+}
+
+/**
+ * 更新角色（新接口）
+ * 接口路径：POST /v2/role/update
+ * 参数：id, name, permissions, status
+ */
+export const updateRoleApiV2 = (data: UpdateRolePayload): Promise<IResponse> => {
+  return request.post({ url: `${ROLE_API_BASE}update`, data })
+}
+
+/**
+ * 删除角色（新接口）
+ * 接口路径：POST /v2/role/delete/{id}
+ * 参数：id (角色ID)
+ */
+export const deleteRoleApiV2 = (id: number): Promise<IResponse> => {
+  return request.post({ url: `${ROLE_API_BASE}delete/${id}` })
+}
+
+// ==================== 旧接口 ====================
+
+export const getRoleListApiOld = (params: any = {}) => {
+  return request.get({ url: '/v2/manage/user/permission/roles/list', params })
+}
+
+// 添加角色（旧接口，待替换为 createRoleApi）
 export const addRoleApi = (data: any) => {
   return request.post({ url: '/v2/manage/user/permission/add', data })
 }
@@ -39,14 +106,3 @@ export const addRolePermissionApi = (data: any) => {
 export const getRolePermissionsApi = (id: string) => {
   return request.get({ url: `/v2/manage/user/permission/role_permission/${id}` })
 }
-
-// ==================== 旧接口（已废弃，保留参考） ====================
-
-/**
- * 获取角色列表（旧接口，已废弃）
- * @deprecated 请使用上面的 getRoleListApi 代替
- * 旧接口路径：GET /v2/manage/user/permission/roles/list（已返回 404）
- */
-// export const getRoleListApiOld = (params: any = {}) => {
-//   return request.get({ url: '/v2/manage/user/permission/roles/list', params })
-// }

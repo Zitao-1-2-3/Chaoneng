@@ -1,12 +1,12 @@
 <script setup lang="tsx">
-import { ref, watch, nextTick, computed, defineExpose, defineEmits } from 'vue'
+import { ref, watch, nextTick, computed } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ElTree, ElMessage, ElCheckbox } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import operationRoutes from '@/router/modules/operation'
-import { addRoleApi, updateRoleApi } from '@/api/role'
+import { createRoleApi, updateRoleApiV2 } from '@/api/role'
 import { PropType } from 'vue'
 
 const { t } = useI18n()
@@ -108,7 +108,7 @@ const currentPermissionsRef = ref<string[]>([])
 
 // useForm
 const { formRegister, formMethods } = useForm()
-const { setValues, getFormData, getElFormExpose, setSchema } = formMethods
+const { setValues, getFormData, getElFormExpose } = formMethods
 
 // --- 渲染按钮复选框的辅助函数 (代码不变，但现在接收的 buttonList 数据已包含中文 label) ---
 const renderButtonCheckboxes = () => {
@@ -243,7 +243,7 @@ const rules = {
   permissions: [
     {
       required: true, // 确保权限数组不为空
-      validator: (rule, value, callback) => {
+      validator: (_, value, callback) => {
         // value 应该是权限数组
         if (!Array.isArray(value) || value.length === 0) {
           // 添加一个对应的翻译: '请至少分配一个菜单或按钮权限'
@@ -387,62 +387,16 @@ const submit = async () => {
   saveLoading.value = true
   const formData = await getFormData()
 
-  // --- 转换权限为树形结构 (方式 B) ---
-  const transformPermissionsToTreeB = (
-    flatPermissions: string[]
-  ): { menu_id: string; buttons: string[] }[] => {
-    const permissionMap: Record<string, string[]> = {} // menu_id -> buttonCode[]
-    const menuSet = new Set<string>() // 存储所有涉及的 menu_id
-
-    // 需要排除的首页路由
-    const excludedRoutes = ['ExchangeRate', 'ExchangeRateIndex']
-
-    flatPermissions.forEach((permission) => {
-      // 检查是否是需要排除的路由
-      if (excludedRoutes.some((route) => permission.startsWith(route))) {
-        return // 跳过这个权限
-      }
-
-      if (permission.includes('.')) {
-        const parts = permission.split('.')
-        const menu_id = parts[0]
-        const buttonCode = parts[1]
-        if (!permissionMap[menu_id]) {
-          permissionMap[menu_id] = []
-        }
-        permissionMap[menu_id].push(buttonCode)
-        menuSet.add(menu_id) // 确保包含按钮的菜单也被记录
-      } else {
-        // 这是纯菜单权限
-        menuSet.add(permission)
-        // 确保即使没有按钮，菜单也在 map 中有记录 (空数组)
-        if (!permissionMap[permission]) {
-          permissionMap[permission] = []
-        }
-      }
-    })
-
-    // 构建最终的数组结构
-    const treePermissions = Array.from(menuSet).map((menu_id) => ({
-      menu_id: menu_id,
-      buttons: permissionMap[menu_id] || [] // 获取按钮数组，确保有空数组
-    }))
-
-    return treePermissions
-  }
-
   // 获取扁平权限数组
   const flatPermissions = Array.isArray(formData.permissions)
     ? formData.permissions.map(String)
     : []
-  // 转换
-  const treePermissionsB = transformPermissionsToTreeB(flatPermissions)
 
   // 构建最终发送给后端的数据
   const dataToSave = {
     name: formData.name,
     status: formData.status,
-    permissions: treePermissionsB // 使用转换后的树形结构
+    permissions: flatPermissions // 新接口使用简单的字符串数组
   }
 
   try {
@@ -452,14 +406,16 @@ const submit = async () => {
         saveLoading.value = false
         return
       }
-      // 编辑时添加 id
-      const finalData = { ...dataToSave, id: props.currentRow.id }
-      // 注意：API 需要接收包含 id 和新的 permissions 结构的对象
-      await updateRoleApi(finalData as any) // 可能需要类型断言，取决于 updateRoleApi 的签名
+      // 使用新的更新角色接口
+      const updateData = {
+        id: props.currentRow.id,
+        ...dataToSave
+      }
+      await updateRoleApiV2(updateData)
       ElMessage.success('编辑成功')
     } else if (props.actionType === 'add') {
-      // 注意：API 需要接收包含 name, status 和新的 permissions 结构的对象
-      await addRoleApi(dataToSave as any) // 可能需要类型断言，取决于 addRoleApi 的签名
+      // 使用新的创建角色接口
+      await createRoleApi(dataToSave)
       ElMessage.success('新增成功')
     }
     close()

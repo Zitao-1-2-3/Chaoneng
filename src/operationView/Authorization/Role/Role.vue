@@ -1,18 +1,12 @@
 <script setup lang="tsx">
 import { ref, computed, h, nextTick, onMounted } from 'vue'
-import {
-  getRoleListApi,
-  addRoleApi,
-  updateRoleApi,
-  deleteRoleApi,
-  getRolePermissionsApi
-} from '@/api/role'
+import { getRoleListApi, getRoleDetailApi, deleteRoleApiV2 } from '@/api/role'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import { ElMessageBox, ElMessage, ElTag } from 'element-plus'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { Table, TableColumn, TableExpose } from '@/components/Table'
+import { Table, TableColumn } from '@/components/Table'
 import Write from './components/Write.vue'
 import { useTable } from '@/hooks/web/useTable'
 
@@ -40,9 +34,9 @@ const columns: TableColumn[] = [
     }
   },
   {
-    field: 'create_time',
+    field: 'created_at',
     label: t('tableDemo.displayTime'),
-    formatter: (row: any) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
+    formatter: (row: any) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
   },
   {
     field: 'action',
@@ -75,11 +69,13 @@ const columns: TableColumn[] = [
 // --- useTable Setup ---
 const { tableRegister, tableMethods, tableState } = useTable({
   fetchDataApi: async () => {
-    const current_page = tableState.currentPage.value
-    const page_size = tableState.pageSize.value
     try {
-      const res = await getRoleListApi({ current_page: current_page, page_size: page_size })
-      return res.data || { list: [], total: 0 }
+      const res = await getRoleListApi()
+      console.log('=== 角色列表数据 ===', res.data)
+      return {
+        list: res.data.list || [],
+        total: res.data.pager.total || 0
+      }
     } catch (error) {
       ElMessage.error(t('common.apiError'))
       return { list: [], total: 0 }
@@ -107,14 +103,15 @@ const handleAction = async (row: any, type: 'edit' | 'detail') => {
   } else {
     try {
       formLoading.value = true
-      const res = await getRolePermissionsApi(row.id)
-      const data = res?.data || {}
-      currentRow.value = { ...row, ...data }
+      // 使用新的获取角色详情接口
+      const res = await getRoleDetailApi(row.id)
+      const roleDetail = res?.data || {}
+      currentRow.value = { ...row, ...roleDetail }
       nextTick(() => {
         writeRef.value?.open()
       })
     } catch (error) {
-      ElMessage.error('获取角色权限失败')
+      ElMessage.error('获取角色详情失败')
     } finally {
       formLoading.value = false
     }
@@ -141,7 +138,8 @@ const handleDelete = (row: any) => {
   })
     .then(async () => {
       try {
-        await deleteRoleApi({ id: row.id })
+        // 使用新的删除角色接口
+        await deleteRoleApiV2(row.id)
         ElMessage.success(t('common.delSuccess'))
         getList()
       } catch (e: any) {
