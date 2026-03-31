@@ -53,11 +53,14 @@ export interface VerifyCodeLoginParams {
   verify_code: string
 }
 
+/**
+ * 修改密码参数（代理用户，通过邮箱验证码重置）
+ * 接口路径：POST /v1/user/changepasswd
+ */
 export interface ChangePasswordParams {
-  phone?: string
-  email?: string
-  verify_code: string
-  password: string
+  email: string // 邮箱
+  password: string // 新密码
+  verify_code: string // 验证码
 }
 
 /**

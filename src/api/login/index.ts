@@ -132,7 +132,7 @@ export const changeManagePasswordApiV2 = (data: ChangeManagePasswordParams): Pro
  * @param data 发送验证码参数
  */
 export const sendEmailCodeApi = (data: EmailCodeParams): Promise<IResponse> => {
-  return request.post({ url: '/v1/user/email/code', data })
+  return request.post({ url: '/user/email/code', data })
 }
 
 /**

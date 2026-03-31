@@ -150,6 +150,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
+import { UnixTime } from '@/components/UnixTime'
 import { getAccountListApi } from '@/api/account'
 import { useValidator } from '@/hooks/web/useValidator'
 import RechargeRecordDialog from './components/RechargeRecordDialog.vue'
@@ -182,8 +183,20 @@ const accountSchema: DescriptionsSchema[] = [
   { field: 'id', label: '账户ID' },
   { field: 'username', label: '账户名' },
   { field: 'trx_mount', label: 'TRX余额' },
-  { field: 'create_time', label: '创建时间' },
-  { field: 'update_time', label: '更新时间' }
+  {
+    field: 'create_time',
+    label: '创建时间',
+    slots: {
+      default: (data: any) => <UnixTime timestamp={data.create_time} />
+    }
+  },
+  {
+    field: 'update_time',
+    label: '更新时间',
+    slots: {
+      default: (data: any) => <UnixTime timestamp={data.update_time} />
+    }
+  }
 ]
 
 // 格式化TRX数量
@@ -349,12 +362,11 @@ const handleUpdatePassword = async () => {
     submitting.value = true
 
     try {
-      // 构建请求参数
+      // 构建请求参数（根据 Swagger 文档，只需要 email, password, verify_code）
       const params = {
-        id: userData.value.id,
+        email: resetForm.email,
         password: resetForm.password,
-        verify_code: resetForm.code,
-        email: resetForm.email
+        verify_code: resetForm.code
       }
 
       // 调用修改密码API
