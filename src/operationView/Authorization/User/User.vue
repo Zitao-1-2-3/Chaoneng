@@ -3,10 +3,13 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ref, nextTick, h, onMounted } from 'vue'
 import {
-  listManageUserApi,
-  addManageUserApi,
-  updateManageUserApi,
-  deleteManageUserApi
+  getManageUserListApiV2, // 新接口——获取运营用户列表
+  addManageUserApiV2, // 新接口——运营新增运营
+  updateManageUserApiV2, // 新接口——运营更新运营
+  deleteManageUserApiV2, // 新接口——运营删除运营
+  type AddManageUserPayload, // 新接口类型——运营新增运营
+  type UpdateManageUserPayload, // 新接口类型——运营更新运营
+  type DeleteManageUserPayload // 新接口类型——运营删除运营
 } from '@/api/manageUser/index'
 import type { DepartmentUserItem } from '@/api/department/types'
 import { Table, TableExpose } from '@/components/Table'
@@ -70,13 +73,13 @@ const { tableRegister, tableMethods, tableState } = useTable({
     const page = tableState.currentPage.value
     const size = tableState.pageSize.value
     try {
-      const res = await listManageUserApi({ current_page: page, page_size: size })
+      const res = await getManageUserListApiV2({ current_page: page, page_size: size })
       return {
         list: res.data.list || [],
-        total: res.data.totalCount || 0
+        total: res.data.pager?.total || 0
       }
     } catch (error) {
-      console.error('User.vue: listManageUserApi error:', error)
+      console.error('User.vue: getManageUserListApiV2 error:', error)
       return { list: [], total: 0 }
     }
   },
@@ -111,7 +114,11 @@ const delData = async (row?: DepartmentUserItem) => {
     )
     delLoading.value = true
     try {
-      await deleteManageUserApi({ id: row.id })
+      // 使用新接口删除运营用户
+      const payload: DeleteManageUserPayload = {
+        id: Number(row.id) // 将 string 转换为 number
+      }
+      await deleteManageUserApiV2(payload)
       ElMessage.success('删除成功')
       getList()
     } catch (error) {
@@ -147,9 +154,24 @@ const save = async () => {
     try {
       let res: any
       if (actionType.value === 'edit') {
-        res = await updateManageUserApi(formData)
+        // 使用新接口更新运营用户
+        const payload: UpdateManageUserPayload = {
+          id: Number(formData.id), // 将 string 转换为 number
+          username: formData.username,
+          password: formData.password || undefined, // 空密码不传
+          role_id: formData.role_id,
+          status: formData.status
+        }
+        res = await updateManageUserApiV2(payload)
       } else {
-        res = await addManageUserApi(formData)
+        // 使用新接口创建运营用户
+        const payload: AddManageUserPayload = {
+          username: formData.username,
+          password: formData.password,
+          role_id: formData.role_id,
+          status: formData.status
+        }
+        res = await addManageUserApiV2(payload)
       }
       ElMessage.success(actionType.value === 'edit' ? '编辑成功' : '添加成功')
       if (res.code == '000000') {

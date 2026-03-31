@@ -3,7 +3,7 @@ import { ref, reactive, computed } from 'vue'
 import Dialog from '@/components/Dialog/src/Dialog.vue'
 import Form from '@/components/Form/src/Form.vue'
 import { FormSchema } from '@/components/Form'
-import request from '@/axios'
+import { changeManagePasswordApiV2 } from '@/api/login'
 import { useForm } from '@/hooks/web/useForm'
 import { ElMessage, ElButton } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
@@ -28,7 +28,7 @@ const { getElFormExpose, getFormData } = formMethods
 
 const formSchema = reactive<FormSchema[]>([
   {
-    field: 'old_passwd',
+    field: 'password',
     label: '旧密码',
     component: 'Input',
     componentProps: {
@@ -44,7 +44,7 @@ const formSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'passwd',
+    field: 'new_password',
     label: '新密码',
     component: 'Input',
     componentProps: {
@@ -55,9 +55,8 @@ const formSchema = reactive<FormSchema[]>([
     formItemProps: {
       required: true,
       rules: [
-        { required: true, message: '请输入新密码', trigger: 'blur' }
-        // 添加其他密码复杂度规则，例如：
-        // { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+        { required: true, message: '请输入新密码', trigger: 'blur' },
+        { min: 8, message: '密码长度不能少于8位', trigger: 'blur' }
       ]
     },
     colProps: {
@@ -65,7 +64,7 @@ const formSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'confirm_passwd',
+    field: 'confirm_password',
     label: '确认新密码',
     component: 'Input',
     componentProps: {
@@ -75,19 +74,6 @@ const formSchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       required: true
-      // 移除自定义验证器，在 submit 中手动验证
-      // rules: [
-      //   { required: true, message: '请再次输入新密码', trigger: 'blur' },
-      //   {
-      //     validator: async (rule, value) => {
-      //       const formData = await getFormData();
-      //       if (value !== formData.passwd) {
-      //         throw new Error('两次输入的密码不一致');
-      //       }
-      //     },
-      //     trigger: 'blur'
-      //   }
-      // ]
     },
     colProps: {
       span: 24
@@ -104,31 +90,32 @@ const submit = async () => {
   await form.validate(async (valid) => {
     if (valid) {
       const formData = await getFormData()
-      if (formData.passwd !== formData.confirm_passwd) {
+      if (formData.new_password !== formData.confirm_password) {
         ElMessage.error('两次输入的密码不一致')
         return
       }
 
       submitLoading.value = true
       try {
-        const res = await request.post({
-          url: '/v2/manage/user/changepasswd',
-          data: {
-            old_passwd: formData.old_passwd,
-            passwd: formData.passwd
-          }
+        // 使用新接口修改密码
+        const res = await changeManagePasswordApiV2({
+          password: formData.password,
+          new_password: formData.new_password
         })
         if (res && res.code == '000000') {
-          ElMessage.success('密码修改成功')
+          ElMessage.success('密码修改成功，请重新登录')
           emit('success')
           dialogVisible.value = false
+          // 修改密码成功后退出登录
           userStore.logout()
         } else {
           ElMessage.error('密码修改失败')
         }
       } catch (e: any) {
-        console.error(e)
-        ElMessage.error(e.message || '请求失败，请稍后再试')
+        console.error('修改密码失败:', e)
+        // 显示后端返回的错误信息
+        const errorMsg = e.response?.data?.msg || e.message || '请求失败，请稍后再试'
+        ElMessage.error(errorMsg)
       } finally {
         submitLoading.value = false
       }

@@ -1,8 +1,18 @@
 import request from '@/axios'
+import type { RoleItem } from './type'
 
-// 获取角色列表
-export const getRoleListApi = (params: any = {}) => {
-  return request.get({ url: '/v2/manage/user/permission/roles/list', params })
+// 重新导出类型
+export type { RoleItem, RoleListResponse } from './type'
+
+// ==================== 新接口（v2） ====================
+
+/**
+ * 获取角色列表（新接口）
+ * 接口路径：GET /v2/role/list
+ * 无参数
+ */
+export const getRoleListApi = (): Promise<IResponse<RoleItem[]>> => {
+  return request.get({ url: '/v2/role/list' })
 }
 
 // 添加角色
@@ -29,3 +39,14 @@ export const addRolePermissionApi = (data: any) => {
 export const getRolePermissionsApi = (id: string) => {
   return request.get({ url: `/v2/manage/user/permission/role_permission/${id}` })
 }
+
+// ==================== 旧接口（已废弃，保留参考） ====================
+
+/**
+ * 获取角色列表（旧接口，已废弃）
+ * @deprecated 请使用上面的 getRoleListApi 代替
+ * 旧接口路径：GET /v2/manage/user/permission/roles/list（已返回 404）
+ */
+// export const getRoleListApiOld = (params: any = {}) => {
+//   return request.get({ url: '/v2/manage/user/permission/roles/list', params })
+// }

@@ -6,6 +6,7 @@
         :columns="columns"
         :searchSchema="searchSchema"
         :fetchDataApi="getAgentList"
+        @search="handleSearch"
         :show-add-button="false"
       >
         <template #leftToolbar>
@@ -39,11 +40,11 @@ import { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
 import {
   getAgentListApi,
-  updateAgentStatusApi,
-  exportAgentListApi, // 新增导入
+  updateAgentApi,
+  exportAgentListApi,
   type AgentItem,
-  type UpdateAgentStatusPayload,
-  type AgentListParams // 新增导入
+  type UpdateAgentPayload,
+  type AgentQueryParams
 } from '@/api/agent/list'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
@@ -68,7 +69,7 @@ const handleExport = async () => {
       exportParams.end_time = params.dateRange[1]
       delete exportParams.dateRange
     }
-    const res = await exportAgentListApi(exportParams as AgentListParams)
+    const res = await exportAgentListApi(exportParams as AgentQueryParams)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '代理列表.xlsx')
       ElMessage.success('导出成功')
@@ -117,10 +118,16 @@ const getAgentList = async (params?: any) => {
   }
 }
 
-const updateAgentStatus = async (id: number | string, status: number) => {
+const updateAgentStatus = async (id: number | string, status: number, row: AgentItem) => {
   try {
-    const payload: UpdateAgentStatusPayload = { id, status }
-    await updateAgentStatusApi(payload)
+    // 发送完整的代理信息，避免后端重置其他字段
+    const payload: UpdateAgentPayload = {
+      id,
+      email: row.email,
+      gift_bandwidth: row.gift_bandwidth, // 保持原值
+      status
+    }
+    await updateAgentApi(payload)
     ElMessage.success(status === 1 ? '启用成功' : '禁用成功')
     searchTableRef.value?.reload()
   } catch (error) {
@@ -129,10 +136,15 @@ const updateAgentStatus = async (id: number | string, status: number) => {
   }
 }
 
+// 处理搜索
+const handleSearch = () => {
+  // SearchTable 组件会自动处理搜索逻辑
+}
+
 // 表单配置
 const searchSchema = ref<FormSchema[]>([
   {
-    field: 'query',
+    field: 'keyword',
     component: 'Input',
     label: '关键字',
     componentProps: {
@@ -169,12 +181,11 @@ const columns = ref<TableColumn[]>([
   { field: 'bot_num', label: '机器人数量' },
   { field: 'tg_account_num', label: '总用户数' },
   {
-    field: 'trx_mount',
+    field: 'trx_balance',
     label: 'TRX余额',
     sortable: true,
     sortMethod: (a: any, b: any) => {
-      // 确保将值转换为浮点数进行比较
-      return parseFloat(a.trx_mount) - parseFloat(b.trx_mount)
+      return parseFloat(a.trx_balance) - parseFloat(b.trx_balance)
     }
   },
   { field: 'total_trx_amount', label: 'TRX收入' },
@@ -183,7 +194,7 @@ const columns = ref<TableColumn[]>([
     field: 'gift_bandwidth',
     label: '是否赠送带宽',
     formatter: (row: AgentItem) => {
-      return row.gift_bandwidth === 1 ? '赠送' : '不赠送'
+      return row.gift_bandwidth ? '赠送' : '不赠送'
     }
   },
   {
@@ -196,9 +207,9 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
-    field: 'create_time',
+    field: 'created_at',
     label: '创建时间',
-    formatter: (row: AgentItem) => (row.create_time ? formatToDateTime(row.create_time) : '-')
+    formatter: (row: AgentItem) => (row.created_at ? formatToDateTime(row.created_at) : '-')
   },
   {
     field: 'action',
@@ -227,7 +238,7 @@ const renderActionButtons = (row: AgentItem) => {
       </BaseButton>
       <BaseButton
         type={statusAction.type}
-        onClick={() => handleUpdateStatus(row.id, statusAction.status, statusAction.text)}
+        onClick={() => handleUpdateStatus(row.id, statusAction.status, statusAction.text, row)}
       >
         {statusAction.text}
       </BaseButton>
@@ -241,13 +252,28 @@ const handleAddAgent = () => {
 }
 
 const handleEditAgent = (row: AgentItem) => {
-  agentFormRef.value?.openDialog('edit', {
+  console.log('=== handleEditAgent 开始 ===')
+  console.log('1. 原始行数据:', row)
+  console.log('2. row.gift_bandwidth:', row.gift_bandwidth, '类型:', typeof row.gift_bandwidth)
+
+  const editData = {
     id: row.id,
-    username: row.user_name,
+    username: row.username,
     email: row.email,
-    gift_bandwidth: row.gift_bandwidth,
+    gift_bandwidth: row.gift_bandwidth ? 1 : 0,
     status: row.status
-  })
+  }
+
+  console.log('3. 传递给表单的数据:', editData)
+  console.log(
+    '4. editData.gift_bandwidth:',
+    editData.gift_bandwidth,
+    '类型:',
+    typeof editData.gift_bandwidth
+  )
+  console.log('========================')
+
+  agentFormRef.value?.openDialog('edit', editData)
 }
 
 const handleRecharge = (row: AgentItem) => {
@@ -255,14 +281,19 @@ const handleRecharge = (row: AgentItem) => {
   rechargeDialogVisible.value = true
 }
 
-const handleUpdateStatus = async (id: number | string, status: number, actionText: string) => {
+const handleUpdateStatus = async (
+  id: number | string,
+  status: number,
+  actionText: string,
+  row: AgentItem
+) => {
   try {
     await ElMessageBox.confirm(`确定要${actionText}该代理吗？`, '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await updateAgentStatus(id, status)
+    await updateAgentStatus(id, status, row)
   } catch {
     // 用户取消操作
   }
@@ -274,7 +305,13 @@ const handleRechargeSuccess = (amount: number) => {
 }
 
 const handleAgentSuccess = () => {
+  console.log('=== handleAgentSuccess: 编辑成功，准备刷新列表 ===')
   searchTableRef.value?.reload()
+
+  // 延迟后再次检查数据
+  setTimeout(() => {
+    console.log('=== 刷新后检查列表数据 ===')
+  }, 1000)
 }
 
 const handleAgentError = (error: { type: 'add' | 'edit'; error: any }) => {

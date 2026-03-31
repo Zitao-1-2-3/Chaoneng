@@ -73,11 +73,11 @@ const rechargeSchema = computed<DescriptionsSchema[]>(() => {
       label: '联系方式'
     },
     {
-      field: 'trx_mount',
+      field: 'trx_balance',
       label: 'TRX余额'
     }
     // {
-    //   field: 'usdt_mount',
+    //   field: 'usdt_balance',
     //   label: 'USDT余额',
     //   hidden: true
     // }
@@ -87,7 +87,7 @@ const rechargeSchema = computed<DescriptionsSchema[]>(() => {
 // 充值表单结构定义
 const rechargeFormSchema = reactive<FormSchema[]>([
   {
-    field: 'unit',
+    field: 'coin',
     component: 'RadioGroup',
     label: '充值类型',
     value: 'TRX',
@@ -156,8 +156,9 @@ const initForm = () => {
     // 使用setValues方法设置初始值
     formMethods
       .setValues({
-        unit: 'TRX',
+        coin: 'TRX',
         amount: '',
+        secret: '',
         describe: ''
       })
       .catch((err) => {
@@ -199,9 +200,9 @@ const handleRecharge = async () => {
 
       // 构建参数（符合API要求的类型）
       const params = {
-        id: userAccount.value.id,
+        agent_id: userAccount.value.id,
         amount: formData.amount,
-        unit: formData.unit,
+        coin: formData.coin,
         secret: formData.secret,
         describe: formData.describe
       }

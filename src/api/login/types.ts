@@ -5,10 +5,25 @@ export interface UserLoginType {
 
 export interface UserType {
   username: string
-  password: string
+  password?: string // 改为可选
   permissions?: string[]
   role?: string
   roleId?: string
+  name?: string // 用户名
+  role_ID?: number // 角色ID
+  role_name?: string // 角色名称
+  created_at?: number // 创建时间
+}
+
+/**
+ * 获取用户信息接口返回的数据类型
+ */
+export interface UserInfoResponse {
+  permissions: string[] // 权限列表
+  name: string // 用户名
+  role_ID: number // 角色ID
+  role_name: string // 角色名称
+  created_at: number // 创建时间
 }
 
 export interface PhoneRegisterParams {
@@ -43,6 +58,14 @@ export interface ChangePasswordParams {
   email?: string
   verify_code: string
   password: string
+}
+
+/**
+ * 修改密码参数（运营用户，需登录）
+ */
+export interface ChangeManagePasswordParams {
+  password: string // 原密码
+  new_password: string // 新密码
 }
 
 export interface EmailCodeParams {

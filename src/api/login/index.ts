@@ -1,11 +1,13 @@
 import request from '@/axios'
 import type {
   UserType,
+  UserInfoResponse,
   PhoneRegisterParams,
   EmailRegisterParams,
   PasswordLoginParams,
   VerifyCodeLoginParams,
   ChangePasswordParams,
+  ChangeManagePasswordParams,
   EmailCodeParams,
   PhoneCodeParams,
   LoginResponse
@@ -115,6 +117,15 @@ export const changePasswordApi = (data: ChangePasswordParams): Promise<IResponse
   return request.post({ url: '/v1/user/changepasswd', data })
 }
 
+/**
+ * 修改密码（运营用户，需登录）
+ * 接口路径：POST /v2/manage/user/changepasswd
+ * 参数：password (原密码), new_password (新密码)
+ */
+export const changeManagePasswordApiV2 = (data: ChangeManagePasswordParams): Promise<IResponse> => {
+  return request.post({ url: '/v2/manage/user/changepasswd', data })
+}
+
 // 验证码相关API
 /**
  * 发送邮箱验证码
@@ -142,6 +153,6 @@ export const getCaptchaApi = (): Promise<IResponse<{ id: string; data: string }>
 /**
  * 获取用户信息
  */
-export const getUserInfoApi = (): Promise<IResponse<UserType>> => {
+export const getUserInfoApi = (): Promise<IResponse<UserInfoResponse>> => {
   return request.get({ url: '/v2/manage/user/use_info' })
 }
