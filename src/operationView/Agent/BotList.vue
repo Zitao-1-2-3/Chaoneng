@@ -23,13 +23,13 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, onMounted } from 'vue'
-import { ElTag, ElMessage, ElMessageBox, ElLink } from 'element-plus' // 引入ElMessageBox
+import { ref, reactive, onMounted, h } from 'vue'
+import { ElTag, ElMessage, ElMessageBox, ElLink } from 'element-plus'
 import { Icon } from '@/components/Icon'
 import { SearchTable, useSearchTable } from '@/components/SearchTable'
 import { FormSchema } from '@/components/Form'
 import { TableColumn } from '@/components/Table'
-import { formatToDateTime } from '@/utils/dateUtil'
+import { UnixTime } from '@/components/UnixTime' // 使用UnixTime组件
 import {
   getAgentBotListApi,
   updateAgentBotStatusApi,
@@ -37,7 +37,7 @@ import {
   AgentBotItem,
   UpdateAgentBotStatusPayload,
   exportAgentBotListApi
-} from '@/api/agent/bot' // 更新导入路径
+} from '@/api/agent/bot'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import { useRoute, useRouter } from 'vue-router'
@@ -59,14 +59,15 @@ onMounted(() => {
 // 获取机器人列表API封装
 const getAgentBotList = async (params?: any): Promise<{ list: AgentBotItem[]; total?: number }> => {
   try {
-    // 直接传递 useSearchTable 处理好的参数
     const res = await getAgentBotListApi(params)
-    // 直接返回 API 响应数据，useSearchTable 会处理 list 和 totalCount
-    return res.data
+    // 适配新的分页格式：从 pager 对象中获取 total
+    return {
+      list: res.data.list || [],
+      total: res.data.pager?.total || 0
+    }
   } catch (error) {
     console.error('获取机器人列表失败:', error)
     ElMessage.error('获取机器人列表失败')
-    // 返回符合函数签名的空结构
     return { list: [], total: 0 }
   }
 }
@@ -90,24 +91,32 @@ const updateBotStatus = async (id: number | string, status: number) => {
 // 搜索表单配置
 const searchSchema = ref<FormSchema[]>([
   {
-    field: 'query', // 对应 AgentBotQueryParams 的 query 字段
+    field: 'keyword', // 使用新接口的 keyword 参数
     component: 'Input',
     label: '关键字',
     componentProps: {
-      placeholder: '机器人ID/用户名/所属代理' // 明确提示搜索范围
+      placeholder: '请输入关键字搜索'
     }
   },
   {
-    field: 'status', // 对应 AgentBotQueryParams 的 status 字段
+    field: 'agent_name', // 新增代理名称搜索
+    component: 'Input',
+    label: '代理名称',
+    componentProps: {
+      placeholder: '请输入代理名称'
+    }
+  },
+  {
+    field: 'status',
     component: 'Select',
     label: '状态',
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
       options: [
-        { label: '全部', value: '' }, // 使用空字符串代表全部
-        { label: '启用', value: 1 }, // 假设 1 代表启用
-        { label: '禁用', value: 2 } // 假设 2 代表禁用
+        { label: '全部', value: '' },
+        { label: '启用', value: 1 },
+        { label: '禁用', value: 2 }
       ]
     }
   }
@@ -116,15 +125,15 @@ const searchSchema = ref<FormSchema[]>([
 // 表格列配置
 const columns = ref<TableColumn[]>([
   {
-    field: 'tg_bot_id',
+    field: 'id', // 新接口字段：id (原来是tg_bot_id)
     label: '机器人ID'
   },
   {
-    field: 'name',
+    field: 'username', // 新接口字段：username (原来是name)
     label: '机器人用户名'
   },
   {
-    field: 'username',
+    field: 'agent_name', // 新接口字段：agent_name (原来是username)
     label: '代理名称'
   },
   {
@@ -139,7 +148,7 @@ const columns = ref<TableColumn[]>([
     label: '管理员TG号'
   },
   {
-    field: 'apl_key',
+    field: 'token', // 新接口字段：token (原来是apl_key)
     label: 'API密钥'
   },
   {
@@ -185,14 +194,16 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
-    field: 'create_time',
+    field: 'created_at', // 新接口字段：created_at (原来是create_time)
     label: '创建时间',
-    formatter: (row: AgentBotItem) => (row.create_time ? formatToDateTime(row.create_time) : '-')
+    formatter: (row: AgentBotItem) =>
+      row.created_at ? h(UnixTime, { timestamp: row.created_at }) : '-'
   },
   {
-    field: 'update_time',
+    field: 'updated_at', // 新接口字段：updated_at (原来是update_time)
     label: '最后活动时间',
-    formatter: (row: AgentBotItem) => (row.update_time ? formatToDateTime(row.update_time) : '-')
+    formatter: (row: AgentBotItem) =>
+      row.updated_at ? h(UnixTime, { timestamp: row.updated_at }) : '-'
   },
   {
     field: 'action',

@@ -1,79 +1,73 @@
 import request from '@/axios'
-import { isManagementSystem } from '@/utils/system'
+import type {
+  CustomerServiceItem,
+  CustomerServiceQueryParams,
+  CustomerServiceListResponse,
+  CreateCustomerServiceParams,
+  UpdateCustomerServiceParams,
+  DeleteCustomerServiceParams,
+  // 兼容性导入
+  AddCustomerServiceParams,
+  CustomerServiceListResponseData
+} from './type'
 
-const isManagement = isManagementSystem()
-/**
- * 客服数据项接口
- */
-export interface CustomerServiceItem {
-  id: number | string
-  tg_name: string // TG用户名称
-  status: number // 状态：1-启用，2-禁用
-  create_time?: string // 创建时间
-  update_time?: string // 更新时间
-}
+// 重新导出类型
+export type {
+  CustomerServiceItem,
+  CustomerServiceQueryParams,
+  CustomerServiceListResponse,
+  CreateCustomerServiceParams,
+  UpdateCustomerServiceParams,
+  DeleteCustomerServiceParams,
+  AddCustomerServiceParams
+} from './type'
 
-/**
- * 客服查询参数
- */
-export interface CustomerServiceQueryParams {
-  query?: string // 关键字
-  status?: number | string // 状态
-  current_page?: number
-  page_size?: number
-}
+// ==================== 新接口（v2） ====================
 
-/**
- * 添加客服参数
- */
-export interface AddCustomerServiceParams {
-  tg_name: string // TG用户名称
-  status: number // 状态：1-启用，2-禁用
-}
+const CUSTOMER_SERVICE_BASE = '/v2/manage/customer/'
 
 /**
- * 修改客服参数
- */
-export interface UpdateCustomerServiceParams {
-  id: number // 客服ID
-  tg_name: string // TG用户名称
-  status: number // 状态：1-启用，2-禁用
-}
-
-/**
- * 客服列表响应
- */
-interface CustomerServiceListResponseData {
-  list: CustomerServiceItem[]
-  totalCount: number
-}
-
-/**
- * 获取客服列表
+ * 获取客服列表（新接口 v2）
+ * 接口路径：GET /v2/manage/customer/list
  * @param params 查询参数
- * @returns Promise<IResponse<CustomerServiceListResponseData>>
  */
 export const getCustomerServiceListApi = (
   params: CustomerServiceQueryParams
-): Promise<IResponse<CustomerServiceListResponseData>> => {
-  const url = isManagement ? '/v1/user/customer/list' : '/v2/manage/customer/list'
-  return request.get({ url, params })
+): Promise<IResponse<CustomerServiceListResponse>> => {
+  return request.get({ url: `${CUSTOMER_SERVICE_BASE}list`, params })
 }
 
 /**
- * 添加客服
- * @param data 添加参数
- * @returns Promise<IResponse>
+ * 创建客服（新接口 v2）
+ * 接口路径：POST /v2/manage/customer/add
+ * @param data 创建参数
  */
-export const addCustomerServiceApi = (data: AddCustomerServiceParams): Promise<IResponse> => {
-  return request.post({ url: '/v2/manage/customer/add', data })
+export const createCustomerServiceApi = (data: CreateCustomerServiceParams): Promise<IResponse> => {
+  return request.post({ url: `${CUSTOMER_SERVICE_BASE}add`, data })
 }
 
 /**
- * 修改客服
- * @param data 修改参数
- * @returns Promise<IResponse>
+ * 更新客服信息（新接口 v2）
+ * 接口路径：POST /v2/manage/customer/update
+ * @param data 更新参数
  */
 export const updateCustomerServiceApi = (data: UpdateCustomerServiceParams): Promise<IResponse> => {
-  return request.post({ url: '/v2/manage/customer/update', data })
+  return request.post({ url: `${CUSTOMER_SERVICE_BASE}update`, data })
 }
+
+/**
+ * 删除客服（新接口 v2）
+ * 接口路径：POST /v2/manage/customer/del
+ * @param data 删除参数
+ */
+export const deleteCustomerServiceApi = (data: DeleteCustomerServiceParams): Promise<IResponse> => {
+  return request.post({ url: `${CUSTOMER_SERVICE_BASE}del`, data })
+}
+
+// ==================== 兼容性接口 ====================
+
+/**
+ * 添加客服（兼容旧接口名称）
+ * @deprecated 请使用 createCustomerServiceApi 代替
+ */
+export const addCustomerServiceApi = createCustomerServiceApi

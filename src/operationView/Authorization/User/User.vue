@@ -11,6 +11,7 @@ import {
   type UpdateManageUserPayload, // 新接口类型——运营更新运营
   type DeleteManageUserPayload // 新接口类型——运营删除运营
 } from '@/api/manageUser/index'
+import { getRoleListApi } from '@/api/role/index' // 导入角色列表接口
 import type { DepartmentUserItem } from '@/api/department/types'
 import { Table, TableExpose } from '@/components/Table'
 import { useTable } from '@/hooks/web/useTable'
@@ -18,9 +19,29 @@ import { ElTag, ElMessageBox, ElMessage } from 'element-plus'
 import Write from './components/Write.vue'
 import Detail from './components/Detail.vue'
 import { BaseButton } from '@/components/Button'
-import { formatToDateTime } from '@/utils/dateUtil'
+import { UnixTime } from '@/components/UnixTime' // 使用UnixTime组件
 
 const { t } = useI18n()
+
+// 角色列表数据
+const roleList = ref<any[]>([])
+
+// 获取角色列表
+const fetchRoleList = async () => {
+  try {
+    const res = await getRoleListApi()
+    roleList.value = res.data.list || []
+  } catch (error) {
+    console.error('获取角色列表失败:', error)
+    roleList.value = []
+  }
+}
+
+// 根据角色ID获取角色名称
+const getRoleName = (roleId: number) => {
+  const role = roleList.value.find((r) => r.id === roleId)
+  return role ? role.name : `角色ID: ${roleId}`
+}
 
 const columns = [
   {
@@ -29,7 +50,8 @@ const columns = [
   },
   {
     field: 'role_name',
-    label: t('userDemo.role')
+    label: t('userDemo.role'),
+    formatter: (row: any) => getRoleName(row.role_id)
   },
   {
     field: 'status',
@@ -44,12 +66,12 @@ const columns = [
   {
     field: 'created_at',
     label: t('tableDemo.displayTime'),
-    formatter: (row: any) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
+    formatter: (row: any) => (row.created_at ? h(UnixTime, { timestamp: row.created_at }) : '-')
   },
   {
     field: 'updated_at',
     label: '更新时间',
-    formatter: (row: any) => (row.updated_at ? formatToDateTime(row.updated_at * 1000) : '-')
+    formatter: (row: any) => (row.updated_at ? h(UnixTime, { timestamp: row.updated_at }) : '-')
   },
   {
     field: 'action',
@@ -196,8 +218,10 @@ const handleSizeChange = (newSize: number) => {
   // getList() will be triggered by the watcher inside useTable
 }
 
-onMounted(() => {
+onMounted(async () => {
   setProps({ columns: columns })
+  // 获取角色列表
+  await fetchRoleList()
 })
 </script>
 

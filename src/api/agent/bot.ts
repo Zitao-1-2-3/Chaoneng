@@ -1,71 +1,142 @@
 import request from '@/axios'
 import type { AxiosPromise } from 'axios'
-import { formatToDateTime } from '@/utils/dateUtil' // 引入日期格式化工具
 
-// 移除本地定义，假设 IResponse 是全局可用的
-// interface IResponse<T = any> {
-//   code: number
-//   message: string
-//   data: T
-// }
+// ==================== 类型定义 ====================
 
-// 定义机器人列表查询参数类型
+/**
+ * 机器人列表查询参数（新接口）
+ */
 export interface AgentBotQueryParams {
-  query?: string // 关键字：机器人ID/用户名/所属代理
-  status?: number | string // 状态：'' 或 undefined 表示全部, 1 表示启用, 2 表示禁用 (假设值，请根据后端确认)
-  current_page?: number // 使用后端期望的参数名
-  page_size?: number // 使用后端期望的参数名
+  agent_name?: string // 代理名称
+  current_page?: number // 页码
+  keyword?: string // 关键字搜索
+  page_size?: number // 每页大小
+  status?: number | string // 状态筛选
 }
 
-// 定义机器人列表项类型 (根据示例数据调整)
+/**
+ * 分页信息
+ */
+export interface PagerInfo {
+  current_page: number // 当前页码
+  page_size: number // 每页数量
+  total: number // 总数量
+}
+
+/**
+ * 机器人列表项（新接口数据结构）
+ */
 export interface AgentBotItem {
-  id: number | string // 机器人ID
-  tg_bot_id: number | string // TG Bot ID (新增，但可能不在表格显示)
-  name: string // 机器人昵称 (替代 nickname)
-  firstname: string // Firstname (新增，但可能不在表格显示)
-  user_name: string // 机器人用户名 (替代 username)
-  email: string // Email (新增，但可能不在表格显示)
-  tg_admin: string // 管理员TG号 (替代 tg_id)
-  apl_key: string // API密钥 (替代 api_key)
-  order_count: number // 交易订单数
-  status: number // 机器人状态 (1: 启用, 2: 禁用 - 假设值)
-  create_time: string | number // 创建时间
-  update_time: string | number // 最后活动时间 (替代 last_active_time)
-  // agent_id 字段已移除
+  id: number // 机器人ID
+  agent_id: number // 代理ID
+  agent_name: string // 代理名称
+  auto_renew: number // 自动续费
+  created_at: string // 创建时间
+  describe: string // 描述
+  expired_at: string // 过期时间
+  firstname: string // 机器人昵称
+  status: number // 状态 (1: 启用, 2: 禁用)
+  tg_admin: string // 管理员TG号
+  token: string // 机器人Token
+  total_fee: number // 总费用
+  updated_at: string // 更新时间
+  username: string // 机器人用户名
 }
 
-// 定义列表接口返回结构 (假设 data 结构)
+/**
+ * 机器人列表响应数据（新接口格式）
+ */
+export interface AgentBotListResponse {
+  list: AgentBotItem[]
+  pager: PagerInfo
+}
+
+/**
+ * 更新机器人参数（新接口）
+ */
+export interface UpdateAgentBotPayload {
+  id: number // 机器人ID
+  auto_renew?: number // 自动续费 (1: 开启, 0: 关闭)
+  describe?: string // 描述
+  status?: number // 状态 (1: 启用, 2: 禁用)
+  tg_admin?: string // 管理员TG号
+}
+
+/**
+ * 更新机器人状态参数（兼容旧接口）
+ * @deprecated 请使用 UpdateAgentBotPayload 代替
+ */
+export interface UpdateAgentBotStatusPayload {
+  id: number | string // 机器人ID
+  status: number // 新的状态 (1: 启用, 2: 禁用)
+}
+
+// ==================== 兼容性类型（保持向后兼容） ====================
+
+/**
+ * 机器人列表响应数据（兼容旧接口格式）
+ * @deprecated 请使用 AgentBotListResponse 代替
+ */
 interface AgentBotListResponseData {
   list: AgentBotItem[]
   totalCount: number
 }
 
-// 定义更新状态参数类型
-export interface UpdateAgentBotStatusPayload {
-  id: number | string // 机器人ID
-  status: number // 新的状态 (1: 启用, 2: 禁用 - 假设值)
-}
+// ==================== 新接口（v2） ====================
+
+const AGENT_BOT_BASE = '/v2/manage/agent_bot/'
 
 /**
- * 获取机器人列表
+ * 获取机器人列表（新接口 v2）
+ * 接口路径：GET /v2/manage/agent_bot/list
  * @param params 查询参数
- * @returns Promise<IResponse<AgentBotListResponseData>> // 修正返回类型
  */
 export const getAgentBotListApi = (
   params: AgentBotQueryParams
-): Promise<IResponse<AgentBotListResponseData>> => {
-  return request.get({ url: '/v2/manage/agent_bot/list', params })
+): Promise<IResponse<AgentBotListResponse>> => {
+  return request.get({ url: `${AGENT_BOT_BASE}list`, params })
 }
 
 /**
- * 更新机器人状态 (禁用/启用)
- * @param data 更新负载 { id: 机器人ID, status: 新状态 }
- * @returns Promise<IResponse> // 修正返回类型 (如果更新操作没有特定 data 返回)
+ * 更新机器人信息（新接口 v2）
+ * 接口路径：POST /v2/manage/agent_bot/update
+ * @param data 更新参数
  */
-export const updateAgentBotStatusApi = (data: UpdateAgentBotStatusPayload): Promise<IResponse> => {
-  return request.post({ url: '/v2/manage/agent_bot/update', data })
+export const updateAgentBotApi = (data: UpdateAgentBotPayload): Promise<IResponse> => {
+  return request.post({ url: `${AGENT_BOT_BASE}update`, data })
 }
 
-export const exportAgentBotListApi = (params: AgentBotQueryParams): Promise<IResponse<Blob>> => {
-  return request.get({ url: '/v2/manage/agent_bot/export', params, responseType: 'blob' })
+/**
+ * 更新机器人状态（兼容接口）
+ * @deprecated 请使用 updateAgentBotApi 代替
+ * @param data 更新参数
+ */
+export const updateAgentBotStatusApi = (data: UpdateAgentBotStatusPayload): Promise<IResponse> => {
+  // 转换为新接口格式
+  const payload: UpdateAgentBotPayload = {
+    id: Number(data.id),
+    status: data.status
+  }
+  return updateAgentBotApi(payload)
 }
+
+/**
+ * 导出机器人列表（新接口 v2）
+ * 接口路径：GET /v2/manage/agent_bot/export
+ * @param params 查询参数
+ */
+export const exportAgentBotListApi = (params: AgentBotQueryParams): Promise<IResponse<Blob>> => {
+  return request.get({ url: `${AGENT_BOT_BASE}export`, params, responseType: 'blob' })
+}
+
+// ==================== 旧接口（已废弃，保留参考） ====================
+
+/**
+ * 获取机器人列表（旧接口，已废弃）
+ * @deprecated 请使用上面的 getAgentBotListApi 代替
+ */
+// export const getAgentBotListApiOld = (
+//   params: AgentBotQueryParams
+// ): Promise<IResponse<AgentBotListResponseData>> => {
+//   return request.get({ url: '/v2/manage/agent_bot/list', params })
+// }

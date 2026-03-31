@@ -52,14 +52,15 @@ import { BaseButton } from '@/components/Button'
 import { useForm } from '@/hooks/web/useForm'
 import {
   getCustomerServiceListApi,
-  addCustomerServiceApi,
+  createCustomerServiceApi,
   updateCustomerServiceApi,
+  // deleteCustomerServiceApi, // 暂时注释，不需要删除功能
   type CustomerServiceItem,
   type CustomerServiceQueryParams,
-  type AddCustomerServiceParams,
+  type CreateCustomerServiceParams,
   type UpdateCustomerServiceParams
 } from '@/api/customer_service'
-import { formatToDateTime } from '@/utils/dateUtil'
+import { UnixTime } from '@/components/UnixTime'
 
 // --- Refs and Reactive Variables ---
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -82,9 +83,11 @@ const fetchCustomerServiceListData = async (params: CustomerServiceQueryParams) 
     const processedList = (res.data.list || []).map((item) => ({
       ...item
     }))
+
+    // 适配新的分页格式：从 pager 对象中获取 total
     return {
       list: processedList,
-      total: res.data.totalCount || 0
+      total: res.data.pager?.total || 0
     }
   } catch (error) {
     console.error('获取客服列表失败:', error)
@@ -111,12 +114,12 @@ const columns = ref<TableColumn[]>([
     field: 'created_at',
     label: '创建时间',
     width: '180px',
-    formatter: (row) => formatToDateTime(row.created_at)
+    formatter: (row) => <UnixTime timestamp={row.created_at} />
   },
   {
     label: '操作',
     field: 'action',
-    width: '200px',
+    width: '200px', // 调整宽度，因为移除了删除按钮
     fixed: 'right',
     formatter: (row) => {
       const isEnabled = row.status === 1
@@ -132,6 +135,10 @@ const columns = ref<TableColumn[]>([
           <BaseButton type={statusButtonType} onClick={() => handleStatusChange(row, targetStatus)}>
             {statusButtonText}
           </BaseButton>
+          {/* 暂时注释删除功能 */}
+          {/* <BaseButton type="danger" onClick={() => handleDeleteCustomerService(row)}>
+            删除
+          </BaseButton> */}
         </>
       )
     }
@@ -141,7 +148,7 @@ const columns = ref<TableColumn[]>([
 // --- 搜索条件 ---
 const searchSchema = reactive<FormSchema[]>([
   {
-    field: 'query',
+    field: 'keyword',
     label: '关键字',
     component: 'Input',
     componentProps: {
@@ -256,6 +263,26 @@ const handleStatusChange = async (row: CustomerServiceItem, targetStatus: number
   }
 }
 
+// 删除客服 - 暂时注释，不需要此功能
+/* const handleDeleteCustomerService = async (row: CustomerServiceItem) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除客服"${row.tg_name}"吗？`, '删除确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    await deleteCustomerServiceApi({ id: Number(row.id) })
+    ElMessage.success('删除成功')
+    searchTableRef.value?.reload()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除客服失败:', error)
+      ElMessage.error('删除失败')
+    }
+  }
+} */
+
 // 弹窗关闭
 const handleDialogClose = async () => {
   dialogVisible.value = false
@@ -288,12 +315,12 @@ const handleSubmit = async () => {
       await updateCustomerServiceApi(updateData)
       ElMessage.success('编辑成功')
     } else {
-      // 新增
-      const addData: AddCustomerServiceParams = {
+      // 新增 - 使用新的创建接口
+      const createData: CreateCustomerServiceParams = {
         tg_name: formData.tg_name,
         status: formData.status
       }
-      await addCustomerServiceApi(addData)
+      await createCustomerServiceApi(createData)
       ElMessage.success('新增成功')
     }
 
