@@ -29,10 +29,13 @@ const fetchRoleOptions = async () => {
   roleOptionsLoading.value = true
   try {
     const res = await getRoleListApi()
-    roleOptions.value = (res.data?.list || []).map((item: any) => ({
-      label: item.name,
-      value: item.id
-    }))
+    // 过滤掉禁用的角色 (status !== 2)
+    roleOptions.value = (res.data?.list || [])
+      .filter((item: any) => item.status !== 2)
+      .map((item: any) => ({
+        label: item.name,
+        value: item.id
+      }))
   } catch (error) {
     console.error('Write.vue: Failed to fetch role options:', error)
     roleOptions.value = []

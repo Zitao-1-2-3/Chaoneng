@@ -92,8 +92,7 @@ import {
   ElButton,
   ElMessageBox,
   ElMessage,
-  ElTag
-  // 移除 ElTable, ElTableColumn, ElPagination
+  ElTag // 重新导入，用于显示状态
 } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
@@ -110,23 +109,18 @@ import type { TableColumn } from '@/components/Table' // 引入
 import { downloadByData, downloadByBase64 } from '@/utils/download' // Revert import path
 
 import {
-  getTrxAddressListApi,
-  createTrxAddressApi, // 需要 add API
-  updateTrxAddressApi, // 需要 update API (用于修改/绑定/解绑)
-  deleteTrxAddressApi,
-  batchDeleteTrxAddressApi,
-  // updateTrxAddressStatusApi,
-  // bindAgentApi,
+  v2GetAddressList, // 新接口 - 获取列表
+  v2CreateAddress, // 新接口 - 创建地址
+  v2UpdateAddress, // 新接口 - 更新地址（绑定/解绑）
+  v2DeleteAddress, // 新接口 - 删除地址
+  v2GetUnboundAgents, // 新接口 - 获取未绑定的代理列表
   batchImportTrxAddressApi,
-  exportAddressModuleApi,
-  getAgentListApi
+  exportAddressModuleApi
 } from '@/api/marketing/trx_address'
 
 // Separate imports for clarity
 
 // 表格和表单引用
-// const tableRef = ref() // 移除
-const formRef = ref() // 地址表单
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null) // SearchTable 引用
 const submitting = ref(false)
 const batchImportVisible = ref(false)
@@ -144,64 +138,61 @@ const { formRegister: addFormRegister, formMethods: addFormMethods } = useForm()
 // 使用表单Hook - 绑定代理表单
 const { formRegister: bindFormRegister, formMethods: bindFormMethods } = useForm()
 
-// 表格列配置 - 根据实际 API 响应调整字段名
+// 表格列配置 - 根据新接口 v2 的响应字段调整
 const columns = ref<TableColumn[]>([
-  // {
-  //   field: 'selection',
-  //   type: 'selection',
-  //   width: '55px'
-  // },
-  // {
-  //   field: 'id',
-  //   label: '序号',
-  //   width: '80px'
-  // },
   {
     field: 'address',
     label: 'TRX收款地址',
     minWidth: '240px'
   },
   {
-    field: 'username', // 使用 API 返回的 username
-    label: '所属代理',
-    minWidth: '180px',
-    formatter: (row) => (row.username || row.email ? `${row.username} (${row.email})` : '-')
+    field: 'agent_name',
+    label: '代理名称',
+    minWidth: '200px',
+    formatter: (row) => {
+      if (row.agent_name && row.email) {
+        return `${row.agent_name} (${row.email})`
+      }
+      return row.agent_name || '-'
+    }
   },
   {
-    field: 'create_by', // 使用 API 返回的 create_by
+    field: 'created_by',
     label: '创建人',
     width: '120px',
-    formatter: (row) => row.create_by || '-' // 显示创建人
+    formatter: (row) => row.created_by || '-'
   },
   {
-    field: 'user_id', // 使用 API 返回的 user_id
+    field: 'kind',
     label: '状态',
     width: '100px',
     formatter: (row) => {
-      const isBound = !!row.user_id && row.user_id > 0 // 使用 user_id 判断
+      // 根据 agent_id 判断是否绑定
+      const isBound = !!row.agent_id && row.agent_id > 0
       return isBound ? <ElTag type="success">已绑定</ElTag> : <ElTag type="info">未绑定</ElTag>
     }
   },
   {
-    field: 'create_time', // 使用 API 返回的 create_time
+    field: 'created_at',
     label: '创建时间',
     width: '180px',
-    formatter: (row) => formatToDateTime(row.create_time * 1000) // 假设是秒级时间戳
+    formatter: (row) => formatToDateTime(row.created_at * 1000) // Unix时间戳转换
   },
   {
-    field: 'update_time', // 使用 API 返回的 update_time
+    field: 'updated_at',
     label: '修改时间',
     width: '180px',
-    formatter: (row) => formatToDateTime(row.update_time * 1000) // 假设是秒级时间戳
+    formatter: (row) => formatToDateTime(row.updated_at * 1000) // Unix时间戳转换
   },
-  // 操作列 - 更新条件判断
+  // 操作列 - 暂时保留，但需要根据新接口调整逻辑
   {
     label: '操作',
     field: 'action',
     width: '200px',
     fixed: 'right',
     formatter: (row) => {
-      const isBound = !!row.user_id && row.user_id > 0 // 使用 user_id 判断
+      // 新接口中没有明确的绑定状态字段，暂时根据 agent_id 判断
+      const isBound = !!row.agent_id && row.agent_id > 0
       return (
         <>
           {isBound ? (
@@ -213,8 +204,6 @@ const columns = ref<TableColumn[]>([
               绑定
             </BaseButton>
           )}
-          {/* <BaseButton type="primary" onClick={() => handleEdit(row)}>修改</BaseButton> */}{' '}
-          {/* Commented out Edit button */}
           <BaseButton type="danger" onClick={() => handleDelete(row)}>
             删除
           </BaseButton>
@@ -231,7 +220,7 @@ const searchSchema = reactive<FormSchema[]>([
     component: 'Input',
     label: '关键字：',
     componentProps: {
-      placeholder: 'TRX地址/邮箱',
+      placeholder: 'TRX地址',
       clearable: true
     }
   }
@@ -241,10 +230,16 @@ const searchSchema = reactive<FormSchema[]>([
 // 数据获取函数，供 SearchTable 使用
 const fetchData = async (params) => {
   try {
-    // 直接将 useSearchTable 处理后的参数传递给 API
-    const res = await getTrxAddressListApi(params)
-    // 直接返回 API 的原始响应，useSearchTable 会处理 list 和 totalCount
-    return res.data
+    // 使用新接口 v2GetAddressList，指定 kind: 1
+    const res = await v2GetAddressList({ ...params, kind: 1 })
+    const data = res.data || {}
+
+    // 新接口返回的数据结构：{ list: [...], pager: { current_page, page_size, total } }
+    // SearchTable 需要的格式：{ list: [...], totalCount: number }
+    return {
+      list: data.list || [],
+      totalCount: data.pager?.total || 0
+    }
   } catch (error) {
     console.error('获取地址列表失败:', error)
     ElMessage.error('获取地址列表失败')
@@ -256,14 +251,12 @@ const fetchData = async (params) => {
 // --- Agent List Loading ---
 const getAgentList = async () => {
   try {
-    // Pass empty object {} as parameter, common for list APIs
-    const res = await getAgentListApi() // <--- Pass empty object
-    if (res && res.data) {
-      agentList.value = res.data.map((agent: any) => ({
+    const res = await v2GetUnboundAgents()
+    if (res && res.data && res.data.list) {
+      agentList.value = res.data.list.map((agent: any) => ({
         label: `${agent.username} ${agent.email ? `(${agent.email})` : ''}`,
-        value: agent.user_id
+        value: agent.id
       }))
-      console.log('Agent list loaded:', agentList.value)
     } else {
       console.error('Failed to parse agent list from API response:', res)
       agentList.value = []
@@ -279,7 +272,7 @@ const getAgentList = async () => {
 getAgentList()
 
 // 刷新表格方法
-const reloadTable = (resetPage = true) => {
+const reloadTable = () => {
   searchTableRef.value?.reload() // 调用 SearchTable 的 reload
 }
 
@@ -345,6 +338,7 @@ const importFormSchema = reactive<FormSchema[]>([
     }
   }
 ])
+// 提交批量导入
 const submitBatchImport = async () => {
   try {
     const formDataRaw = await importFormMethods.getFormData()
@@ -365,7 +359,7 @@ const submitBatchImport = async () => {
     formData.append('file', file) // 将文件添加到 FormData
 
     submitting.value = true
-    const res = await batchImportTrxAddressApi(formData) // 调用新的 API
+    await batchImportTrxAddressApi(formData) // 调用批量导入 API
     ElMessage.success('批量导入成功')
     batchImportVisible.value = false
     reloadTable() // 刷新
@@ -431,15 +425,25 @@ const submitBindAgent = async () => {
     }
 
     submitting.value = true
-    // 调用 update API 进行绑定 (Status: 1)
-    await updateTrxAddressApi({
+    // 使用新接口 v2UpdateAddress 进行绑定
+    const updateData = {
+      address: currentBindAddress.value.address,
+      agent_id: parseInt(userId, 10), // 绑定的代理ID
+      bot_id: currentBindAddress.value.bot_id,
+      created_at: currentBindAddress.value.created_at,
+      created_by: currentBindAddress.value.created_by,
       id: currentBindAddress.value.id,
-      status: 1,
-      user_id: parseInt(userId, 10) // Ensure it's a number if needed
-    })
+      kind: currentBindAddress.value.kind,
+      updated_at: currentBindAddress.value.updated_at
+    }
+
+    console.log('=== 收款配置 - 绑定代理 ===')
+    console.log('提交数据:', JSON.stringify(updateData, null, 2))
+
+    await v2UpdateAddress(updateData)
     ElMessage.success('绑定成功')
     bindDialogVisible.value = false
-    reloadTable(false)
+    reloadTable()
   } catch (error) {
     console.error('绑定失败:', error)
     ElMessage.error('绑定失败')
@@ -448,11 +452,10 @@ const submitBindAgent = async () => {
   }
 }
 
-// 解绑代理按钮点击 - 确保使用 row.user_id
+// 解绑代理按钮点击 - 使用新接口 v2UpdateAddress
 const handleUnbind = async (row: any) => {
-  // 确保行数据中有 user_id
-  if (!row.user_id) {
-    // 检查 user_id
+  // 新接口使用 agent_id 字段
+  if (!row.agent_id) {
     ElMessage.error('无法获取当前绑定代理的ID')
     return
   }
@@ -463,14 +466,24 @@ const handleUnbind = async (row: any) => {
       type: 'warning'
     })
     submitting.value = true
-    // Ensure payload matches API definition (lowercase snake_case)
-    await updateTrxAddressApi({
-      id: row.id, // Use lowercase 'id'
-      status: 2, // Use lowercase 'status'
-      user_id: row.user_id // Use lowercase 'user_id'
-    })
+    // 使用新接口 v2UpdateAddress，将 agent_id 设为 0 表示解绑
+    const updateData = {
+      address: row.address,
+      agent_id: 0, // 解绑时设为0
+      bot_id: row.bot_id,
+      created_at: row.created_at,
+      created_by: row.created_by,
+      id: row.id,
+      kind: row.kind,
+      updated_at: row.updated_at
+    }
+
+    console.log('=== 收款配置 - 解绑代理 ===')
+    console.log('提交数据:', JSON.stringify(updateData, null, 2))
+
+    await v2UpdateAddress(updateData)
     ElMessage.success('解绑成功')
-    reloadTable(false)
+    reloadTable()
   } catch (error) {
     if (error !== 'cancel') {
       console.error('解绑失败:', error)
@@ -483,13 +496,21 @@ const handleUnbind = async (row: any) => {
 
 // 删除地址
 const handleDelete = async (row) => {
+  // 判断是否已绑定代理
+  const isBound = !!row.agent_id && row.agent_id > 0
+  if (isBound) {
+    ElMessage.warning('该地址已绑定代理，无法删除。请先解绑后再删除。')
+    return
+  }
+
   try {
     await ElMessageBox.confirm(`确认要删除地址 ${row.address} 吗？`, '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await deleteTrxAddressApi(row.id)
+    // 使用新接口 v2DeleteAddress，传递地址数组
+    await v2DeleteAddress({ address_list: [row.address] })
     ElMessage.success('删除成功')
     reloadTable() // 刷新
   } catch (error) {
@@ -500,43 +521,8 @@ const handleDelete = async (row) => {
   }
 }
 
-// 处理批量删除 - 更新逻辑
-// const handleBatchDelete = async () => {
-//   const elTableRef = await searchTableRef.value?.getElTableExpose()
-//   if (!elTableRef) {
-//     console.error('无法获取 Table 实例')
-//     return
-//   }
-//   const selections = elTableRef.getSelectionRows() || []
-
-//   if (selections.length === 0) {
-//     ElMessage.warning('请至少选择一项进行删除')
-//     return
-//   }
-
-//   try {
-//     await ElMessageBox.confirm(`确认要批量删除选中的 ${selections.length} 个地址吗？`, '提示', {
-//       confirmButtonText: '确定',
-//       cancelButtonText: '取消',
-//       type: 'warning'
-//     })
-//     const ids = selections.map((item: any) => item.id)
-//     // Ensure payload matches API definition ({ id_list: [...] })
-//     await batchDeleteTrxAddressApi({ id_list: ids })
-//     ElMessage.success('批量删除成功')
-//     reloadTable() // 刷新
-//   } catch (error) {
-//     if (error !== 'cancel') {
-//       console.error('批量删除失败:', error)
-//       ElMessage.error('批量删除失败')
-//     }
-//   }
-// }
-
-// 表单操作成功回调
-const handleSuccess = () => {
-  reloadTable() // 刷新
-}
+// 批量删除功能已注释
+// const handleBatchDelete = async () => { ... }
 
 // --- 新增地址逻辑 ---
 const addFormSchema = reactive<FormSchema[]>([
@@ -575,9 +561,8 @@ const submitAddAddresses = async () => {
     }
 
     submitting.value = true
-    // Ensure payload matches API definition ({ address: "..." })
-    const addressString = addressList.join(',')
-    await createTrxAddressApi({ address: addressString })
+    // 使用新接口 v2CreateAddress，传递地址数组
+    await v2CreateAddress({ address_list: addressList })
     ElMessage.success('新增成功')
     addDialogVisible.value = false
     reloadTable()

@@ -62,14 +62,25 @@ const currentAccount = ref<AgentItem>()
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    // 处理时间范围
+
+    // 保存时间范围用于前端过滤
+    let dateRange = null
     const exportParams: any = { ...params }
+
     if (params.dateRange && params.dateRange.length === 2) {
-      exportParams.start_time = params.dateRange[0]
-      exportParams.end_time = params.dateRange[1]
+      dateRange = params.dateRange
+      // 不传递时间参数给后端
       delete exportParams.dateRange
     }
+
     const res = await exportAgentListApi(exportParams as AgentQueryParams)
+
+    // 注意：导出接口返回的是文件，无法在前端过滤
+    // 如果需要按时间范围导出，需要后端支持或者先获取数据再导出
+    if (dateRange) {
+      ElMessage.warning('导出功能暂不支持时间范围筛选，将导出全部数据')
+    }
+
     if (res.data instanceof Blob) {
       downloadByData(res.data, '代理列表.xlsx')
       ElMessage.success('导出成功')
@@ -98,18 +109,51 @@ const STATUS_CONFIG = {
 // API 调用
 const getAgentList = async (params?: any) => {
   try {
-    // 处理时间范围
+    // 保存时间范围用于前端过滤
+    let dateRange = null
     const apiParams = { ...params }
+
     if (params?.dateRange && params.dateRange.length === 2) {
-      apiParams.start_time = params.dateRange[0]
-      apiParams.end_time = params.dateRange[1]
+      dateRange = params.dateRange
+      // 不传递时间参数给后端，在前端过滤
       delete apiParams.dateRange
+
+      console.log('=== 代理列表 - 前端时间范围过滤 ===')
+      console.log('时间范围:', dateRange)
     }
+
+    // 如果有时间范围过滤，需要获取全部数据
+    if (dateRange) {
+      // 设置一个很大的 page_size 来获取所有数据
+      apiParams.page_size = 10000
+      apiParams.current_page = 1
+    }
+
+    console.log('请求参数:', apiParams)
     const res = await getAgentListApi(apiParams)
     const data = (res?.data as any) || {}
+    let list = data.list || data.items || []
+    const originalTotal = data.totalCount || data.total || 0
+
+    // 前端过滤：根据创建时间范围筛选
+    if (dateRange && dateRange.length === 2) {
+      const startMs = typeof dateRange[0] === 'string' ? parseInt(dateRange[0], 10) : dateRange[0]
+      const endMs = typeof dateRange[1] === 'string' ? parseInt(dateRange[1], 10) : dateRange[1]
+
+      list = list.filter((item: AgentItem) => {
+        if (!item.created_at) return false
+        // created_at 是秒级时间戳，转换为毫秒
+        const itemMs = item.created_at * 1000
+        return itemMs >= startMs && itemMs <= endMs
+      })
+
+      console.log('过滤前数量:', data.list?.length || 0)
+      console.log('过滤后数量:', list.length)
+    }
+
     return {
-      list: data.list || data.items || [],
-      total: data.totalCount || data.total || 0
+      list: list,
+      total: dateRange ? list.length : originalTotal // 有时间过滤时返回过滤后的总数，否则返回原始总数
     }
   } catch (error) {
     console.error('获取代理列表失败:', error)
@@ -178,8 +222,16 @@ const searchSchema = ref<FormSchema[]>([
 const columns = ref<TableColumn[]>([
   { field: 'email', label: '联系方式' },
   { field: 'username', label: '代理名称' },
-  { field: 'bot_num', label: '机器人数量' },
-  { field: 'tg_account_num', label: '总用户数' },
+  {
+    field: 'bot_num',
+    label: '机器人数量',
+    formatter: (row: AgentItem) => row.bot_num ?? 0
+  },
+  {
+    field: 'tg_account_num',
+    label: '总用户数',
+    formatter: (row: AgentItem) => row.tg_account_num ?? 0
+  },
   {
     field: 'trx_balance',
     label: 'TRX余额',
@@ -188,8 +240,16 @@ const columns = ref<TableColumn[]>([
       return parseFloat(a.trx_balance) - parseFloat(b.trx_balance)
     }
   },
-  { field: 'total_trx_amount', label: 'TRX收入' },
-  { field: 'total_usdt_amount', label: 'USDT收入' },
+  {
+    field: 'total_trx_amount',
+    label: 'TRX收入',
+    formatter: (row: AgentItem) => row.total_trx_amount ?? 0
+  },
+  {
+    field: 'total_usdt_amount',
+    label: 'USDT收入',
+    formatter: (row: AgentItem) => row.total_usdt_amount ?? 0
+  },
   {
     field: 'gift_bandwidth',
     label: '是否赠送带宽',
@@ -252,10 +312,6 @@ const handleAddAgent = () => {
 }
 
 const handleEditAgent = (row: AgentItem) => {
-  console.log('=== handleEditAgent 开始 ===')
-  console.log('1. 原始行数据:', row)
-  console.log('2. row.gift_bandwidth:', row.gift_bandwidth, '类型:', typeof row.gift_bandwidth)
-
   const editData = {
     id: row.id,
     username: row.username,
@@ -263,16 +319,6 @@ const handleEditAgent = (row: AgentItem) => {
     gift_bandwidth: row.gift_bandwidth ? 1 : 0,
     status: row.status
   }
-
-  console.log('3. 传递给表单的数据:', editData)
-  console.log(
-    '4. editData.gift_bandwidth:',
-    editData.gift_bandwidth,
-    '类型:',
-    typeof editData.gift_bandwidth
-  )
-  console.log('========================')
-
   agentFormRef.value?.openDialog('edit', editData)
 }
 
@@ -305,13 +351,7 @@ const handleRechargeSuccess = (amount: number) => {
 }
 
 const handleAgentSuccess = () => {
-  console.log('=== handleAgentSuccess: 编辑成功，准备刷新列表 ===')
   searchTableRef.value?.reload()
-
-  // 延迟后再次检查数据
-  setTimeout(() => {
-    console.log('=== 刷新后检查列表数据 ===')
-  }, 1000)
 }
 
 const handleAgentError = (error: { type: 'add' | 'edit'; error: any }) => {

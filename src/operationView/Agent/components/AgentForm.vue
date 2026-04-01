@@ -96,11 +96,6 @@ const dialogTitle = computed(() => (isEdit.value ? '编辑代理' : '新增代�
 
 // 打开对话框
 async function openDialog(mode: 'add' | 'edit' = 'add', data: Partial<AgentFormData> = {}) {
-  console.log('=== openDialog 开始 ===')
-  console.log('1. mode:', mode)
-  console.log('2. 接收到的 data:', data)
-  console.log('3. data.gift_bandwidth:', data.gift_bandwidth, '类型:', typeof data.gift_bandwidth)
-
   isEdit.value = mode === 'edit'
   dialogVisible.value = true
   originalData.value = data as AgentFormData
@@ -114,16 +109,6 @@ async function openDialog(mode: 'add' | 'edit' = 'add', data: Partial<AgentFormD
     gift_bandwidth: data.gift_bandwidth ?? 0
   }
 
-  console.log('4. 设置的表单值:', formValues)
-  console.log(
-    '5. formValues.gift_bandwidth:',
-    formValues.gift_bandwidth,
-    '类型:',
-    typeof formValues.gift_bandwidth
-  )
-  console.log('========================')
-
-  // 设置表单值 - 使用延迟确保表单完全渲染
   setTimeout(async () => {
     try {
       await formMethods.setValues(formValues)
@@ -179,23 +164,7 @@ async function handleAdd(formData: AgentFormData) {
 
 // 处理编辑
 async function handleEdit(formData: AgentFormData) {
-  console.log('=== handleEdit 开始 ===')
-  console.log('1. 表单提交的数据:', formData)
-  console.log(
-    '2. formData.gift_bandwidth:',
-    formData.gift_bandwidth,
-    '类型:',
-    typeof formData.gift_bandwidth
-  )
-  console.log(
-    '3. originalData.value.gift_bandwidth:',
-    originalData.value.gift_bandwidth,
-    '类型:',
-    typeof originalData.value.gift_bandwidth
-  )
-
   const giftBandwidthBoolean = formData.gift_bandwidth === 1
-  console.log('4. 转换判断: formData.gift_bandwidth === 1 ?', giftBandwidthBoolean)
 
   const payload: UpdateAgentPayload = {
     id: originalData.value.id!,
@@ -209,18 +178,8 @@ async function handleEdit(formData: AgentFormData) {
     payload.password = formData.password
   }
 
-  console.log('5. 最终 payload:', JSON.stringify(payload, null, 2))
-  console.log(
-    '6. payload.gift_bandwidth:',
-    payload.gift_bandwidth,
-    '类型:',
-    typeof payload.gift_bandwidth
-  )
-  console.log('7. 🔴 请在浏览器 Network 面板查看实际发送的请求数据')
-  console.log('========================')
-
-  const response = await updateAgentApi(payload)
-  console.log('8. 后端响应:', response)
+  console.log('提交更新代理，参数:', payload)
+  await updateAgentApi(payload)
   ElMessage.success('编辑代理成功')
 }
 
