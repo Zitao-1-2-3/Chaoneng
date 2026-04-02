@@ -54,10 +54,11 @@ import { BaseButton } from '@/components/Button'
 import {
   getTrustTransactionListApi, // 保留旧接口以便兼容，暂未使用
   exportTrustTransactionApi,
-  handRecycleTrustTransactionApi,
-  v2GetHostingList
+  handRecycleTrustTransactionApi
 } from '@/api/trust_transaction'
-import type { HostedOrder, V2HostingItem } from '@/api/trust_transaction/types'
+import type { HostedOrder } from '@/api/trust_transaction/types'
+import { v2GetEnergyList } from '@/api/energy_transaction'
+import type { V2EnergyItem } from '@/api/energy_transaction/types'
 import { ContentWrap } from '@/components/ContentWrap'
 import { RouterLink } from 'vue-router'
 import { downloadByData } from '@/utils/download'
@@ -339,7 +340,8 @@ const fetchHostedOrderList = async (params: any): Promise<{ list: any[]; total: 
     // 构建新接口参数
     const apiParams: any = {
       current_page: params.currentPage || params.current_page || 1,
-      page_size: params.pageSize || params.page_size || 10
+      page_size: params.pageSize || params.page_size || 10,
+      kind: 8 // 指定托管类型：8-自动托管
     }
 
     // 处理关键字查询
@@ -347,14 +349,25 @@ const fetchHostedOrderList = async (params: any): Promise<{ list: any[]; total: 
       apiParams.keyword = params.query
     }
 
-    // 处理托管状态
-    if (params.manage_status) {
-      apiParams.manage_status = params.manage_status
+    // 处理订单类型（resource_type映射到kind的资源类型，但这里已经固定kind=8）
+    // 注意：托管明细只显示kind=8的订单，resource_type用于其他筛选
+    if (params.resource_type) {
+      // 这里可能需要根据实际业务逻辑调整
+      // 暂时保留参数但不传递给API
     }
 
-    // 处理订单类型
-    if (params.resource_type) {
-      apiParams.resource_type = params.resource_type
+    // 处理托管状态（能量交易接口使用status字段）
+    if (params.manage_status) {
+      // 托管状态映射到订单状态
+      // 1-托管中 可能对应 2-已支付 或 3-已发送
+      // 2-已取消托管 可能对应 8-已取消
+      // 这里需要根据实际业务逻辑调整
+      if (params.manage_status === 1) {
+        // 托管中：可能是已支付、已发送等状态
+        // 暂不映射，显示所有状态
+      } else if (params.manage_status === 2) {
+        apiParams.status = 8 // 已取消
+      }
     }
 
     // 处理时间范围
@@ -363,8 +376,8 @@ const fetchHostedOrderList = async (params: any): Promise<{ list: any[]; total: 
       apiParams.end_time = String(params.dateRange[1])
     }
 
-    // 调用新接口
-    const response: any = await v2GetHostingList(apiParams)
+    // 调用能量交易订单接口
+    const response: any = await v2GetEnergyList(apiParams)
 
     if (response?.data) {
       const data = response.data
@@ -372,45 +385,96 @@ const fetchHostedOrderList = async (params: any): Promise<{ list: any[]; total: 
       const total = data.pager?.total || 0
 
       // 字段映射转换
-      const mappedList = list.map((item: V2HostingItem) => {
-        // 转换时间字段（ISO字符串转为Unix时间戳秒）
-        let createTime = 0
-        if (item.created_at) {
+      const mappedList = list.map((item: V2EnergyItem) => {
+        // 计算有效时长
+        let energyRentText = '-'
+        if (item.expirated_at) {
           try {
-            createTime = Math.floor(new Date(item.created_at).getTime() / 1000)
+            const expiredTime = new Date(item.expirated_at).getTime()
+            const now = Date.now()
+            const diffMs = expiredTime - now
+
+            if (diffMs > 0) {
+              const diffMinutes = Math.floor(diffMs / (1000 * 60))
+              const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+              const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+              if (diffDays > 0) {
+                energyRentText = `${diffDays}天`
+              } else if (diffHours > 0) {
+                energyRentText = `${diffHours}小时`
+              } else if (diffMinutes > 0) {
+                energyRentText = `${diffMinutes}分钟`
+              } else {
+                energyRentText = '即将过期'
+              }
+            } else {
+              energyRentText = '已过期'
+            }
           } catch (e) {
-            console.warn('转换创建时间失败:', e)
+            console.warn('计算有效时长失败:', e)
+          }
+        } else {
+          // kind=8（自动托管）显示"长期有效"
+          energyRentText = '长期有效'
+        }
+
+        // 判断托管状态
+        let manageStatus = 1 // 默认托管中
+        if (item.status === 8) {
+          manageStatus = 2 // 已取消托管
+        }
+
+        // 判断回收状态
+        let handleStatus = 2 // 默认未回收
+        if (item.recycled_at) {
+          handleStatus = 1 // 已回收
+        }
+
+        // 判断发放状态
+        let delegateStatus = 0 // 默认未发放
+        if (item.delegated_at) {
+          delegateStatus = 1 // 已发放
+        }
+
+        // 计算回收时间（ISO字符串转Unix时间戳秒）
+        let recycleTime = 0
+        if (item.recycled_at) {
+          try {
+            recycleTime = Math.floor(new Date(item.recycled_at).getTime() / 1000)
+          } catch (e) {
+            console.warn('转换回收时间失败:', e)
           }
         }
 
         return {
           id: item.id,
           manage_record_id: 0,
-          order_id: item.order_id,
+          order_id: item.id,
           tg_id: item.user_id,
-          tg_name: item.user_name,
+          tg_name: item.tg_user_name || item.tg_first_name || '-',
           tg_bot_id: item.bot_id,
           bot_name: item.bot_name,
-          address: item.address,
-          from_address: '',
+          address: item.receive_address,
+          from_address: item.energy_address,
           txid: '',
-          energy_num: 0,
+          energy_num: Number(item.energy_amount) || 0,
           energy_rent_time: 0,
-          energy_rent_text: '-',
-          order_amount: '0',
-          pay_amount: '0',
-          pay_unit: '',
-          status: 1,
-          manage_status: 1,
-          resource_type: 1,
-          create_time: createTime,
+          energy_rent_text: energyRentText,
+          order_amount: item.amount,
+          pay_amount: item.amount,
+          pay_unit: item.coin,
+          status: item.status,
+          manage_status: manageStatus,
+          resource_type: 1, // 默认能量
+          create_time: item.created_at,
           finish_time: 0,
-          describe: '',
+          describe: item.describe || '-',
           delegate_balance: 0,
-          recycle_time: 0,
+          recycle_time: recycleTime,
           recycle_txid: '',
-          handle_status: 2,
-          delegate_status: 0
+          handle_status: handleStatus,
+          delegate_status: delegateStatus
         }
       })
 
