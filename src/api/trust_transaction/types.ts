@@ -1,3 +1,70 @@
+// ========== 新接口 v2 类型定义 ==========
+
+/**
+ * 删除托管地址参数 - 新接口 v2
+ */
+export interface V2RemoveHostingParams {
+  address: string // 要删除的托管地址
+}
+
+/**
+ * 删除托管地址响应 - 新接口 v2
+ */
+export interface V2RemoveHostingResponse {
+  code: string // 响应码
+  data: string // 响应数据
+  msg: string // 响应消息
+}
+
+/**
+ * 托管列表查询参数 - 新接口 v2
+ */
+export interface V2HostingListParams {
+  address?: string // 地址
+  agent_id?: number // 代理ID
+  bot_id?: number // 机器人ID
+  current_page?: number // 当前页码
+  keyword?: string // 关键字
+  page_size?: number // 每页大小
+  user_id?: number // 用户ID
+}
+
+/**
+ * 托管列表项 - 新接口 v2
+ */
+export interface V2HostingItem {
+  id: number // ID
+  order_id: string // 订单ID
+  address: string // 地址
+  agent_id: number // 代理ID
+  agent_name: string // 代理名称
+  bot_id: number // 机器人ID
+  bot_name: string // 机器人名称
+  user_id: number // 用户ID
+  user_name: string // 用户名称
+  created_at: string // 创建时间（ISO时间格式字符串）
+  updated_at: string // 更新时间（ISO时间格式字符串）
+}
+
+/**
+ * 分页信息 - 新接口 v2
+ */
+export interface V2Pager {
+  current_page: number // 当前页码
+  page_size: number // 每页大小
+  total: number // 总数
+}
+
+/**
+ * 托管列表响应 - 新接口 v2
+ */
+export interface V2HostingListResponse {
+  list: V2HostingItem[] // 托管列表
+  pager: V2Pager // 分页信息
+}
+
+// ========== 旧接口类型定义 ==========
+
 export interface TrustTransactionItem {
   // 基本信息
   id: string

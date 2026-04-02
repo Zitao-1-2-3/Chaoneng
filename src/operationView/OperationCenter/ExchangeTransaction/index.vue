@@ -47,12 +47,8 @@ import { FormSchema } from '@/components/Form'
 import { formatToDateTime, formatToDate } from '@/utils/dateUtil'
 import OrderDetail from './components/OrderDetail.vue'
 import ResendTrx from './components/ResendTrx.vue'
-import { getExchangeOrderListApi, exportExchangeOrderApi } from '@/api/exchange_transaction' // 新增导入
-import type {
-  ExchangeOrderListItem,
-  ExchangeOrderListParams,
-  ExchangeOrderListResult
-} from '@/api/exchange_transaction/types'
+import { exportExchangeOrderApi, v2GetExchangeList } from '@/api/exchange_transaction' // 新增导入
+import type { ExchangeOrderListItem, V2ExchangeItem } from '@/api/exchange_transaction/types'
 import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
 import { downloadByData } from '@/utils/download'
@@ -73,7 +69,7 @@ const handleExport = async () => {
       exportParams.end_time = params.dateRange[1]
       delete exportParams.dateRange
     }
-    const res = await exportExchangeOrderApi(exportParams as ExchangeOrderListParams)
+    const res = await exportExchangeOrderApi(exportParams)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '闪兑订单列表.xlsx')
       ElMessage.success('导出成功')
@@ -279,24 +275,101 @@ const handleResendSuccess = () => {
 // 请求闪兑明细列表数据
 const fetchExchangeTransactionList = async (params: any) => {
   try {
-    // 处理时间范围
-    const queryParams: any = { ...params }
-    if (params.dateRange && params.dateRange.length === 2) {
-      queryParams.start_time = params.dateRange[0]
-      queryParams.end_time = params.dateRange[1]
-      delete queryParams.dateRange
+    console.log('[fetchExchangeTransactionList] 原始查询参数:', params)
+
+    // 构建新接口参数
+    const apiParams: any = {
+      current_page: params.currentPage || params.current_page || 1,
+      page_size: params.pageSize || params.page_size || 10
     }
 
-    const res = (await getExchangeOrderListApi(queryParams as ExchangeOrderListParams)) as any
+    // 处理时间范围
+    if (params.dateRange && params.dateRange.length === 2) {
+      apiParams.start_time = String(params.dateRange[0])
+      apiParams.end_time = String(params.dateRange[1])
+    }
+
+    // 处理关键字查询
+    if (params.query) {
+      apiParams.keyword = params.query
+    }
+
+    // 处理状态
+    if (params.status) {
+      apiParams.status = params.status
+    }
+
+    console.log('[fetchExchangeTransactionList] 调用新接口参数:', apiParams)
+
+    // 调用新接口
+    const res = await v2GetExchangeList(apiParams)
 
     if (res?.data) {
-      totalCount.value = res.data.total || 0
+      const data = res.data
+      const list = data.list || []
+      const total = data.pager?.total || 0
+
+      // 字段映射转换
+      const mappedList = list.map((item: V2ExchangeItem) => {
+        // 转换时间字段（ISO字符串转为Unix时间戳秒）
+        let createTime = 0
+        let finishTime = 0
+
+        if (item.created_at) {
+          try {
+            createTime = Math.floor(new Date(item.created_at).getTime() / 1000)
+          } catch (e) {
+            console.warn('转换创建时间失败:', e)
+          }
+        }
+
+        if (item.paid_at) {
+          try {
+            finishTime = Math.floor(new Date(item.paid_at).getTime() / 1000)
+          } catch (e) {
+            console.warn('转换完成时间失败:', e)
+          }
+        }
+
+        // 判断订单类型：kind=3 表示兑换
+        // 根据 coin 判断兑换方向：TRX → USDT(2) 或 USDT → TRX(1)
+        let orderType = 1 // 默认 USDT → TRX
+        if (item.coin === 'TRX') {
+          orderType = 2 // TRX → USDT
+        }
+
+        return {
+          id: Number(item.id) || 0, // 转换为数字类型
+          order_id: item.id, // 订单号
+          username: '', // 新接口没有返回，显示为空
+          user_id: item.user_id,
+          order_type: orderType, // 订单类型：1-USDT→TRX, 2-TRX→USDT
+          order_amount: String(item.amount), // 支付金额
+          pay_unit: item.coin, // 支付单位
+          exchange_amount: String(item.cost), // 兑换数量（使用cost字段）
+          agent_out_amount: '0', // 新接口没有返回，默认0
+          plate_profit: '0', // 新接口没有返回，默认0
+          exchange_unit: item.coin === 'TRX' ? 'USDT' : 'TRX', // 兑换单位（与支付单位相反）
+          trx_price: '0', // 新接口没有返回，默认0
+          real_price: '0', // 新接口没有返回，默认0
+          receive_address: item.receive_address, // 接收地址
+          status: item.status, // 状态
+          create_time: createTime, // 创建时间（时间戳秒）
+          finish_time: finishTime, // 完成时间（时间戳秒）
+          in_txid: '', // 新接口没有返回
+          out_txid: '' // 新接口没有返回
+        }
+      })
+
+      totalCount.value = total
+
+      console.log('[fetchExchangeTransactionList] 返回数据:', { total, count: mappedList.length })
+
       return {
-        list: res.data.list || [],
-        totalCount: res.data.totalCount || 0
+        list: mappedList,
+        totalCount: total
       }
     } else {
-      ElMessage.error(res?.message || '获取列表失败')
       totalCount.value = 0
       return { list: [], totalCount: 0 }
     }

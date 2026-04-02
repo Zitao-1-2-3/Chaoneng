@@ -31,21 +31,23 @@
 
 <script setup lang="tsx">
 import { ref, reactive } from 'vue'
-import { ElButton, ElMessageBox, ElMessage, ElTag, ElSelect, ElOption } from 'element-plus'
+import { ElButton, ElMessageBox, ElMessage, ElSelect, ElOption } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
 import { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
 import ResourcePoolAccountForm from './components/ResourcePoolAccountForm.vue'
-import { BaseButton } from '@/components/Button'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
 import {
-  getResourcePoolAccountListApi,
+  getResourcePoolAccountListApi, // 保留旧接口以便兼容，暂未使用
   deleteResourcePoolAccountApi,
   batchDeleteResourcePoolAccountApi,
-  updateResourcePoolAccountApi
+  updateResourcePoolAccountApi, // 保留旧接口以便兼容，暂未使用
+  v2GetPoolList,
+  v2UpdatePool
 } from '@/api/system/resource_pool_account'
+import type { V2PoolItem } from '@/api/system/resource_pool_account_types'
 import { isPermission } from '@/utils/is'
 const formRef = ref()
 const searchTableRef = ref()
@@ -202,8 +204,63 @@ const searchSchema = reactive<FormSchema[]>([
 
 const getResourcePoolData = async (params) => {
   try {
-    const res = await getResourcePoolAccountListApi(params)
-    return res.data
+    console.log('[getResourcePoolData] 查询参数:', params)
+
+    // 构建新接口参数
+    const apiParams: any = {
+      current_page: params.currentPage || params.current_page || 1,
+      page_size: params.pageSize || params.page_size || 10
+    }
+
+    // 处理关键字查询
+    if (params.keyword) {
+      apiParams.keyword = params.keyword
+    }
+
+    // 处理配置类型查询（resource_type 映射到 kind）
+    if (params.resource_type) {
+      apiParams.kind = params.resource_type
+    }
+
+    // 处理状态查询
+    if (params.status) {
+      apiParams.status = params.status
+    }
+
+    // 调用新接口
+    const response: any = await v2GetPoolList(apiParams)
+
+    if (response?.data) {
+      const data = response.data
+      const list = data.list || []
+      const total = data.pager?.total || 0
+
+      // 字段映射转换
+      const mappedList = list.map((item: V2PoolItem) => {
+        return {
+          id: item.id,
+          resource_type: item.kind, // 映射 kind 到 resource_type
+          public_key: item.address, // 映射 address 到 public_key
+          permission_name: item.permission_name,
+          amount: item.amount,
+          amount_limit: item.limit, // 映射 limit 到 amount_limit
+          create_by: item.created_by, // 映射 created_by 到 create_by
+          status: item.status,
+          create_time: item.created_at, // 映射 created_at 到 create_time
+          update_time: item.updated_at, // 映射 updated_at 到 update_time
+          permission_id: item.permission_id,
+          describe: item.describe
+        }
+      })
+
+      return {
+        list: mappedList,
+        totalCount: total
+      }
+    } else {
+      console.warn('API 返回格式异常', response)
+      return { list: [], totalCount: 0 }
+    }
   } catch (error) {
     console.error('获取数据失败 (catch):', error)
     const message = error instanceof Error ? error.message : '未知错误'
@@ -260,10 +317,11 @@ const handleStatusChangeAttempt = async (row, newValue) => {
       type: 'warning'
     })
 
-    await updateResourcePoolAccountApi({
+    // 使用新接口更新状态
+    await v2UpdatePool({
       id: row.id,
       status: intendedStatus,
-      amount_limit: parseFloat(row.amount_limit)
+      limit: parseFloat(row.amount_limit) || 0
     })
 
     ElMessage.success(`状态已更新为 "${actionText}"`)
@@ -370,9 +428,10 @@ const handleEditThreshold = async (row) => {
       return
     }
 
-    await updateResourcePoolAccountApi({
+    // 使用新接口更新阈值
+    await v2UpdatePool({
       id: row.id,
-      amount_limit: newThreshold,
+      limit: newThreshold,
       status: row.status
     })
 

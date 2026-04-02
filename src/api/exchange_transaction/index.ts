@@ -4,8 +4,28 @@ import type {
   ExchangeOrderListParams,
   ExchangeOrderListResult,
   ExchangeOrderDetailData,
-  ResendTrxParams
+  ResendTrxParams,
+  V2ExchangeListParams,
+  V2ExchangeListResponse
 } from './types'
+
+// ========== 新接口 v2 ==========
+
+const BASE_URL = '/v2/order/exchange/'
+
+/**
+ * 获取闪兑订单列表 - 新接口 v2
+ * GET /v2/order/exchange/list
+ */
+export const v2GetExchangeList = (params: V2ExchangeListParams) => {
+  console.log('[v2GetExchangeList] 调用参数:', params)
+  return request.get({
+    url: `${BASE_URL}list`,
+    params
+  })
+}
+
+// ========== 旧接口 ==========
 
 // Define IResponse if not globally available
 interface IResponse<T = any> {

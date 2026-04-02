@@ -7,8 +7,30 @@ import {
   PageParams,
   ListResult,
   EnergyCountListItem,
-  BatchActiveListItem
+  BatchActiveListItem,
+  V2EnergyListParams,
+  V2EnergyListResponse
 } from './types'
+
+// ========== 新接口 v2 ==========
+
+const BASE_URL = '/v2/order/energy/'
+
+/**
+ * 获取能量交易订单列表 - 新接口 v2
+ * GET /v2/order/energy/list
+ */
+export const v2GetEnergyList = (
+  params: V2EnergyListParams
+): Promise<IResponse<V2EnergyListResponse>> => {
+  console.log('[v2GetEnergyList] 调用参数:', params)
+  return request.get({
+    url: `${BASE_URL}list`,
+    params
+  })
+}
+
+// ========== 旧接口 ==========
 
 // --- 新增：精确匹配示例响应的 IResponse 接口 ---
 // !! 请确认所有 API 是否都遵循此结构 !!

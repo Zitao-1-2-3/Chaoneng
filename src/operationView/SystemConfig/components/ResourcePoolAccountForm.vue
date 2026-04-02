@@ -17,9 +17,15 @@ import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import {
-  createResourcePoolAccountApi,
-  updateResourcePoolAccountApi
+  createResourcePoolAccountApi, // 保留旧接口以便兼容，暂未使用
+  updateResourcePoolAccountApi, // 保留旧接口以便兼容，暂未使用
+  v2CreatePool,
+  v2UpdatePool
 } from '@/api/system/resource_pool_account'
+import type {
+  V2CreatePoolParams,
+  V2UpdatePoolParams
+} from '@/api/system/resource_pool_account_types'
 
 // 定义类型
 interface FormData {
@@ -231,41 +237,30 @@ const handleSubmit = async () => {
 
     submitting.value = true
 
-    // const statusValue = currentData.value?.status ?? 2
-
-    // 根据最终的 formData 构建提交数据
-    const dataToSubmit: any = {
-      resource_type: configTypeNum, // 使用数字类型
-      public_key: formData.publicKey
-    }
-
-    if (configTypeNum === 3 || configTypeNum === 4) {
-      // 能量池子 和 带宽池子
-      dataToSubmit.amount_limit = formData.amount_limit
-      dataToSubmit.permission_name = formData.permission_name
-    } else if (configTypeNum === 1 || configTypeNum === 2) {
-      // TRX 池子 和 USDT 池子 - 确保不提交能量池字段 (如果清理逻辑未生效)
-      delete dataToSubmit.amount_limit
-      delete dataToSubmit.permission_name
-    } else {
-      console.error('Unhandled configType in handleSubmit:', configTypeNum)
-      ElMessage.error('未知的配置类型，无法提交')
-      submitting.value = false
-      return
-    }
-
     try {
       if (formMode.value === 'add') {
-        const res = await createResourcePoolAccountApi(dataToSubmit)
+        // 使用新接口创建
+        const createParams: V2CreatePoolParams = {
+          address: formData.publicKey,
+          kind: configTypeNum,
+          limit: formData.amount_limit || 0,
+          permission_name: formData.permission_name || ''
+        }
+
+        const res = await v2CreatePool(createParams)
         if (res.code === '000000') {
           visible.value = false
           ElMessage.success('新增成功')
         }
       } else {
-        const res = await updateResourcePoolAccountApi({
-          id: currentData.value.id,
-          ...dataToSubmit
-        })
+        // 使用新接口更新
+        const updateParams: V2UpdatePoolParams = {
+          id: currentData.value.id!,
+          limit: formData.amount_limit,
+          status: currentData.value.status
+        }
+
+        const res = await v2UpdatePool(updateParams)
         if (res.code === '000000') {
           visible.value = false
           ElMessage.success('更新成功')

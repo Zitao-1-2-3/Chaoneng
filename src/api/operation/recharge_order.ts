@@ -1,37 +1,64 @@
 import request from '@/axios'
+import type {
+  RechargeOrderQueryParams,
+  RechargeOrderDetailResponse,
+  V2DepositListParams,
+  V2DepositListResponse,
+  V2DepositDetail
+} from './recharge_order_types'
 
-export interface RechargeOrderItem {
-  id: number
-  agentInfo: string // 代理信息
-  bot: string // 机器人
-  tgUsername: string // 用户的TG用户名
-  address: string // 地址
-  amount: number // 金额
-}
-export interface PageParam {
-  pageSize?: number
-  currentPage?: number
-}
-export interface RechargeOrderQueryParams extends PageParam {
-  query?: string // 关键字搜索 (代理信息/TG用户名等)
-  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
-  start_time?: number // API 使用的开始时间 (时间戳)
-  end_time?: number // API 使用的结束时间 (时间戳)
+// ========== 新接口 v2 ==========
+
+const BASE_URL = '/v2/order/'
+
+/**
+ * 获取充值订单列表 - 新接口 v2
+ * GET /v2/order/deposit/list
+ */
+export const v2GetDepositList = (
+  params: V2DepositListParams
+): Promise<IResponse<V2DepositListResponse>> => {
+  return request.get({
+    url: `${BASE_URL}deposit/list`,
+    params
+  })
 }
 
-export const getRechargeOrderListApi = (params: RechargeOrderQueryParams) => {
+/**
+ * 获取充值订单详情 - 新接口 v2
+ * GET /v2/order/{id}
+ */
+export const v2GetDepositDetail = (id: string): Promise<IResponse<V2DepositDetail>> => {
+  return request.get({
+    url: `${BASE_URL}${id}`
+  })
+}
+
+// ========== 旧接口 ==========
+
+/**
+ * 获取充值订单列表 - 旧接口
+ */
+export const getRechargeOrderListApi = (params: RechargeOrderQueryParams): Promise<any> => {
   return request.get({
     url: '/v2/manage/tg_user/inorder/list',
     params
   })
 }
 
-// 获取充值订单详情
-export const getRechargeOrderDetailApi = (id: number) => {
+/**
+ * 获取充值订单详情 - 旧接口
+ */
+export const getRechargeOrderDetailApi = (
+  id: number
+): Promise<IResponse<RechargeOrderDetailResponse>> => {
   return request.get({ url: `/v2/manage/tg_user/inorder/detail/${id}` })
 }
 
-export const exportRechargeOrderApi = (params: RechargeOrderQueryParams) => {
+/**
+ * 导出充值订单 - 旧接口
+ */
+export const exportRechargeOrderApi = (params: RechargeOrderQueryParams): Promise<any> => {
   return request.get({
     url: '/v2/manage/tg_user/inorder/export',
     params,

@@ -52,16 +52,15 @@ import ResendEnergy from './components/ResendEnergy.vue'
 import TrustTransactionDetail from './components/TrustTransactionDetail.vue'
 import { BaseButton } from '@/components/Button'
 import {
-  getTrustTransactionListApi,
+  getTrustTransactionListApi, // 保留旧接口以便兼容，暂未使用
   exportTrustTransactionApi,
-  handRecycleTrustTransactionApi
-} from '@/api/trust_transaction' // 新增导入
-import type { HostedOrder, TrustTransactionQueryParams } from '@/api/trust_transaction/types' // 新增导入
+  handRecycleTrustTransactionApi,
+  v2GetHostingList
+} from '@/api/trust_transaction'
+import type { HostedOrder, V2HostingItem } from '@/api/trust_transaction/types'
 import { ContentWrap } from '@/components/ContentWrap'
-import { useRouter, RouterLink } from 'vue-router'
+import { RouterLink } from 'vue-router'
 import { downloadByData } from '@/utils/download'
-
-const router = useRouter()
 
 // Refs
 const searchTableRef = ref<SearchTableExpose>()
@@ -80,7 +79,7 @@ const handleExport = async () => {
       exportParams.end_time = params.dateRange[1]
       delete exportParams.dateRange
     }
-    const res = await exportTrustTransactionApi(exportParams as TrustTransactionQueryParams)
+    const res = await exportTrustTransactionApi(exportParams as any)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '托管订单列表.xlsx')
 
@@ -130,13 +129,6 @@ const getHandleStatusText = (status: number) => {
     default:
       return '-'
   }
-}
-
-const getRecycleStatusText = (recycleTime: number) => {
-  if (recycleTime === 0) {
-    return '-'
-  }
-  return recycleTime > 0 ? '已回收' : '待回收'
 }
 
 // --- Table Columns Configuration ---
@@ -321,12 +313,12 @@ const actionColumn: TableColumn = {
 
       return (
         <>
-          {/* <BaseButton type="primary" onClick={() => handleRecycle(row)} disabled>
+          <BaseButton type="primary" onClick={() => handleRecycle(row)} disabled={!canRecycle}>
             回收能量
           </BaseButton>
-          <BaseButton type="primary" onClick={() => handleResend(row)} disabled>
+          <BaseButton type="primary" onClick={() => handleResend(row)} disabled={!canResend}>
             补发能量
-          </BaseButton> */}
+          </BaseButton>
           <BaseButton type="primary" onClick={() => handleRecycleTrust(row)}>
             回收与重置
           </BaseButton>
@@ -339,39 +331,92 @@ const actionColumn: TableColumn = {
   }
 }
 
-// --- Data Fetching (Simplified) ---
+// --- Data Fetching ---
 const fetchHostedOrderList = async (params: any): Promise<{ list: any[]; total: number }> => {
   try {
-    console.log('搜索参数:', params)
+    console.log('[fetchHostedOrderList] 查询参数:', params)
 
-    // 处理dateRange
-    const apiParams = { ...params }
-    if (params.dateRange && params.dateRange.length === 2) {
-      apiParams.start_time = params.dateRange[0]
-      apiParams.end_time = params.dateRange[1]
-      delete apiParams.dateRange
+    // 构建新接口参数
+    const apiParams: any = {
+      current_page: params.currentPage || params.current_page || 1,
+      page_size: params.pageSize || params.page_size || 10
     }
 
-    console.log('调用API参数:', apiParams)
+    // 处理关键字查询
+    if (params.query) {
+      apiParams.keyword = params.query
+    }
 
-    // 使用非类型化的方式调用 API
-    const response: any = await getTrustTransactionListApi(apiParams)
-    console.log('API返回数据:', response)
+    // 处理托管状态
+    if (params.manage_status) {
+      apiParams.manage_status = params.manage_status
+    }
 
-    // 后端返回的结构是
-    // {
-    //   "list": [...],
-    //   "pager": { "current_page": 1, "page_size": 10, "totalCount": 37 },
-    //   "totalCount": 37
-    // }
+    // 处理订单类型
+    if (params.resource_type) {
+      apiParams.resource_type = params.resource_type
+    }
+
+    // 处理时间范围
+    if (params.dateRange && params.dateRange.length === 2) {
+      apiParams.start_time = String(params.dateRange[0])
+      apiParams.end_time = String(params.dateRange[1])
+    }
+
+    // 调用新接口
+    const response: any = await v2GetHostingList(apiParams)
 
     if (response?.data) {
       const data = response.data
+      const list = data.list || []
+      const total = data.pager?.total || 0
+
+      // 字段映射转换
+      const mappedList = list.map((item: V2HostingItem) => {
+        // 转换时间字段（ISO字符串转为Unix时间戳秒）
+        let createTime = 0
+        if (item.created_at) {
+          try {
+            createTime = Math.floor(new Date(item.created_at).getTime() / 1000)
+          } catch (e) {
+            console.warn('转换创建时间失败:', e)
+          }
+        }
+
+        return {
+          id: item.id,
+          manage_record_id: 0,
+          order_id: item.order_id,
+          tg_id: item.user_id,
+          tg_name: item.user_name,
+          tg_bot_id: item.bot_id,
+          bot_name: item.bot_name,
+          address: item.address,
+          from_address: '',
+          txid: '',
+          energy_num: 0,
+          energy_rent_time: 0,
+          energy_rent_text: '-',
+          order_amount: '0',
+          pay_amount: '0',
+          pay_unit: '',
+          status: 1,
+          manage_status: 1,
+          resource_type: 1,
+          create_time: createTime,
+          finish_time: 0,
+          describe: '',
+          delegate_balance: 0,
+          recycle_time: 0,
+          recycle_txid: '',
+          handle_status: 2,
+          delegate_status: 0
+        }
+      })
+
       return {
-        // 数据列表在 data.list 中
-        list: data.list || [],
-        // 总数可能在 data.totalCount 或 data.pager.totalCount 中
-        total: data.totalCount || data.pager?.totalCount || 0
+        list: mappedList,
+        total: total
       }
     } else {
       console.warn('API 返回格式异常', response)

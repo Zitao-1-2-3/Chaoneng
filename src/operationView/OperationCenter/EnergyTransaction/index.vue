@@ -66,11 +66,12 @@ import { useValidator } from '@/hooks/web/useValidator'
 import { BaseButton } from '@/components/Button'
 import OrderDetail from './components/OrderDetail.vue'
 import {
-  getEnergyTransactionListApi,
   updateEnergyTransactionStatusApi,
   exportEnergyTransactionApi, // 新增导入
-  handleRecycleApi
+  handleRecycleApi,
+  v2GetEnergyList
 } from '@/api/energy_transaction'
+import type { V2EnergyItem } from '@/api/energy_transaction/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute } from 'vue-router'
 import { formatToWan } from '@/utils'
@@ -174,26 +175,30 @@ const columns = [
       default: ({ row }) => {
         const type = Number(row.order_type)
         const typeMap: Record<number, string> = {
-          1: '按笔数',
-          2: '按时间',
-          3: '批量下单',
-          4: '闪租',
-          5: '激活',
-          6: '福利',
-          7: '按笔数-带宽',
-          8: '接口调用-按笔数',
-          9: '接口调用-带宽'
+          1: '代理充值',
+          2: '用户充值',
+          3: '兑换',
+          4: '时间能量',
+          5: '笔数能量',
+          6: '福利能量',
+          7: '快速能量',
+          8: '自动托管',
+          9: '批量能量',
+          10: '批量激活',
+          11: '机器人付费'
         }
         const typeColorMap: Record<number, ElTagType> = {
           1: 'primary',
           2: 'success',
           3: 'warning',
-          4: 'danger',
-          5: 'info',
-          6: 'primary',
-          7: 'success',
+          4: 'info',
+          5: 'primary',
+          6: 'success',
+          7: 'danger',
           8: 'warning',
-          9: 'danger'
+          9: 'info',
+          10: 'primary',
+          11: 'success'
         }
         const text = typeMap[type] || '未知类型'
         const tagType = typeColorMap[type] || 'info'
@@ -343,15 +348,17 @@ const searchSchema = [
       placeholder: '请选择订单类型',
       options: [
         { label: '全部', value: '' },
-        { label: '按笔数', value: 1 },
-        { label: '按时间', value: 2 },
-        { label: '批量下单', value: 3 },
-        { label: '闪租', value: 4 },
-        { label: '激活', value: 5 },
-        { label: '福利', value: 6 },
-        { label: '按笔数-带宽', value: 7 },
-        { label: '接口调用-按笔数', value: 8 },
-        { label: '接口调用-带宽', value: 9 }
+        { label: '代理充值', value: 1 },
+        { label: '用户充值', value: 2 },
+        { label: '兑换', value: 3 },
+        { label: '时间能量', value: 4 },
+        { label: '笔数能量', value: 5 },
+        { label: '福利能量', value: 6 },
+        { label: '快速能量', value: 7 },
+        { label: '自动托管', value: 8 },
+        { label: '批量能量', value: 9 },
+        { label: '批量激活', value: 10 },
+        { label: '机器人付费', value: 11 }
       ]
     }
   },
@@ -531,32 +538,159 @@ const totalCount = ref(0)
 // 获取能量交易列表
 const fetchDataWrapper = async (params: any = {}) => {
   try {
-    // 处理时间范围
-    const apiParams = { ...params }
-    if (params.dateRange && params.dateRange.length === 2) {
-      apiParams.start_time = params.dateRange[0]
-      apiParams.end_time = params.dateRange[1]
-      delete apiParams.dateRange
+    console.log('[fetchDataWrapper] 原始查询参数:', params)
+
+    // 构建新接口参数
+    const apiParams: any = {
+      current_page: params.currentPage || params.current_page || 1,
+      page_size: params.pageSize || params.page_size || 10
     }
-    // 将处理后的 params 传递给 API
-    const response = await getEnergyTransactionListApi(apiParams)
+
+    // 处理时间范围
+    if (params.dateRange && params.dateRange.length === 2) {
+      apiParams.start_time = String(params.dateRange[0])
+      apiParams.end_time = String(params.dateRange[1])
+    }
+
+    // 处理关键字查询
+    if (params.query) {
+      apiParams.keyword = params.query
+    }
+
+    // 处理订单类型 (order_type → kind)
+    if (params.order_type) {
+      apiParams.kind = params.order_type
+    }
+
+    // 处理收款钱包地址 (bot_address → energy_address)
+    if (params.bot_address) {
+      apiParams.energy_address = params.bot_address
+    }
+
+    // 处理能量接收地址
+    if (params.receive_address) {
+      apiParams.receive_address = params.receive_address
+    }
+
+    // 处理发放状态 (delegate_status → status)
+    if (params.delegate_status) {
+      apiParams.status = params.delegate_status
+    }
+
+    console.log('[fetchDataWrapper] 调用新接口参数:', apiParams)
+
+    // 调用新接口
+    const response = await v2GetEnergyList(apiParams)
 
     if (response && response.data) {
-      // 根据API的返回结构，正确处理数据
-      const data = response.data as any
+      const data = response.data
+      const list = data.list || []
+      const total = data.pager?.total || 0
 
-      // 尝试获取列表和总数，提供默认值
-      const resultList = data.list || []
-      // 后端可能返回 total 或 totalCount
-      const resultTotal =
-        data.total !== undefined ? data.total : data.totalCount !== undefined ? data.totalCount : 0
+      // 字段映射转换
+      const mappedList = list.map((item: V2EnergyItem) => {
+        // 计算有效时长文本
+        let energyRentText = '-'
 
-      totalCount.value = resultTotal
+        // 笔数能量(5)和自动托管(8)显示为长期有效
+        if (item.kind === 5 || item.kind === 8) {
+          energyRentText = '长期有效'
+        } else if (item.expirated_at && item.delegated_at) {
+          // 其他类型根据过期时间和委托时间计算
+          try {
+            const expTime = new Date(item.expirated_at).getTime()
+            const delTime = new Date(item.delegated_at).getTime()
+            const diffMs = expTime - delTime
+            const diffMinutes = Math.floor(diffMs / (1000 * 60))
+            const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+            if (diffDays > 0) {
+              // 显示天数
+              energyRentText = `${diffDays}天`
+            } else if (diffHours > 0) {
+              // 显示小时数
+              energyRentText = `${diffHours}小时`
+            } else if (diffMinutes > 0) {
+              // 显示分钟数
+              energyRentText = `${diffMinutes}分钟`
+            } else {
+              energyRentText = '-'
+            }
+          } catch (e) {
+            console.warn('计算有效时长失败:', e)
+          }
+        }
+
+        // 计算回收时间（转换为时间戳秒）
+        let recycleTime = 0
+        if (item.recycled_at) {
+          try {
+            recycleTime = Math.floor(new Date(item.recycled_at).getTime() / 1000)
+          } catch (e) {
+            console.warn('转换回收时间失败:', e)
+          }
+        }
+
+        // 判断回收状态 (handle_status)
+        // 1-已回收, 2-未回收, 3-回收失败
+        let handleStatus = 2 // 默认未回收
+        if (item.status === 4 || item.status === 5) {
+          // StatusRecycled(4) 或 StatusCompleted(5) 表示已回收
+          handleStatus = 1
+        } else if (item.recycled_at) {
+          // 有回收时间也表示已回收
+          handleStatus = 1
+        }
+
+        // 判断发放状态 (delegate_status)
+        // 根据 status 映射:
+        // 1-新订单 → 待补发
+        // 2-已支付 → 待补发
+        // 3-已发送 → 已发放
+        // 4-已回收 → 已发放
+        // 5-已完成 → 已发放
+        // 6-失败订单 → 待补发
+        // 7-已退款 → 待补发
+        // 8-已取消 → 待补发
+        // 9-中止订单 → 待补发
+        let delegateStatus = 2 // 默认待补发
+        if (item.status === 3 || item.status === 4 || item.status === 5) {
+          // 已发送、已回收、已完成 → 已发放
+          delegateStatus = 1
+        } else if (item.status === 6) {
+          // 失败订单 → 待补发
+          delegateStatus = 2
+        }
+
+        return {
+          id: item.id,
+          order_num: item.id, // 订单ID
+          username: item.agent_name, // 代理名称
+          order_type: item.kind, // 订单类型
+          order_amount: item.amount, // 交易金额
+          pay_unit: item.coin, // 支付单位
+          energy_num: item.energy_amount, // 应发放能量
+          delegate_energy_num: item.energy_actual_amount, // 实际发放能量
+          bot_address: item.energy_address, // 收款钱包地址（能量地址）
+          receive_address: item.receive_address, // 能量接收地址
+          stroke_num: item.energy_count, // 笔数
+          energy_rent_text: energyRentText, // 有效时长
+          recycle_time: recycleTime, // 回收时间（时间戳秒）
+          delegate_status: delegateStatus, // 发放状态
+          handle_status: handleStatus, // 回收状态
+          create_time: item.created_at, // 创建时间（时间戳秒）
+          describe: item.describe // 描述
+        }
+      })
+
+      totalCount.value = total
+
+      console.log('[fetchDataWrapper] 返回数据:', { total, count: mappedList.length })
 
       return {
-        list: resultList,
-        // 将 total 或 totalCount 传递给 SearchTable, SearchTable 内部通常期望 total
-        total: resultTotal
+        list: mappedList,
+        total: total
       }
     } else {
       totalCount.value = 0
@@ -564,7 +698,7 @@ const fetchDataWrapper = async (params: any = {}) => {
     }
   } catch (error) {
     console.error('获取能量交易列表失败:', error)
-    totalCount.value = 0 // 发生错误时重置
+    totalCount.value = 0
     return { list: [], total: 0 }
   }
 }

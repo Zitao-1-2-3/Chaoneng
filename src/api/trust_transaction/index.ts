@@ -10,8 +10,42 @@ import type {
   ResendEnergyParams,
   ResendEnergyResponse,
   HostedOrderQueryParams, // Ensure this is imported
-  HostedOrderListResponse // Ensure this is imported
+  HostedOrderListResponse, // Ensure this is imported
+  V2HostingListParams,
+  V2HostingListResponse,
+  V2RemoveHostingParams,
+  V2RemoveHostingResponse
 } from './types'
+
+// ========== 新接口 v2 ==========
+
+const BASE_URL = '/v2/manage/hosting/'
+
+/**
+ * 获取托管列表 - 新接口 v2
+ * GET /v2/manage/hosting/list
+ */
+export const v2GetHostingList = (params: V2HostingListParams) => {
+  console.log('[v2GetHostingList] 调用参数:', params)
+  return request.get<V2HostingListResponse>({
+    url: `${BASE_URL}list`,
+    params
+  })
+}
+
+/**
+ * 删除托管地址 - 新接口 v2
+ * POST /v2/manage/hosting/remove
+ */
+export const v2RemoveHosting = (data: V2RemoveHostingParams) => {
+  console.log('[v2RemoveHosting] 调用参数:', data)
+  return request.post<V2RemoveHostingResponse>({
+    url: `${BASE_URL}remove`,
+    data
+  })
+}
+
+// ========== 旧接口 ==========
 
 // API URL前缀
 // 注意：这里使用 mock 前缀是为了对接 mock 数据，实际环境下需要修改为真实 API 地址
