@@ -1,8 +1,52 @@
 import request from '@/axios'
-import { MenuItem } from './types'
+import type {
+  MenuListParamsV1,
+  MenuListResponseV1,
+  AddMenuParamsV1,
+  UpdateMenuParamsV1
+} from './types'
 
 // 导出类型定义
 export * from './types'
+
+// ========== 新接口 v1 ==========
+
+const BASE_URL = '/v1/bot/menu/'
+
+/**
+ * 获取机器人菜单列表 - 新接口 v1
+ * GET /v1/bot/menu/list
+ */
+export const v1GetMenuList = (params: MenuListParamsV1): Promise<IResponse<MenuListResponseV1>> => {
+  return request.get({
+    url: `${BASE_URL}list`,
+    params
+  })
+}
+
+/**
+ * 添加机器人菜单 - 新接口 v1
+ * POST /v1/bot/menu/add
+ */
+export const v1AddMenu = (data: AddMenuParamsV1): Promise<IResponse> => {
+  return request.post({
+    url: `${BASE_URL}add`,
+    data
+  })
+}
+
+/**
+ * 更新机器人菜单 - 新接口 v1
+ * POST /v1/bot/menu/update
+ */
+export const v1UpdateMenu = (data: UpdateMenuParamsV1): Promise<IResponse> => {
+  return request.post({
+    url: `${BASE_URL}update`,
+    data
+  })
+}
+
+// ========== 旧接口 ==========
 
 // 新增的参数类型
 export interface AddBotMenuParam {

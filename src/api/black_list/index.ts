@@ -1,38 +1,82 @@
 import request from '@/axios'
+import type {
+  BlackListParamsV1,
+  BlackListResponseV1,
+  CreateBlackListParamsV1,
+  DeleteBlackListParamsV1,
+  BlackListParams,
+  BlackListItem
+} from './types'
 
-export interface BlackListParams {
-  current_page: number
-  page_size: number
-  address?: string // 添加 address 参数用于搜索
-}
+// ========== 新接口 v1 ==========
 
-export interface BlackListItem {
-  id: number
-  address: string
-  create_time: number | string // 与Vue文件中的类型保持一致
-}
+const BASE_URL = '/v1/blacklist/'
 
-// 获取黑名单列表
-export const getBlackListApi = (params: BlackListParams) => {
-  return request.get<{ list: BlackListItem[]; totalCount: number }>({
-    url: '/v1/order/count_black/list', // 更新URL
+/**
+ * 获取黑名单列表 - 新接口 v1
+ * GET /v1/blacklist/list
+ */
+export const v1GetBlackList = (
+  params: BlackListParamsV1
+): Promise<IResponse<BlackListResponseV1>> => {
+  return request.get({
+    url: `${BASE_URL}list`,
     params
   })
 }
 
-// 添加黑名单
+/**
+ * 创建黑名单 - 新接口 v1
+ * POST /v1/blacklist/add
+ */
+export const v1CreateBlackList = (data: CreateBlackListParamsV1): Promise<IResponse> => {
+  return request.post({
+    url: `${BASE_URL}add`,
+    data
+  })
+}
+
+/**
+ * 删除黑名单 - 新接口 v1
+ * POST /v1/blacklist/delete
+ */
+export const v1DeleteBlackList = (data: DeleteBlackListParamsV1): Promise<IResponse> => {
+  return request.post({
+    url: `${BASE_URL}delete`,
+    data
+  })
+}
+
+// ========== 旧接口 ==========
+
+/**
+ * 获取黑名单列表
+ * GET /v1/order/count_black/list
+ */
+export const getBlackListApi = (params: BlackListParams) => {
+  return request.get<{ list: BlackListItem[]; totalCount: number }>({
+    url: '/v1/order/count_black/list',
+    params
+  })
+}
+
+/**
+ * 添加黑名单
+ * POST /v1/order/count_black/add
+ */
 export const addBlackListApi = (data: { address: string }) => {
   return request.post<BlackListItem>({
-    // 假设成功后返回新的item
     url: '/v1/order/count_black/add',
     data
   })
 }
 
-// 删除黑名单
+/**
+ * 删除黑名单
+ * POST /v1/order/count_black/delete
+ */
 export const deleteBlackListApi = (data: { id: number | string }) => {
   return request.post({
-    // 后端接口是 POST
     url: '/v1/order/count_black/delete',
     data
   })

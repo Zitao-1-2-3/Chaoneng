@@ -23,6 +23,9 @@
         <ElFormItem label="地址" prop="address">
           <ElInput v-model="newAddressForm.address" placeholder="请输入地址" />
         </ElFormItem>
+        <ElFormItem label="描述" prop="describe">
+          <ElInput v-model="newAddressForm.describe" placeholder="请输入描述" />
+        </ElFormItem>
       </ElForm>
       <template #footer>
         <ElButton @click="dialogVisible = false">取消</ElButton>
@@ -44,8 +47,8 @@ import type { FormSchema } from '@/components/Form' // 只导入 FormSchema
 import type { FormRules as ElementPlusFormRules } from 'element-plus' // 从 element-plus 导入 FormRules
 import { formatToDateTime } from '@/utils/dateUtil' // 确保导入
 // 从API文件导入类型和函数
-import { getBlackListApi, addBlackListApi, deleteBlackListApi } from '@/api/black_list'
-import type { BlackListItem, BlackListParams } from '@/api/black_list' // 导入类型
+import { v1GetBlackList, v1CreateBlackList, v1DeleteBlackList } from '@/api/black_list'
+import type { BlackListItemV1, BlackListParamsV1 } from '@/api/black_list/types'
 
 // const { t } = useI18n() // 按需保留或移除
 
@@ -54,15 +57,17 @@ import type { BlackListItem, BlackListParams } from '@/api/black_list' // 导入
 // ----- API 和类型定义结束 -----
 
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
-const currentRowForDelete = ref<BlackListItem | null>(null)
+const currentRowForDelete = ref<BlackListItemV1 | null>(null)
 
 const dialogVisible = ref(false)
 const newAddressForm = reactive({
-  address: ''
+  address: '',
+  describe: ''
 })
 const newAddressFormRef = ref<InstanceType<typeof ElForm> | null>(null)
 const newAddressFormRules: ElementPlusFormRules = {
-  address: [{ required: true, message: '请输入地址', trigger: 'blur' }]
+  address: [{ required: true, message: '请输入地址', trigger: 'blur' }],
+  describe: [{ required: true, message: '请输入描述', trigger: 'blur' }]
 }
 
 const columns: TableColumn[] = [
@@ -76,10 +81,10 @@ const columns: TableColumn[] = [
     label: '描述'
   },
   {
-    field: 'create_time',
+    field: 'created_at',
     label: '创建时间',
     width: 180,
-    formatter: (row: BlackListItem) => formatToDateTime(row.create_time)
+    formatter: (row: BlackListItemV1) => formatToDateTime(row.created_at)
   }
 ]
 
@@ -89,7 +94,7 @@ const actionColumn: TableColumn = {
   width: 100,
   fixed: 'right',
   slots: {
-    default: (data: { row: BlackListItem }) => {
+    default: (data: { row: BlackListItemV1 }) => {
       return (
         <BaseButton type="danger" onClick={() => handleDeleteConfirmation(data.row)}>
           删除
@@ -116,19 +121,25 @@ const fetchBlackListData = async (params: {
   address?: string
 }) => {
   try {
-    const queryParams: BlackListParams = {
+    const queryParams: BlackListParamsV1 = {
       current_page: Number(params.current_page) || 1,
       page_size: Number(params.page_size) || 10,
       address: params.address || undefined
     }
-    const res = await getBlackListApi(queryParams)
-    return {
-      list: res.data.list || [],
-      total: res.data.totalCount || 0
+
+    // 使用新接口 v1GetBlackList
+    const res = await v1GetBlackList(queryParams)
+
+    if (res.code === '000000' && res.data) {
+      return {
+        list: res.data.list || [],
+        total: res.data.pager?.total || 0
+      }
     }
+
+    return { list: [], total: 0 }
   } catch (error) {
     console.error('获取黑名单列表失败:', error)
-    ElMessage.error('获取黑名单列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -136,7 +147,11 @@ const fetchBlackListData = async (params: {
 const deleteBlackListItemAction = async () => {
   if (currentRowForDelete.value && currentRowForDelete.value.id) {
     try {
-      await deleteBlackListApi({ id: currentRowForDelete.value.id })
+      // 使用新接口 v1DeleteBlackList，传递 id 和 address
+      await v1DeleteBlackList({
+        id: currentRowForDelete.value.id,
+        address: currentRowForDelete.value.address
+      })
       ElMessage.success('删除成功')
       return true
     } catch (error) {
@@ -148,7 +163,7 @@ const deleteBlackListItemAction = async () => {
   return false
 }
 
-const handleDeleteConfirmation = (row: BlackListItem) => {
+const handleDeleteConfirmation = (row: BlackListItemV1) => {
   currentRowForDelete.value = row
   if (searchTableRef.value) {
     searchTableRef.value.delete(row)
@@ -157,6 +172,7 @@ const handleDeleteConfirmation = (row: BlackListItem) => {
 
 const handleAdd = () => {
   newAddressForm.address = ''
+  newAddressForm.describe = ''
   if (newAddressFormRef.value) {
     newAddressFormRef.value.resetFields()
   }
@@ -167,14 +183,17 @@ const submitAdd = async () => {
   if (!newAddressFormRef.value) return
   try {
     await newAddressFormRef.value.validate()
-    await addBlackListApi({ address: newAddressForm.address })
+    // 使用新接口 v1CreateBlackList
+    await v1CreateBlackList({
+      address: newAddressForm.address,
+      describe: newAddressForm.describe
+    })
     ElMessage.success('新增成功')
     dialogVisible.value = false
     searchTableRef.value?.reload()
   } catch (error) {
     if (error !== false) {
       console.error('新增失败:', error)
-      ElMessage.error('新增失败，请检查地址是否有效或联系管理员')
     }
   }
 }

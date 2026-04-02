@@ -1,3 +1,79 @@
+// ========== 关键词回复类型定义 ==========
+
+// ========== 新类型定义 ==========
+
+/**
+ * 分页信息
+ */
+export interface Pager {
+  current_page: number // 当前页码
+  page_size: number // 每页数量
+  total: number // 总数量
+}
+
+/**
+ * 关键词回复列表查询参数 - 新接口 v1
+ */
+export interface ReplyListParamsV1 {
+  bot_id?: number // 机器人ID
+  current_page?: number // 当前页码
+  key_name?: string // 关键词名称
+  keyword?: string // 关键字
+  page_size?: number // 每页大小
+  status?: number // 状态
+}
+
+/**
+ * 关键词回复列表项 - 新接口 v1
+ */
+export interface ReplyItemV1 {
+  agent_id: number // 代理ID
+  bot_id: number // 机器人ID
+  content: string // 回复内容
+  created_at: string // 创建时间
+  id: number // 回复ID
+  key_name: string // 关键词名称
+  show_command: number // 显示命令
+  status: number // 状态
+  updated_at: string // 更新时间
+}
+
+/**
+ * 关键词回复列表响应 - 新接口 v1
+ */
+export interface ReplyListResponseV1 {
+  list: ReplyItemV1[] // 关键词回复列表
+  pager: Pager // 分页信息
+}
+
+/**
+ * 创建关键词回复请求参数 - 新接口 v1
+ */
+export interface CreateReplyParamsV1 {
+  bot_id: number // 机器人ID（必填）
+  content: string // 回复内容
+  key_name: string[] // 关键词名称数组（必填）
+  status: number // 状态（必填）
+}
+
+/**
+ * 更新关键词回复请求参数 - 新接口 v1
+ */
+export interface UpdateReplyParamsV1 {
+  content: string // 回复内容
+  id: number // 回复ID（必填）
+  status: number // 状态（必填）
+}
+
+/**
+ * 删除关键词回复请求参数 - 新接口 v1
+ */
+export interface DeleteReplyParamsV1 {
+  id: number // 回复ID（必填）
+}
+
+// ========== 旧类型定义 ==========
+
 // 关键词回复项类型
 export interface ReplyItem {
   id: number // from backend: id

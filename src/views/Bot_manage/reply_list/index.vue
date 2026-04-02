@@ -40,46 +40,60 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, onMounted, h, computed, nextTick } from 'vue'
-import { ElButton, ElLink, ElTag, ElMessage, ElMessageBox, ElSwitch } from 'element-plus'
+import { ref, onMounted, computed, nextTick } from 'vue'
+import { ElButton, ElLink, ElSwitch, ElMessage } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
-import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import {
-  getReplyListApi,
-  deleteReplyApi,
-  saveReplyApi,
+  v1GetReplyList,
+  v1CreateReply,
+  v1UpdateReply,
+  v1DeleteReply,
   updateReplyStatusApi
 } from '@/api/reply_list'
-import { getBotListApi } from '@/api/botlist'
-import type { ReplyItem, ReplySaveParams, BotOption } from '@/api/reply_list/types'
+import { v1GetBotList } from '@/api/botlist'
+import type {
+  ReplyItem,
+  ReplySaveParams,
+  BotOption,
+  ReplyListParamsV1,
+  CreateReplyParamsV1,
+  UpdateReplyParamsV1
+} from '@/api/reply_list/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import ReplyFormDialog from './components/ReplyFormDialog.vue'
 import { Dialog } from '@/components/Dialog'
-
-const { t } = useI18n()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const replyFormDialogRef = ref<InstanceType<typeof ReplyFormDialog> | null>(null)
 
 const dialogVisible = ref(false)
 const isEditMode = ref(false)
-const submitLoading = ref(false)
 const isLoaded = ref(false)
 const isBotlistLoaded = ref(false)
 const currentRowData = ref<ReplyItem | null>(null)
 
 const botOptionsForDialog = ref<BotOption[]>([])
+const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(new Map())
 
 const fetchBotOptionsForPage = async () => {
   try {
-    const res = await getBotListApi({ page_size: 1000, current_page: 1 })
-    botOptionsForDialog.value = (res.data.list || []).map((bot: any) => ({
-      label: `${bot.name} (${bot.firstname})`,
-      value: bot.tg_bot_id
-    }))
+    const res = await v1GetBotList({ page_size: 1000, current_page: 1 })
+    if (res.code === '000000' && res.data) {
+      botOptionsForDialog.value = (res.data.list || []).map((bot: any) => {
+        // 保存机器人信息到 Map 中
+        botInfoMap.value.set(bot.id, {
+          user_name: bot.user_name,
+          first_name: bot.first_name
+        })
+        return {
+          label: `${bot.user_name} (${bot.first_name})`,
+          value: bot.id // 使用 id 字段，不是 tg_bot_id
+        }
+      })
+    }
     isBotlistLoaded.value = true
   } catch (error) {
     console.error('获取机器人选项失败: ', error)
@@ -211,32 +225,60 @@ const searchSchema = computed<FormSchema[]>(() => [
 
 const fetchReplyList = async (params: any) => {
   try {
-    const res = await getReplyListApi(params)
-    const mappedList = (res.data.list || []).map((item: any): ReplyItem => {
-      // Assuming backend time is in seconds, convert to milliseconds for JavaScript Date
-      const createTimeMs = item.create_time * 1000
-      const updateTimeMs = item.update_time * 1000
+    const queryParams: ReplyListParamsV1 = {
+      current_page: Number(params.current_page) || 1,
+      page_size: Number(params.page_size) || 10
+    }
+
+    // 只有当 tg_bot_id 有值时才添加 bot_id 参数
+    if (params.tg_bot_id !== undefined && params.tg_bot_id !== '') {
+      queryParams.bot_id = Number(params.tg_bot_id)
+    }
+
+    // 只有当 query 有值时才添加 key_name 参数（用于搜索关键词）
+    if (params.query && params.query.trim()) {
+      queryParams.key_name = params.query.trim()
+    }
+
+    // 只有当 status 有值时才添加参数
+    if (params.status !== undefined && params.status !== '') {
+      queryParams.status = params.status
+    }
+
+    // 使用新接口 v1GetReplyList
+    const res = await v1GetReplyList(queryParams)
+
+    if (res.code === '000000' && res.data) {
+      const mappedList = (res.data.list || []).map((item: any): ReplyItem => {
+        // 从 botInfoMap 中查找对应的机器人信息
+        const botInfo = botInfoMap.value.get(item.bot_id)
+        const userName = botInfo ? botInfo.user_name : ''
+        const fullName = botInfo ? `${botInfo.user_name} (${botInfo.first_name})` : ''
+
+        return {
+          id: item.id,
+          tg_bot_id: item.bot_id,
+          bot_name: fullName, // 完整名称（用户名 + 昵称）
+          key_name: item.key_name,
+          content: item.content,
+          status: item.status,
+          create_time: item.created_at, // 使用新字段
+          update_time: item.updated_at, // 使用新字段
+
+          // Populate compatible fields for existing form/table logic
+          bot_id: String(item.bot_id),
+          keyword: item.key_name,
+          bot_username: userName // 只显示用户名
+        }
+      })
 
       return {
-        id: item.id,
-        tg_bot_id: item.tg_bot_id,
-        bot_name: item.name, // map name to bot_name
-        key_name: item.key_name,
-        content: item.content,
-        status: item.status,
-        create_time: createTimeMs, // use milliseconds timestamp
-        update_time: updateTimeMs, // use milliseconds timestamp
-
-        // Populate compatible fields for existing form/table logic
-        bot_id: String(item.tg_bot_id), // Form expects string for bot_id selection, table display also uses bot_id
-        keyword: item.key_name, // Form expects keyword, table display also uses keyword
-        bot_username: item.name // Table display uses bot_username
+        list: mappedList,
+        total: res.data.pager?.total || 0
       }
-    })
-    return {
-      list: mappedList,
-      total: res.data.totalCount || 0
     }
+
+    return { list: [], total: 0 }
   } catch (error) {
     console.error('获取关键词回复列表失败:', error)
     return { list: [], total: 0 }
@@ -246,16 +288,15 @@ const fetchReplyList = async (params: any) => {
 const deleteReplyAction = async () => {
   if (currentRowData.value && currentRowData.value.id) {
     try {
-      await deleteReplyApi(currentRowData.value.id)
+      // 使用新接口 v1DeleteReply
+      await v1DeleteReply(currentRowData.value.id)
       ElMessage.success('删除成功')
       return true
     } catch (error) {
       console.error('删除关键词回复失败:', error)
-      ElMessage.error('删除失败')
       return false
     }
   }
-  // ElMessage.warning('未选择任何数据行进行删除')
   return false
 }
 
@@ -287,13 +328,32 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
   }
 
   try {
-    await saveReplyApi(data)
-    ElMessage.success(data.id ? '更新成功' : '添加成功')
+    // 判断是添加还是更新
+    if (data.id) {
+      // 更新操作 - 使用新接口 v1UpdateReply
+      const updateParams: UpdateReplyParamsV1 = {
+        id: data.id,
+        content: data.content || '',
+        status: data.status
+      }
+      await v1UpdateReply(updateParams)
+      ElMessage.success('更新成功')
+    } else {
+      // 添加操作 - 使用新接口 v1CreateReply
+      const createParams: CreateReplyParamsV1 = {
+        bot_id: data.tg_bot_id,
+        content: data.content || '',
+        key_name: data.key_name,
+        status: data.status
+      }
+      await v1CreateReply(createParams)
+      ElMessage.success('添加成功')
+    }
+
     dialogVisible.value = false
     searchTableRef.value?.reload()
   } catch (error) {
     console.error('保存失败:', error)
-    ElMessage.error('保存失败')
   } finally {
     if (replyFormDialogRef.value && replyFormDialogRef.value.submitLoading !== undefined) {
       replyFormDialogRef.value.submitLoading = false
@@ -311,10 +371,6 @@ const handleStatusChange = async (row: ReplyItem, newStatus: number) => {
     ElMessage.error('状态更新失败，请重试')
     row.status = newStatus === 1 ? 2 : 1
   }
-}
-
-const handleBotIdClick = (botId: string) => {
-  ElMessage.info(`点击了机器人ID: ${botId}`)
 }
 
 const onSearch = (params: any) => {

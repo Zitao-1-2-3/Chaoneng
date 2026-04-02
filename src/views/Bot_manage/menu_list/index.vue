@@ -64,8 +64,21 @@ import { useForm } from '@/hooks/web/useForm'
 import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import { getMenuListApi, deleteMenuApi, saveMenuApi, getCallBackListApi } from '@/api/menu_list'
-import { MenuItem } from '@/api/menu_list/types'
+import {
+  getMenuListApi,
+  v1GetMenuList,
+  v1AddMenu,
+  v1UpdateMenu,
+  deleteMenuApi,
+  saveMenuApi,
+  getCallBackListApi
+} from '@/api/menu_list'
+import type {
+  MenuItem,
+  MenuListParamsV1,
+  AddMenuParamsV1,
+  UpdateMenuParamsV1
+} from '@/api/menu_list/types'
 import { useValidator } from '@/hooks/web/useValidator'
 import MenuPreview from './components/MenuPreview.vue'
 import { formatToDateTime } from '@/utils/dateUtil'
@@ -326,17 +339,17 @@ const columns: TableColumn[] = [
     }
   },
   {
-    field: 'create_time',
+    field: 'created_at',
     label: '创建时间',
     formatter: (row: any) => {
-      return formatToDateTime(row.create_time)
+      return formatToDateTime(row.created_at)
     }
   },
   {
-    field: 'update_time',
+    field: 'updated_at',
     label: '更新时间',
     formatter: (row: any) => {
-      return formatToDateTime(row.update_time)
+      return formatToDateTime(row.updated_at)
     }
   }
 ]
@@ -391,8 +404,25 @@ const searchSchema = [
 // API 封装
 const fetchMenuList = async (params: any) => {
   try {
-    const response = await getMenuListApi(params)
-    return response.data
+    const queryParams: MenuListParamsV1 = {
+      current_page: Number(params.current_page) || 1,
+      page_size: Number(params.page_size) || 10,
+      keyword: params.menu_name || undefined,
+      menu_type: params.menu_type || undefined,
+      status: params.status || undefined
+    }
+
+    // 使用新接口 v1GetMenuList
+    const response = await v1GetMenuList(queryParams)
+
+    if (response.code === '000000' && response.data) {
+      return {
+        list: response.data.list || [],
+        totalCount: response.data.pager?.total || 0
+      }
+    }
+
+    return { list: [], totalCount: 0 }
   } catch (error) {
     console.error('获取菜单列表失败:', error)
     return { list: [], totalCount: 0 }
@@ -512,17 +542,46 @@ const handleSubmit = async () => {
       // 校验通过后获取表单数据
       const values = await formMethods.getFormData()
 
-      // 根据inner_type决定传递的字段
-      if (values.inner_type === 'call') {
-        // 如果是回调函数，将inner_value作为callback_type传递
-        values.callback_type = values.inner_value
-        delete values.inner_value // 删除inner_value字段
+      // 判断是添加还是更新
+      if (values.id) {
+        // 更新操作 - 使用新接口 v1UpdateMenu
+        const updateParams: UpdateMenuParamsV1 = {
+          id: values.id,
+          menu_name: values.menu_name,
+          menu_type: values.menu_type,
+          order_num: values.order_num,
+          status: values.status,
+          inner_type: values.inner_type,
+          inner_value: values.inner_value
+        }
+
+        // 如果是回调函数类型，添加callback_type字段
+        if (values.inner_type === 'call') {
+          updateParams.callback_type = values.inner_value
+        }
+
+        await v1UpdateMenu(updateParams)
+        ElMessage.success('更新成功')
+      } else {
+        // 添加操作 - 使用新接口 v1AddMenu
+        const addParams: AddMenuParamsV1 = {
+          menu_name: values.menu_name,
+          menu_type: values.menu_type,
+          order_num: values.order_num,
+          status: values.status,
+          inner_type: values.inner_type,
+          inner_value: values.inner_value
+        }
+
+        // 如果是回调函数类型，添加callback_type字段
+        if (values.inner_type === 'call') {
+          addParams.callback_type = values.inner_value
+        }
+
+        await v1AddMenu(addParams)
+        ElMessage.success('添加成功')
       }
 
-      // 调用保存API
-      await saveMenuApi(values)
-
-      ElMessage.success(values.id ? '更新成功' : '添加成功')
       dialogVisible.value = false
 
       // 刷新列表

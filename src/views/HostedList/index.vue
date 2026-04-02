@@ -18,24 +18,17 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, onMounted, h } from 'vue'
-import { ElButton, ElTag, ElMessage, ElMessageBox } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
-import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import { getAutoManageAddressListApi, deleteAutoManageAddressApi } from '@/api/hosted_list'
-import { getBotListApi } from '@/api/botlist'
-import type {
-  AutoManageAddressItem,
-  AutoManageAddressListParams,
-  BotOption
-} from '@/api/hosted_list/types'
+import { v1GetHostingList, v1RemoveHosting } from '@/api/hosted_list'
+import { v1GetBotList } from '@/api/botlist'
+import type { AutoManageAddressItem, BotOption, HostingListParamsV1 } from '@/api/hosted_list/types'
 import { formatToDateTime } from '@/utils/dateUtil'
-
-const { t } = useI18n()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const currentRowForDelete = ref<AutoManageAddressItem | null>(null)
 
@@ -44,23 +37,17 @@ const isBotOptionsLoaded = ref(false)
 
 const fetchBotOptions = async () => {
   try {
-    const res = await getBotListApi({})
-    if (!res || !res.data || !Array.isArray(res.data.list)) {
-      console.error('Invalid bot list data structure:', res)
-      botOptions.value = [{ label: '全部', value: '' }]
+    const res = await v1GetBotList({ page_size: 1000, current_page: 1 })
+    if (res.code === '000000' && res.data) {
+      const bots = (res.data.list || []).map((bot: any) => {
+        return {
+          label: `${bot.user_name} (${bot.first_name})`,
+          value: bot.id
+        }
+      })
+      botOptions.value = [{ label: '全部', value: '' }, ...bots]
       isBotOptionsLoaded.value = true
-      return
     }
-    const bots = (res.data.list || []).map((bot: any) => {
-      const botId = bot.id || bot.tg_bot_id
-      const botLabel = `${bot.name || '未知名称'} (${bot.firstname || botId})`
-      return {
-        label: botLabel,
-        value: botId
-      }
-    })
-    botOptions.value = [{ label: '全部', value: '' }, ...bots.filter((b) => b.value !== undefined)]
-    isBotOptionsLoaded.value = true
   } catch (error) {
     console.error('获取机器人选项失败:', error)
     botOptions.value = [{ label: '全部', value: '' }]
@@ -74,7 +61,7 @@ onMounted(() => {
 
 const columns: TableColumn[] = [
   {
-    field: 'tg_bot_id',
+    field: 'bot_id',
     label: '机器人ID',
     width: 120
   },
@@ -85,10 +72,10 @@ const columns: TableColumn[] = [
     formatter: (row: AutoManageAddressItem) => row.bot_name || '-'
   },
   {
-    field: 'tg_name',
+    field: 'user_name',
     label: '用户名',
     width: 150,
-    formatter: (row: AutoManageAddressItem) => row.tg_name || '-'
+    formatter: (row: AutoManageAddressItem) => row.user_name || '-'
   },
   {
     field: 'address',
@@ -128,7 +115,7 @@ const actionColumn: TableColumn = {
 
 const searchSchema = computed<FormSchema[]>(() => [
   {
-    field: 'tg_bot_id',
+    field: 'bot_id',
     label: '机器人',
     component: 'Select',
     componentProps: {
@@ -139,7 +126,7 @@ const searchSchema = computed<FormSchema[]>(() => [
     }
   },
   {
-    field: 'query',
+    field: 'keyword',
     label: '关键字',
     component: 'Input',
     componentProps: {
@@ -148,45 +135,60 @@ const searchSchema = computed<FormSchema[]>(() => [
   }
 ])
 
-const fetchAutoManageList = async (params: AutoManageAddressListParams) => {
+const fetchAutoManageList = async (params: any) => {
   try {
-    const queryParams: AutoManageAddressListParams = {
-      ...params,
+    const queryParams: HostingListParamsV1 = {
       current_page: Number(params.current_page) || 1,
-      page_size: Number(params.page_size) || 10,
-      tg_bot_id: params.tg_bot_id === '' ? undefined : params.tg_bot_id,
-      address: params.address || undefined
+      page_size: Number(params.page_size) || 10
     }
-    const res = await getAutoManageAddressListApi(queryParams)
-    const mappedList = (res.data.list || []).map((item: any): AutoManageAddressItem => {
-      const createTimeMs =
-        typeof item.create_time === 'number' ? item.create_time * 1000 : item.create_time
-      const finishTimeMs =
-        typeof item.finish_time === 'number' && item.finish_time > 0
-          ? item.finish_time * 1000
-          : undefined
+
+    // 只有当 bot_id 有值时才添加参数
+    if (params.bot_id !== undefined && params.bot_id !== '') {
+      queryParams.bot_id = Number(params.bot_id)
+    }
+
+    // 只有当 keyword 有值时才添加参数
+    if (params.keyword && params.keyword.trim()) {
+      queryParams.keyword = params.keyword.trim()
+    }
+
+    // 使用新接口 v1GetHostingList
+    const res = await v1GetHostingList(queryParams)
+
+    if (res.code === '000000' && res.data) {
+      const mappedList = (res.data.list || []).map((item: any): AutoManageAddressItem => {
+        return {
+          id: item.id,
+          tg_bot_id: item.bot_id,
+          bot_id: item.bot_id,
+          address: item.address,
+          create_time: item.created_at,
+          finish_time: item.updated_at,
+          bot_name: item.bot_name,
+          user_name: item.user_name,
+          tg_name: item.user_name,
+          order_id: item.order_id
+        }
+      })
+
       return {
-        ...item,
-        create_time: createTimeMs,
-        finish_time: finishTimeMs,
-        bot_name: item.bot_name || `Bot ${item.tg_bot_id}`
+        list: mappedList,
+        total: res.data.pager?.total || 0
       }
-    })
-    return {
-      list: mappedList,
-      total: res.data.totalCount || 0
     }
+
+    return { list: [], total: 0 }
   } catch (error) {
     console.error('获取托管地址列表失败:', error)
-    ElMessage.error('获取托管地址列表失败')
     return { list: [], total: 0 }
   }
 }
 
 const deleteAddressAction = async () => {
-  if (currentRowForDelete.value && currentRowForDelete.value.id) {
+  if (currentRowForDelete.value && currentRowForDelete.value.address) {
     try {
-      await deleteAutoManageAddressApi(currentRowForDelete.value.id)
+      // 使用新接口 v1RemoveHosting
+      await v1RemoveHosting({ address: currentRowForDelete.value.address })
       ElMessage.success('取消托管成功')
       return true
     } catch (error) {
