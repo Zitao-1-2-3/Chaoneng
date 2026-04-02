@@ -102,14 +102,14 @@ const isLoaded = ref(false)
 const columns = [
   { field: 'id', label: '机器人ID' },
   {
-    field: 'username',
+    field: 'user_name',
     label: '机器人用户名',
     slots: {
       default: (data: any) => {
         return (
           <>
-            <ElLink type="primary" href={`https://t.me/${data.row.username}`} target="_blank">
-              {data.row.username}
+            <ElLink type="primary" href={`https://t.me/${data.row.user_name}`} target="_blank">
+              {data.row.user_name}
             </ElLink>
           </>
         )
@@ -117,9 +117,9 @@ const columns = [
     }
   },
   {
-    field: 'firstname',
+    field: 'first_name',
     label: '机器人昵称',
-    formatter: (row) => row.firstname
+    formatter: (row) => row.first_name
   },
   {
     field: 'status',

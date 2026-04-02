@@ -18,8 +18,8 @@ export type BotListItem = {
   id: number | string // 机器人ID
   created_at: number // 创建时间（Unix时间戳）
   updated_at: number // 更新时间（Unix时间戳）
-  username: string // 机器人用户名
-  firstname: string // 机器人昵称
+  user_name: string // 机器人用户名
+  first_name: string // 机器人昵称
   agent_id: number // 代理ID
   agent_name: string // 代理名称
   status: number // 状态：1-启用，2-禁用
@@ -55,8 +55,8 @@ export type BotDetail = {
   id: number // 机器人ID
   created_at: string // 创建时间
   updated_at: string // 更新时间
-  username: string // 机器人用户名
-  firstname: string // 机器人昵称
+  user_name: string // 机器人用户名
+  first_name: string // 机器人昵称
   agent_id: number // 代理ID
   agent_name: string // 代理名称
   status: number // 状态：1-启用，2-禁用

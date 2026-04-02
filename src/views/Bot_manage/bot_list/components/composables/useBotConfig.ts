@@ -128,8 +128,8 @@ export function useBotConfig() {
 
             formMethods.botInfo.setValues({
               tg_bot_id: botInfo.id || '',
-              firstname: botInfo.firstname || '',
-              name: botInfo.username || '',
+              firstname: botInfo.first_name || '',
+              name: botInfo.user_name || '',
               token: botInfo.token || '',
               api_key: botInfo.apiKey || '', // 保留数据映射，但表单中已隐藏
               tg_admin: botInfo.tg_admin || '',
@@ -206,7 +206,7 @@ export function useBotConfig() {
               console.log('- 笔数能量地址 (kind=5):', strokeEnergyAddress)
 
               const formValues = {
-                username: currentBot.value.username || '',
+                username: currentBot.value.user_name || '',
                 energy_address: timeEnergyAddress?.address || '', // kind=4: 时间能量（闪租）
                 receive_address: userDepositAddress?.address || '', // kind=2: 用户充值
                 energy_usdt_address: strokeEnergyAddress?.address || '', // kind=5: 笔数能量
