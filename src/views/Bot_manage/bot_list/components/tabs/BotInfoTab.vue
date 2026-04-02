@@ -74,14 +74,15 @@ const botInfoSchema = reactive<FormSchema[]>([
       disabled: true
     }
   },
-  {
-    field: 'api_key',
-    component: 'Input' as const,
-    label: 'API秘钥：',
-    componentProps: {
-      disabled: true
-    }
-  },
+  // API密钥字段已隐藏
+  // {
+  //   field: 'api_key',
+  //   component: 'Input' as const,
+  //   label: 'API秘钥：',
+  //   componentProps: {
+  //     disabled: true
+  //   }
+  // },
   {
     field: 'tg_admin',
     component: 'Input' as const,
@@ -100,16 +101,6 @@ const botInfoSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'describe',
-    component: 'Input' as const,
-    label: '备注：',
-    componentProps: {
-      placeholder: '请输入备注(选填)',
-      type: 'textarea',
-      rows: 3
-    }
-  },
-  {
     field: 'status',
     component: 'Switch' as const,
     label: '状态：',
@@ -117,6 +108,16 @@ const botInfoSchema = reactive<FormSchema[]>([
     componentProps: {
       activeValue: 1,
       inactiveValue: 2
+    }
+  },
+  {
+    field: 'describe',
+    component: 'Input' as const,
+    label: '备注：',
+    componentProps: {
+      placeholder: '请输入备注(选填)',
+      type: 'textarea',
+      rows: 3
     }
   }
   // {

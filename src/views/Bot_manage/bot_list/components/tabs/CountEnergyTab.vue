@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="tsx">
-import { reactive, defineExpose, defineProps, computed } from 'vue'
+import { reactive, computed } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 
@@ -40,7 +40,7 @@ const countEnergySchema = reactive<FormSchema[]>([
     },
     componentProps: {
       placeholder: '请输入TRX价格',
-      min: 0,
+      min: computed(() => computedAgentPrices.value.count_price || 0),
       precision: 2,
       remark: () => {
         const costKey = 'count_price'
@@ -53,7 +53,20 @@ const countEnergySchema = reactive<FormSchema[]>([
       }
     },
     formItemProps: {
-      rules: [{ required: true, message: '能量TRX价格是必填项' }]
+      rules: [
+        { required: true, message: '能量TRX价格是必填项' },
+        {
+          validator: (_rule: any, value: number, callback: any) => {
+            const costPrice = computedAgentPrices.value.count_price
+            if (costPrice !== undefined && value < costPrice) {
+              callback(new Error(`价格不能低于成本价 ${costPrice} TRX`))
+            } else {
+              callback()
+            }
+          },
+          trigger: 'blur'
+        }
+      ]
     },
     colProps: {
       span: 12

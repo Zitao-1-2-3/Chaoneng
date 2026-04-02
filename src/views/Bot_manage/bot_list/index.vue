@@ -9,7 +9,7 @@
         :fetch-del-api="fetchBotDelete"
         :action-column="actionColumn"
         :table-props="{
-          rowKey: 'tg_bot_id',
+          rowKey: 'id',
           highlightCurrentRow: false,
           reserveSelection: false
         }"
@@ -59,8 +59,8 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, computed, onMounted, h, nextTick } from 'vue'
-import { ElButton, ElLink, ElMessage, ElMessageBox, ElSwitch, ElInputNumber } from 'element-plus'
+import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ElButton, ElLink, ElMessage, ElSwitch } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
@@ -72,8 +72,7 @@ import { BaseButton } from '@/components/Button'
 import ConsumptionRecord from './components/ConsumptionRecord.vue'
 import RenewBot from './components/RenewBot.vue'
 import BotConfig from './components/BotConfig.vue'
-import { getBotListApi, addBotApi, updateBotApi, getBotRenewPriceApi } from '@/api/botlist'
-import { Icon } from '@/components/Icon'
+import { v1GetBotList, v1CreateBot, updateBotApi, getBotRenewPriceApi } from '@/api/botlist'
 import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
@@ -101,16 +100,16 @@ const isLoaded = ref(false)
 
 // 表格列配置
 const columns = [
-  { field: 'tg_bot_id', label: '机器人ID' },
+  { field: 'id', label: '机器人ID' },
   {
-    field: 'name',
+    field: 'username',
     label: '机器人用户名',
     slots: {
       default: (data: any) => {
         return (
           <>
-            <ElLink type="primary" href={`https://t.me/${data.row.name}`} target="_blank">
-              {data.row.name}
+            <ElLink type="primary" href={`https://t.me/${data.row.username}`} target="_blank">
+              {data.row.username}
             </ElLink>
           </>
         )
@@ -179,21 +178,21 @@ const columns = [
             style="cursor:pointer"
             onClick={() => handleUserCountClick(data.row.id)}
           >
-            {data.row.account_num}
+            {data.row.account_num || 0}
           </ElLink>
         )
       }
     }
   },
   {
-    field: 'createTime',
+    field: 'created_at',
     label: '创建时间',
-    formatter: (row) => formatToDateTime(row.create_time)
+    formatter: (row) => formatToDateTime(row.created_at)
   },
   {
-    field: 'expireTime',
+    field: 'expired_at',
     label: '到期时间',
-    formatter: (row) => formatToDateTime(row.expire_time),
+    formatter: (row) => formatToDateTime(row.expired_at),
     slots: {
       header: () => {
         return (
@@ -232,20 +231,11 @@ const actionColumn = {
 // 搜索表单配置
 const searchSchema = [
   {
-    field: 'tg_bot_id',
+    field: 'keyword',
     component: 'Input' as const,
-    label: '机器人ID：',
+    label: '机器人ID/用户名：',
     componentProps: {
-      placeholder: '请输入机器人ID',
-      clearable: true
-    }
-  },
-  {
-    field: 'name',
-    component: 'Input' as const,
-    label: '机器人用户名：',
-    componentProps: {
-      placeholder: '请输入机器人用户名',
+      placeholder: '请输入机器人ID/用户名',
       clearable: true
     }
   }
@@ -418,24 +408,63 @@ const handleSubmit = async () => {
 
     const formData = await formMethods.getFormData()
 
-    // 这里应该调用真实的API
-    console.log('提交的表单数据2:', formData)
-    await addBotApi(formData)
-    ElMessage.success(dialogType.value === 'add' ? '添加成功' : '编辑成功')
-    dialogVisible.value = false
+    try {
+      // 使用新接口 v1CreateBot
+      // 注意：agent_id 需要从当前登录用户信息中获取，这里暂时设置为 0，需要根据实际情况调整
+      const res = await v1CreateBot({
+        agent_id: 0, // TODO: 从当前登录用户信息中获取代理ID
+        token: formData.token,
+        tg_admin: formData.tg_admin,
+        describe: formData.describe || '',
+        status: formData.status
+      })
 
-    // 刷新表格数据
-    searchTableRef.value?.reload()
+      console.log('创建机器人结果:', res)
+
+      // 检查响应 code
+      if (res.code === '000000') {
+        ElMessage.success(dialogType.value === 'add' ? '添加成功' : '编辑成功')
+        dialogVisible.value = false
+
+        // 刷新表格数据
+        searchTableRef.value?.reload()
+      } else {
+        // 后端返回的业务错误
+        ElMessage.error((res as any).msg || '操作失败')
+      }
+    } catch (error) {
+      console.error('创建机器人失败:', error)
+      ElMessage.error('操作失败，请稍后重试')
+    }
   })
 }
 
 const totalCount = ref(0)
-// 修改 fetchBotList 函数，修复数据加载问题
+// 修改 fetchBotList 函数，使用新接口 v1GetBotList
 const fetchBotList = async (params) => {
+  console.log('fetchBotList 调用参数:', params)
   try {
-    const response = await getBotListApi(params)
-    totalCount.value = response?.data?.totalCount || 0
-    return response?.data
+    // 构建新接口参数
+    const apiParams = {
+      current_page: params.page || 1,
+      page_size: params.limit || 10,
+      keyword: params.keyword || undefined,
+      agent_name: params.agent_name || undefined,
+      status: params.status || undefined
+    }
+
+    const response = await v1GetBotList(apiParams)
+    console.log('v1GetBotList 响应:', response)
+
+    if (response.code === '000000' && response.data) {
+      totalCount.value = response.data.pager?.total || 0
+      return {
+        list: response.data.list || [],
+        total: response.data.pager?.total || 0
+      }
+    }
+
+    return { list: [], total: 0 }
   } catch (error) {
     console.error('获取机器人列表失败:', error)
     return { list: [], total: 0 }
@@ -529,8 +558,7 @@ onMounted(async () => {
   setTimeout(() => {
     if (searchTableRef.value) {
       searchTableRef.value.setSearchParams({
-        tg_bot_id: query.tg_bot_id,
-        name: query.name
+        keyword: query.tg_bot_id || query.name || undefined
       })
       console.log('手动触发数据刷新')
       searchTableRef.value.reload()

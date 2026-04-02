@@ -17,16 +17,22 @@
 import { ref, watch } from 'vue'
 import { Dialog } from '@/components/Dialog'
 import { Table } from '@/components/Table'
-import { getBotConsumptionRecordApi } from '@/api/botlist'
+import { v1GetAgentBillList } from '@/api/botlist'
 import { formatToDateTime } from '@/utils/dateUtil'
 
 interface ConsumptionRecord {
-  tg_bot_id: number
-  firstname: string
-  charge_type: number
-  mount: number
+  order_id: string
+  created_at: number
+  kind: number
+  agent_id: number
+  bot_id: number
+  amount: string
+  balance: string
+  coin: string
+  profit: string
   describe: string
-  create_time: string
+  agent_name: string
+  bot_name: string
 }
 
 const dialogVisible = ref(false)
@@ -38,36 +44,45 @@ const total = ref(0)
 
 // 表格列配置
 const columns = [
-  { field: 'tg_bot_id', label: '机器人ID', width: 120 },
-  { field: 'firstname', label: '机器人昵称' },
   {
-    field: 'charge_type',
-    label: '类型',
+    field: 'order_id',
+    label: '订单ID',
+    minWidth: 180,
+    slots: {
+      default: ({ row }: { row: ConsumptionRecord }) => <span>{row.order_id || '-'}</span>
+    }
+  },
+  { field: 'bot_name', label: '机器人名称', width: 150 },
+  {
+    field: 'amount',
+    label: '金额',
+    width: 120,
     slots: {
       default: ({ row }: { row: ConsumptionRecord }) => (
-        <span style={{ color: row.charge_type === 1 ? 'red' : 'green' }}>
-          {row.charge_type === 1 ? '支出' : '收入'}
+        <span style={{ color: 'red' }}>
+          -{row.amount} {row.coin}
         </span>
       )
     }
   },
   {
-    field: 'mount',
-    label: '费用',
+    field: 'balance',
+    label: '余额',
+    width: 120,
     slots: {
       default: ({ row }: { row: ConsumptionRecord }) => (
-        <span style={{ color: row.charge_type === 1 ? 'red' : 'green' }}>
-          {row.charge_type === 1 ? `-${row.mount}TRX` : `${row.mount}TRX`}
+        <span>
+          {row.balance} {row.coin}
         </span>
       )
     }
   },
-  { field: 'describe', label: '描述' },
+  { field: 'describe', label: '描述', minWidth: 150 },
   {
-    field: 'create_time',
+    field: 'created_at',
     label: '创建时间',
-    minWidth: 120,
-    formatter: (row: ConsumptionRecord) => formatToDateTime(row.create_time)
+    minWidth: 160,
+    formatter: (row: ConsumptionRecord) => formatToDateTime(row.created_at)
   }
 ]
 
@@ -75,15 +90,19 @@ const columns = [
 const getList = async () => {
   loading.value = true
   try {
-    const params = {
+    // 使用新接口 v1GetAgentBillList，固定查询 kind=11（机器人付费）
+    const res = await v1GetAgentBillList({
+      current_page: currentPage.value,
       page_size: pageSize.value,
-      current_page: currentPage.value
-    }
-    const res = await getBotConsumptionRecordApi(params)
-    if (res?.data) {
+      kinds: [11] // 只查询机器人付费类型
+    })
+
+    if (res.code === '000000' && res.data) {
       dataList.value = res.data.list || []
-      total.value = res.data.totalCount || 0
+      total.value = res.data.pager?.total || 0
     }
+  } catch (error) {
+    console.error('获取消费记录失败:', error)
   } finally {
     loading.value = false
   }
@@ -107,7 +126,7 @@ watch(pageSize, (newPageSize, oldPageSize) => {
 })
 
 // 打开弹窗方法
-const open = (botId?: number) => {
+const open = () => {
   currentPage.value = 1
   pageSize.value = 10
   dialogVisible.value = true

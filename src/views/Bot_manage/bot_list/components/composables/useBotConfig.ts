@@ -1,37 +1,16 @@
+// 机器人配置管理 - 使用新接口 v1GetBotDetail
 import { ref, reactive } from 'vue'
 import { ElMessage, ElLoading } from 'element-plus'
 import {
-  getBotDetailApi,
+  v1GetBotDetail,
+  v1GetBotPriceConfig,
+  v1GetSystemPrice,
+  v1GetAddressList,
+  v1UpdateBot,
+  v1UpdateBotPrice,
   syncTgStatusApi,
-  updateBotAllConfigsApi,
-  getBotPaymentConfigApi,
-  getBotTimeEnergyConfigApi,
-  getBotCountEnergyConfigApi,
-  getBotManagedModeConfigApi,
-  getBotBatchOrderConfigApi,
-  getBotFlashExchangeConfigApi,
-  getCountEnergyConfigApi,
-  updateBotApi,
-  updateBotPaymentConfigApi,
-  updateBotTimeEnergyConfigApi,
-  updateBotCountEnergyConfigApi,
-  updateBotManagedModeConfigApi,
-  updateBotBatchOrderConfigApi,
-  updateBotFlashExchangeConfigApi,
-  updateWelfarePriceConfigApi
+  updateBotPaymentConfigApi
 } from '@/api/botlist'
-
-// 定义通用的API响应类型
-type ApiResponse = Promise<{
-  code: string | number
-  data?: any
-  message?: string
-}>
-
-// 移除假设的成本价API调用
-// const getCostPricesApi = () => {
-//   return fetch('/bot/cost-prices').then((res) => res.json())
-// }
 
 export function useBotConfig() {
   // 共享状态
@@ -43,8 +22,8 @@ export function useBotConfig() {
   const loading = ref(false)
   const submitting = ref(false)
 
-  // 添加新的 agentPrices 状态来存储从 API 获取的成本价
-  const agentPrices = reactive<Record<string, any>>({})
+  // 价格配置数据（每次调用接口获取，不缓存）
+  const priceConfig = reactive<Record<string, any>>({})
 
   // TG状态同步
   const syncTgStatus = async () => {
@@ -86,64 +65,81 @@ export function useBotConfig() {
     loading.value = true
 
     try {
+      // 存储机器人ID
+      currentBot.value.id = id
+
       // 策略模式：定义加载各种表单类型的策略
       const loadStrategies = {
         // 基本信息加载策略
         botInfo: async () => {
           try {
-            // 1. 先加载基本信息
-            const botInfoRes = await getBotPaymentConfigApi(id)
-            const botInfo = botInfoRes.data || {}
+            // 每次切换都重新获取机器人详情
+            console.log('获取机器人详情，ID:', id)
+            const botDetailRes = await v1GetBotDetail(id)
+
+            if (botDetailRes.code === '000000' && botDetailRes.data) {
+              currentBot.value = botDetailRes.data
+              console.log('机器人详情获取成功:', botDetailRes.data)
+            } else {
+              ElMessage.error('获取机器人详情失败')
+              return false
+            }
+
+            // 获取系统成本价（用于显示成本价）
+            console.log('获取系统成本价')
+            const systemPriceRes = await v1GetSystemPrice()
+
+            if (systemPriceRes.code === '000000' && systemPriceRes.data) {
+              // 清空并更新 priceConfig.agent_price（成本价）
+              if (!priceConfig.agent_price) {
+                priceConfig.agent_price = {}
+              }
+
+              const systemPrice = systemPriceRes.data
+
+              // 映射成本价字段名（用于表单显示成本价）- 将 string 转换为 number
+              priceConfig.agent_price.flash_rent_price = parseFloat(systemPrice.flash)
+              priceConfig.agent_price.day_1_price = parseFloat(systemPrice.time_1d)
+              priceConfig.agent_price.day_3_price = parseFloat(systemPrice.time_3d)
+              priceConfig.agent_price.day_7_price = parseFloat(systemPrice.time_7d)
+              priceConfig.agent_price.day_15_price = parseFloat(systemPrice.time_15d)
+              priceConfig.agent_price.day_30_price = parseFloat(systemPrice.time_30d)
+              priceConfig.agent_price.count_price = parseFloat(systemPrice.stroke) // 笔数能量标签页使用
+              priceConfig.agent_price.count_price_trx = parseFloat(systemPrice.stroke)
+              priceConfig.agent_price.count_price_usdt = parseFloat(systemPrice.stroke_usdt)
+              priceConfig.agent_price.manage_price_65000 = parseFloat(systemPrice.hosting_65k) // 托管模式标签页使用
+              priceConfig.agent_price.manage_price_13100 = parseFloat(systemPrice.hosting_131k) // 托管模式标签页使用
+              priceConfig.agent_price.price_trx_65000 = parseFloat(systemPrice.hosting_65k)
+              priceConfig.agent_price.price_trx_131000 = parseFloat(systemPrice.hosting_131k)
+              priceConfig.agent_price.profit_usdt_to_trx = parseFloat(systemPrice.usdt_2_trx)
+              priceConfig.agent_price.profit_trx_to_usdt = parseFloat(systemPrice.trx_2_usdt)
+              priceConfig.agent_price.batch_energy_price = parseFloat(systemPrice.batch_flash)
+              priceConfig.agent_price.batch_active_price = parseFloat(systemPrice.active)
+              priceConfig.agent_price.weal_price_trx = parseFloat(systemPrice.weal_time_1h)
+
+              console.log('系统成本价获取成功:', priceConfig.agent_price)
+            }
+
+            // 使用获取的机器人详情数据
+            const botInfo = currentBot.value
 
             // 设置TG同步状态
             tgStatus.value = botInfo.tgVerifyStatus || 'pending'
 
             formMethods.botInfo.setValues({
-              ...botInfo,
-              id: botInfo.id || '',
-              botName: botInfo.botName || '',
-              botUsername: botInfo.botUsername || '',
-              botToken: botInfo.botToken || '',
-              apiKey: botInfo.apiKey || '',
-              adminTgAccount: botInfo.adminTgAccount || '',
-              remark: botInfo.remark || '',
-              status: botInfo.status === undefined ? true : botInfo.status
+              tg_bot_id: botInfo.id || '',
+              firstname: botInfo.firstname || '',
+              name: botInfo.username || '',
+              token: botInfo.token || '',
+              api_key: botInfo.apiKey || '', // 保留数据映射，但表单中已隐藏
+              tg_admin: botInfo.tg_admin || '',
+              describe: botInfo.describe || '',
+              status: botInfo.status || 2
             })
-
-            // 更新当前机器人对象
-            currentBot.value = botInfo
-
-            // 2. --- 新增：在 botInfo 策略中获取成本价 ---
-            try {
-              const timeEnergyConfigRes = await getBotTimeEnergyConfigApi(id)
-              const fetchedAgentPrices = timeEnergyConfigRes.data?.agent_price || {} // 获取 agent_price
-              // 清空旧的 agentPrices，确保每次加载都是最新的
-              for (const key in agentPrices) {
-                delete agentPrices[key]
-              }
-              // 更新 agentPrices 状态
-              Object.keys(fetchedAgentPrices).forEach((key) => {
-                agentPrices[key] = fetchedAgentPrices[key]
-              })
-              console.log('Fetched agentPrices in botInfo strategy:', agentPrices)
-            } catch (error) {
-              console.error('加载成本价配置失败 (in botInfo strategy):', error)
-              // 清空旧数据，即使加载失败
-              for (const key in agentPrices) {
-                delete agentPrices[key]
-              }
-              // 这里可以选择是否提示用户，或者静默失败
-              // ElMessage.error('加载成本价配置失败')
-            }
-            // --- 结束新增 ---
 
             return true
           } catch (error) {
             console.error('加载基本信息失败:', error)
-            // 如果基本信息加载失败，也应该清空成本价
-            for (const key in agentPrices) {
-              delete agentPrices[key]
-            }
             return false
           }
         },
@@ -151,16 +147,78 @@ export function useBotConfig() {
         // 收款配置加载策略
         payment: async () => {
           try {
-            const paymentConfigRes = await getBotPaymentConfigApi(id)
-            const paymentConfig = paymentConfigRes.data || {}
-            console.log('paymentConfig', paymentConfigRes.data)
-            formMethods.payment.setValues({
-              username: paymentConfig.user_name || '',
-              energy_address: paymentConfig.energy_address || '',
-              receive_address: paymentConfig.receive_address || '',
-              energy_usdt_address: paymentConfig.energy_usdt_address || '',
-              notice_order_tg_admin: paymentConfig.notice_order_tg_admin || 2
+            // 1. 获取系统成本价（用于显示成本价）
+            console.log('获取系统成本价')
+            const systemPriceRes = await v1GetSystemPrice()
+
+            if (systemPriceRes.code === '000000' && systemPriceRes.data) {
+              if (!priceConfig.agent_price) {
+                priceConfig.agent_price = {}
+              }
+              Object.assign(priceConfig.agent_price, systemPriceRes.data)
+              console.log('系统成本价获取成功:', priceConfig.agent_price)
+            }
+
+            // 2. 获取 Address 地址列表（表单数据）
+            console.log('获取 Address 地址列表，bot_id:', id)
+            const addressListRes = await v1GetAddressList({
+              bot_id: id,
+              current_page: 1,
+              page_size: 100 // 获取所有地址
             })
+
+            console.log('Address 接口完整响应:', addressListRes)
+
+            if (addressListRes.code === '000000' && addressListRes.data) {
+              const addressList = addressListRes.data.list || []
+              console.log('Address 地址列表获取成功，数量:', addressList.length)
+              console.log('Address 地址列表详情:', addressList)
+
+              if (addressList.length === 0) {
+                console.warn('该机器人还未配置任何收款地址')
+                ElMessage.warning('该机器人还未配置收款地址，请先添加地址')
+              }
+
+              // 打印每个地址的 kind 值
+              addressList.forEach((item, index) => {
+                console.log(`地址 ${index + 1}: kind=${item.kind}, address=${item.address}`)
+              })
+
+              // 根据 kind 类型提取不同的地址
+              // Kind 值定义：
+              // 1-代理充值, 2-用户充值, 3-兑换(TRX-USDT), 4-时间能量(闪租), 5-笔数能量,
+              // 6-福利能量, 7-快速能量, 8-自动托管, 9-批量能量, 10-批量激活, 11-机器人付费
+
+              // 注意：kind 可能是数字或字符串，需要兼容处理
+              const timeEnergyAddress = addressList.find(
+                (item) => item.kind === 4 || item.kind === '4'
+              ) // 【1小时能量闪租】收款钱包地址
+              const userDepositAddress = addressList.find(
+                (item) => item.kind === 2 || item.kind === '2'
+              ) // 【余额充值】收款钱包地址
+              const strokeEnergyAddress = addressList.find(
+                (item) => item.kind === 5 || item.kind === '5'
+              ) // 【按笔数购买】TRX/USDT收款钱包地址
+
+              console.log('找到的地址:')
+              console.log('- 时间能量地址 (kind=4):', timeEnergyAddress)
+              console.log('- 用户充值地址 (kind=2):', userDepositAddress)
+              console.log('- 笔数能量地址 (kind=5):', strokeEnergyAddress)
+
+              const formValues = {
+                username: currentBot.value.username || '',
+                energy_address: timeEnergyAddress?.address || '', // kind=4: 时间能量（闪租）
+                receive_address: userDepositAddress?.address || '', // kind=2: 用户充值
+                energy_usdt_address: strokeEnergyAddress?.address || '', // kind=5: 笔数能量
+                notice_order_tg_admin: 2 // TODO: 从哪里获取？
+              }
+
+              console.log('设置表单值:', formValues)
+              formMethods.payment.setValues(formValues)
+            } else {
+              console.error('Address 接口返回失败:', addressListRes)
+            }
+
             return true
           } catch (error) {
             console.error('加载收款配置失败:', error)
@@ -171,22 +229,56 @@ export function useBotConfig() {
         // 时间能量加载策略
         timeEnergy: async () => {
           try {
-            // 这里仍然需要获取时间能量配置以设置表单
-            const timeEnergyConfigRes = await getBotTimeEnergyConfigApi(id)
-            const timeEnergyConfig = timeEnergyConfigRes.data || {}
+            // 1. 获取系统成本价（用于显示成本价）
+            console.log('获取系统成本价')
+            const systemPriceRes = await v1GetSystemPrice()
 
-            // 设置表单值 (保留)
-            console.log('timeEnergyConfig', timeEnergyConfig)
-            formMethods.timeEnergy.setValues({
-              flash_price: timeEnergyConfig.flash_price,
-              flash_addr_price: timeEnergyConfig.flash_addr_price,
-              flash_time_max_num: timeEnergyConfig.flash_time_max_num,
-              day_1_price: timeEnergyConfig.day_1_price,
-              day_3_price: timeEnergyConfig.day_3_price,
-              day_7_price: timeEnergyConfig.day_7_price,
-              day_15_price: timeEnergyConfig.day_15_price,
-              day_30_price: timeEnergyConfig.day_30_price
-            })
+            if (systemPriceRes.code === '000000' && systemPriceRes.data) {
+              if (!priceConfig.agent_price) {
+                priceConfig.agent_price = {}
+              }
+
+              const systemPrice = systemPriceRes.data
+
+              // 映射成本价字段名（用于表单显示成本价）- 将 string 转换为 number
+              priceConfig.agent_price.flash_rent_price = parseFloat(systemPrice.flash)
+              priceConfig.agent_price.day_1_price = parseFloat(systemPrice.time_1d)
+              priceConfig.agent_price.day_3_price = parseFloat(systemPrice.time_3d)
+              priceConfig.agent_price.day_7_price = parseFloat(systemPrice.time_7d)
+              priceConfig.agent_price.day_15_price = parseFloat(systemPrice.time_15d)
+              priceConfig.agent_price.day_30_price = parseFloat(systemPrice.time_30d)
+
+              console.log('系统成本价获取成功:', priceConfig.agent_price)
+            }
+
+            // 2. 获取代理设置的价格（表单数据）
+            console.log('获取代理设置的价格，ID:', id)
+            const botPriceConfigRes = await v1GetBotPriceConfig(id)
+
+            if (botPriceConfigRes.code === '000000' && botPriceConfigRes.data) {
+              const botPriceData = botPriceConfigRes.data
+              console.log('代理设置的价格获取成功:', botPriceData)
+
+              // 从 agent_price 中提取时间能量相关字段
+              const agentPrice = botPriceData.agent_price || {}
+
+              const timeEnergyValues = {
+                flash_price: agentPrice.flash || 0,
+                flash_addr_price: agentPrice.flash || 0, // TODO: 确认字段映射
+                flash_time_max_num: 0, // TODO: 从哪里获取？
+                day_1_price: agentPrice.time_1d || 0,
+                day_3_price: agentPrice.time_3d || 0,
+                day_7_price: agentPrice.time_7d || 0,
+                day_15_price: agentPrice.time_15d || 0,
+                day_30_price: agentPrice.time_30d || 0
+              }
+
+              console.log('时间能量表单数据:', timeEnergyValues)
+
+              // 设置表单值
+              formMethods.timeEnergy.setValues(timeEnergyValues)
+            }
+
             return true
           } catch (error) {
             console.error('加载时间能量价格配置失败:', error)
@@ -197,20 +289,49 @@ export function useBotConfig() {
         // 笔数能量加载策略
         countEnergy: async () => {
           try {
-            const countEnergyConfigRes = await getCountEnergyConfigApi(id)
-            const countEnergyConfig = countEnergyConfigRes.data || {}
+            // 1. 获取系统成本价（用于显示成本价）
+            console.log('获取系统成本价')
+            const systemPriceRes = await v1GetSystemPrice()
 
-            const countEnergyValues = {
-              count_pay_type: countEnergyConfig.count_pay_type,
-              count_price_trx: countEnergyConfig.count_price_trx || 0,
-              count_price_usdt: countEnergyConfig.count_price_usdt || 0,
-              notifyUser: countEnergyConfig.notifyUser || false,
-              notifyGroupOwner: countEnergyConfig.notifyGroupOwner || false,
-              notifyAdmin: countEnergyConfig.notifyAdmin || false
+            if (systemPriceRes.code === '000000' && systemPriceRes.data) {
+              if (!priceConfig.agent_price) {
+                priceConfig.agent_price = {}
+              }
+
+              const systemPrice = systemPriceRes.data
+              priceConfig.agent_price.count_price = parseFloat(systemPrice.stroke) // 笔数能量标签页使用
+              priceConfig.agent_price.count_price_trx = parseFloat(systemPrice.stroke)
+              priceConfig.agent_price.count_price_usdt = parseFloat(systemPrice.stroke_usdt)
+
+              console.log('系统成本价获取成功:', priceConfig.agent_price)
             }
 
-            // 设置表单值
-            formMethods.countEnergy.setValues(countEnergyValues)
+            // 2. 获取代理设置的价格（表单数据）
+            console.log('获取代理设置的价格，ID:', id)
+            const botPriceConfigRes = await v1GetBotPriceConfig(id)
+
+            if (botPriceConfigRes.code === '000000' && botPriceConfigRes.data) {
+              const botPriceData = botPriceConfigRes.data
+              console.log('代理设置的价格获取成功:', botPriceData)
+
+              // 从 agent_price 中提取笔数能量相关字段
+              const agentPrice = botPriceData.agent_price || {}
+
+              const countEnergyValues = {
+                count_pay_type: 0, // TODO: 从哪里获取？
+                count_price_trx: agentPrice.stroke || 0,
+                count_price_usdt: agentPrice.stroke_usdt || 0,
+                notifyUser: false, // TODO: 从哪里获取？
+                notifyGroupOwner: false, // TODO: 从哪里获取？
+                notifyAdmin: false // TODO: 从哪里获取？
+              }
+
+              console.log('笔数能量表单数据:', countEnergyValues)
+
+              // 设置表单值
+              formMethods.countEnergy.setValues(countEnergyValues)
+            }
+
             return true
           } catch (error) {
             console.error('加载笔数能量价格配置失败:', error)
@@ -221,18 +342,48 @@ export function useBotConfig() {
         // 托管模式加载策略
         managedMode: async () => {
           try {
-            const managedModeConfigRes = await getCountEnergyConfigApi(id)
-            const managedModeConfig = managedModeConfigRes.data || {}
+            // 1. 获取系统成本价（用于显示成本价）
+            console.log('获取系统成本价')
+            const systemPriceRes = await v1GetSystemPrice()
 
-            const managedModeValues = {
-              delegate_price_trx: managedModeConfig.delegate_price_trx || 0,
-              enable_custom_delegate: managedModeConfig.enable_custom_delegate || false,
-              price_trx_65000: managedModeConfig.price_trx_65000 || 0,
-              price_trx_131000: managedModeConfig.price_trx_131000 || 0
+            if (systemPriceRes.code === '000000' && systemPriceRes.data) {
+              if (!priceConfig.agent_price) {
+                priceConfig.agent_price = {}
+              }
+
+              const systemPrice = systemPriceRes.data
+              priceConfig.agent_price.manage_price_65000 = parseFloat(systemPrice.hosting_65k) // 托管模式标签页使用
+              priceConfig.agent_price.manage_price_13100 = parseFloat(systemPrice.hosting_131k) // 托管模式标签页使用
+              priceConfig.agent_price.price_trx_65000 = parseFloat(systemPrice.hosting_65k)
+              priceConfig.agent_price.price_trx_131000 = parseFloat(systemPrice.hosting_131k)
+
+              console.log('系统成本价获取成功:', priceConfig.agent_price)
             }
 
-            // 设置表单值
-            formMethods.managedMode.setValues(managedModeValues)
+            // 2. 获取代理设置的价格（表单数据）
+            console.log('获取代理设置的价格，ID:', id)
+            const botPriceConfigRes = await v1GetBotPriceConfig(id)
+
+            if (botPriceConfigRes.code === '000000' && botPriceConfigRes.data) {
+              const botPriceData = botPriceConfigRes.data
+              console.log('代理设置的价格获取成功:', botPriceData)
+
+              // 从 agent_price 中提取托管模式相关字段
+              const agentPrice = botPriceData.agent_price || {}
+
+              const managedModeValues = {
+                delegate_price_trx: 0, // TODO: 从哪里获取？
+                enable_custom_delegate: false, // TODO: 从哪里获取？
+                price_trx_65000: agentPrice.hosting_65k || 0,
+                price_trx_131000: agentPrice.hosting_131k || 0
+              }
+
+              console.log('托管模式表单数据:', managedModeValues)
+
+              // 设置表单值
+              formMethods.managedMode.setValues(managedModeValues)
+            }
+
             return true
           } catch (error) {
             console.error('加载托管模式价格配置失败:', error)
@@ -243,16 +394,44 @@ export function useBotConfig() {
         // 批量下单加载策略
         batchOrder: async () => {
           try {
-            const batchOrderConfigRes = await getCountEnergyConfigApi(id)
-            const batchOrderConfig = batchOrderConfigRes.data || {}
+            // 1. 获取系统成本价（用于显示成本价）
+            console.log('获取系统成本价')
+            const systemPriceRes = await v1GetSystemPrice()
 
-            const batchOrderValues = {
-              batch_energy_price: batchOrderConfig.batch_energy_price || 0,
-              batch_active_price: batchOrderConfig.batch_active_price || 0
+            if (systemPriceRes.code === '000000' && systemPriceRes.data) {
+              if (!priceConfig.agent_price) {
+                priceConfig.agent_price = {}
+              }
+
+              const systemPrice = systemPriceRes.data
+              priceConfig.agent_price.batch_energy_price = parseFloat(systemPrice.batch_flash)
+              priceConfig.agent_price.batch_active_price = parseFloat(systemPrice.active)
+
+              console.log('系统成本价获取成功:', priceConfig.agent_price)
             }
 
-            // 设置表单值
-            formMethods.batchOrder.setValues(batchOrderValues)
+            // 2. 获取代理设置的价格（表单数据）
+            console.log('获取代理设置的价格，ID:', id)
+            const botPriceConfigRes = await v1GetBotPriceConfig(id)
+
+            if (botPriceConfigRes.code === '000000' && botPriceConfigRes.data) {
+              const botPriceData = botPriceConfigRes.data
+              console.log('代理设置的价格获取成功:', botPriceData)
+
+              // 从 agent_price 中提取批量下单相关字段
+              const agentPrice = botPriceData.agent_price || {}
+
+              const batchOrderValues = {
+                batch_energy_price: agentPrice.batch_flash || 0,
+                batch_active_price: agentPrice.active || 0
+              }
+
+              console.log('批量下单表单数据:', batchOrderValues)
+
+              // 设置表单值
+              formMethods.batchOrder.setValues(batchOrderValues)
+            }
+
             return true
           } catch (error) {
             console.error('加载批量下单价格配置失败:', error)
@@ -263,22 +442,72 @@ export function useBotConfig() {
         // 闪兑加载策略
         flashExchange: async () => {
           try {
-            const flashExchangeConfigRes = await getCountEnergyConfigApi(id)
-            const flashExchangeConfig = flashExchangeConfigRes.data.exchange || {}
+            // 1. 获取系统成本价（用于显示成本价）
+            console.log('获取系统成本价')
+            const systemPriceRes = await v1GetSystemPrice()
 
-            const flashExchangeValues = {
-              transfer_address: flashExchangeConfig.transfer_address || '',
-              min_trx_balance: flashExchangeConfig.min_trx_balance || 0,
-              profit_usdt_to_trx: flashExchangeConfig.profit_usdt_to_trx || 0,
-              max_usdt_to_trx: flashExchangeConfig.max_usdt_to_trx || 0,
-              profit_trx_to_usdt: flashExchangeConfig.profit_trx_to_usdt || 0,
-              max_trx_to_usdt: flashExchangeConfig.max_trx_to_usdt || 0,
-              stock_notice: flashExchangeConfig.stock_notice || false,
-              stock_notice_trx_amount: flashExchangeConfig.stock_notice_trx_amount || 0
+            if (systemPriceRes.code === '000000' && systemPriceRes.data) {
+              if (!priceConfig.agent_price) {
+                priceConfig.agent_price = {}
+              }
+
+              const systemPrice = systemPriceRes.data
+              priceConfig.agent_price.profit_usdt_to_trx = parseFloat(systemPrice.usdt_2_trx)
+              priceConfig.agent_price.profit_trx_to_usdt = parseFloat(systemPrice.trx_2_usdt)
+
+              console.log('系统成本价获取成功:', priceConfig.agent_price)
             }
 
-            // 设置表单值
-            formMethods.flashExchange.setValues(flashExchangeValues)
+            // 2. 获取代理设置的价格（表单数据）
+            console.log('获取代理设置的价格，ID:', id)
+            const botPriceConfigRes = await v1GetBotPriceConfig(id)
+
+            if (botPriceConfigRes.code === '000000' && botPriceConfigRes.data) {
+              const botPriceData = botPriceConfigRes.data
+              console.log('代理设置的价格获取成功:', botPriceData)
+
+              // 从 agent_price 和其他字段中提取闪兑相关字段
+              const agentPrice = botPriceData.agent_price || {}
+
+              // 3. 获取闪兑收款地址（kind=3: 兑换 TRX-USDT）
+              console.log('获取闪兑收款地址，bot_id:', id)
+              const addressListRes = await v1GetAddressList({
+                bot_id: id,
+                kind: 3, // 兑换地址
+                current_page: 1,
+                page_size: 10
+              })
+
+              let exchangeAddress = ''
+              if (addressListRes.code === '000000' && addressListRes.data) {
+                const addressList = addressListRes.data.list || []
+                console.log('闪兑地址列表:', addressList)
+
+                // 查找 kind=3 的地址
+                const exchangeAddressItem = addressList.find(
+                  (item) => item.kind === 3 || item.kind === '3'
+                )
+                exchangeAddress = exchangeAddressItem?.address || ''
+                console.log('找到的闪兑地址:', exchangeAddress)
+              }
+
+              const flashExchangeValues = {
+                transfer_address: exchangeAddress, // kind=3: 兑换地址
+                min_trx_balance: botPriceData.min_trx_balance || 0,
+                profit_usdt_to_trx: agentPrice.usdt_2_trx || 0,
+                max_usdt_to_trx: botPriceData.max_usdt_2_trx || 0,
+                profit_trx_to_usdt: agentPrice.trx_2_usdt || 0,
+                max_trx_to_usdt: botPriceData.max_trx_2_usdt || 0,
+                stock_notice: false, // TODO: 从哪里获取？
+                stock_notice_trx_amount: 0 // TODO: 从哪里获取？
+              }
+
+              console.log('闪兑表单数据:', flashExchangeValues)
+
+              // 设置表单值
+              formMethods.flashExchange.setValues(flashExchangeValues)
+            }
+
             return true
           } catch (error) {
             console.error('加载闪兑配置失败:', error)
@@ -289,22 +518,71 @@ export function useBotConfig() {
         // 福利价格配置加载策略
         welfarePrice: async () => {
           try {
-            // 这里仍然需要获取时间能量配置以设置表单
-            const welfarePriceRes = await getBotTimeEnergyConfigApi(id)
-            const welfarePriceConfig = welfarePriceRes.data || {}
+            // 1. 获取系统成本价（用于显示成本价）
+            console.log('获取系统成本价')
+            const systemPriceRes = await v1GetSystemPrice()
 
-            // 设置表单值 (保留)
-            console.log('welfarePriceConfig', welfarePriceConfig)
-            formMethods.welfarePrice.setValues({
-              weal_address: currentBot.value.weal_address,
-              weal_price_trx: welfarePriceConfig.weal_price_trx,
-              hour_limit_count: welfarePriceConfig.hour_limit_count || 0,
-              total_limit_count: welfarePriceConfig.total_limit_count || 0,
-              check_resource_status: welfarePriceConfig.check_resource_status || 2
-            })
+            if (systemPriceRes.code === '000000' && systemPriceRes.data) {
+              if (!priceConfig.agent_price) {
+                priceConfig.agent_price = {}
+              }
+
+              const systemPrice = systemPriceRes.data
+              priceConfig.agent_price.weal_price_trx = parseFloat(systemPrice.weal_time_1h)
+
+              console.log('系统成本价获取成功:', priceConfig.agent_price)
+            }
+
+            // 2. 获取代理设置的价格（表单数据）
+            console.log('获取代理设置的价格，ID:', id)
+            const botPriceConfigRes = await v1GetBotPriceConfig(id)
+
+            if (botPriceConfigRes.code === '000000' && botPriceConfigRes.data) {
+              const botPriceData = botPriceConfigRes.data
+              console.log('代理设置的价格获取成功:', botPriceData)
+
+              // 从 agent_price 和其他字段中提取福利价格相关字段
+              const agentPrice = botPriceData.agent_price || {}
+
+              // 3. 获取福利收款地址（kind=6: 福利能量）
+              console.log('获取福利收款地址，bot_id:', id)
+              const addressListRes = await v1GetAddressList({
+                bot_id: id,
+                kind: 6, // 福利能量地址
+                current_page: 1,
+                page_size: 10
+              })
+
+              let wealAddress = ''
+              if (addressListRes.code === '000000' && addressListRes.data) {
+                const addressList = addressListRes.data.list || []
+                console.log('福利地址列表:', addressList)
+
+                // 查找 kind=6 的地址
+                const wealAddressItem = addressList.find(
+                  (item) => item.kind === 6 || item.kind === '6'
+                )
+                wealAddress = wealAddressItem?.address || ''
+                console.log('找到的福利地址:', wealAddress)
+              }
+
+              const welfarePriceValues = {
+                weal_address: wealAddress, // kind=6: 福利能量地址
+                weal_price_trx: agentPrice.weal_time_1h || 0,
+                hour_limit_count: botPriceData.weal_hour_limit || 0,
+                total_limit_count: botPriceData.weal_total_limit || 0,
+                check_resource_status: 2 // TODO: 从哪里获取？
+              }
+
+              console.log('福利价格表单数据:', welfarePriceValues)
+
+              // 设置表单值
+              formMethods.welfarePrice.setValues(welfarePriceValues)
+            }
+
             return true
           } catch (error) {
-            console.error('加载时间能量价格配置失败:', error)
+            console.error('加载福利价格配置失败:', error)
             return false
           }
         }
@@ -372,7 +650,17 @@ export function useBotConfig() {
           if (!formMethods.botInfo) return false
           try {
             const botInfoData = await formMethods.botInfo.getFormData()
-            await updateBotApi({ ...botInfoData, id })
+
+            // 使用新接口 v1UpdateBot（代理只能更新自己的机器人）
+            // 只传递允许更新的字段
+            await v1UpdateBot({
+              id: id,
+              describe: botInfoData.describe,
+              status: botInfoData.status,
+              tg_admin: botInfoData.tg_admin
+              // auto_renew 字段在表单中不存在，不传递
+            })
+
             return true
           } catch (error) {
             console.error('保存基本信息配置失败:', error)
@@ -410,7 +698,51 @@ export function useBotConfig() {
               return false
             }
 
-            await updateBotTimeEnergyConfigApi({ ...timeEnergyData, id })
+            // 验证价格不能低于成本价
+            const costPrices = priceConfig.agent_price || {}
+            const priceChecks = [
+              { field: 'flash_price', cost: costPrices.flash_rent_price, label: '闪租价格' },
+              { field: 'day_1_price', cost: costPrices.day_1_price, label: '1天租赁价格' },
+              { field: 'day_3_price', cost: costPrices.day_3_price, label: '3天租赁价格' },
+              { field: 'day_7_price', cost: costPrices.day_7_price, label: '7天租赁价格' },
+              { field: 'day_15_price', cost: costPrices.day_15_price, label: '15天租赁价格' },
+              { field: 'day_30_price', cost: costPrices.day_30_price, label: '30天租赁价格' }
+            ]
+
+            for (const check of priceChecks) {
+              if (timeEnergyData[check.field] < check.cost) {
+                ElMessage.error(`${check.label}不能低于成本价 ${check.cost} TRX`)
+                return false
+              }
+            }
+
+            // 先获取当前配置
+            const currentConfigRes = await v1GetBotPriceConfig(id)
+            const currentConfig = currentConfigRes.data || {}
+            const currentAgentPrice = currentConfig.agent_price || {}
+
+            // 使用新接口 v1UpdateBotPrice，合并当前配置和新数据
+            await v1UpdateBotPrice({
+              bot_id: id,
+              agent_price: {
+                ...currentAgentPrice, // 保留其他字段的原值
+                flash: timeEnergyData.flash_price, // 只更新时间能量相关字段
+                time_1d: timeEnergyData.day_1_price,
+                time_3d: timeEnergyData.day_3_price,
+                time_7d: timeEnergyData.day_7_price,
+                time_15d: timeEnergyData.day_15_price,
+                time_30d: timeEnergyData.day_30_price
+              },
+              // 保留其他配置字段的原值
+              allow_pledge: currentConfig.allow_pledge,
+              max_trx_2_usdt: currentConfig.max_trx_2_usdt,
+              max_usdt_2_trx: currentConfig.max_usdt_2_trx,
+              min_trx_balance: currentConfig.min_trx_balance,
+              notice_status: currentConfig.notice_status,
+              weal_hour_limit: currentConfig.weal_hour_limit,
+              weal_total_limit: currentConfig.weal_total_limit
+            })
+
             return true
           } catch (error) {
             console.error('保存时间能量配置失败:', error)
@@ -423,7 +755,37 @@ export function useBotConfig() {
           if (!formMethods.countEnergy) return false
           try {
             const countEnergyData = await formMethods.countEnergy.getFormData()
-            await updateBotCountEnergyConfigApi({ ...countEnergyData, id })
+
+            // 验证价格不能低于成本价
+            const costPrices = priceConfig.agent_price || {}
+            if (countEnergyData.count_price_trx < costPrices.count_price) {
+              ElMessage.error(`TRX价格不能低于成本价 ${costPrices.count_price} TRX`)
+              return false
+            }
+
+            // 先获取当前配置
+            const currentConfigRes = await v1GetBotPriceConfig(id)
+            const currentConfig = currentConfigRes.data || {}
+            const currentAgentPrice = currentConfig.agent_price || {}
+
+            // 使用新接口 v1UpdateBotPrice，合并当前配置和新数据
+            await v1UpdateBotPrice({
+              bot_id: id,
+              agent_price: {
+                ...currentAgentPrice, // 保留其他字段的原值
+                stroke: countEnergyData.count_price_trx, // 只更新笔数能量相关字段
+                stroke_usdt: countEnergyData.count_price_usdt
+              },
+              // 保留其他配置字段的原值
+              allow_pledge: currentConfig.allow_pledge,
+              max_trx_2_usdt: currentConfig.max_trx_2_usdt,
+              max_usdt_2_trx: currentConfig.max_usdt_2_trx,
+              min_trx_balance: currentConfig.min_trx_balance,
+              notice_status: currentConfig.notice_status,
+              weal_hour_limit: currentConfig.weal_hour_limit,
+              weal_total_limit: currentConfig.weal_total_limit
+            })
+
             return true
           } catch (error) {
             console.error('保存笔数能量配置失败:', error)
@@ -436,7 +798,41 @@ export function useBotConfig() {
           if (!formMethods.managedMode) return false
           try {
             const managedModeData = await formMethods.managedMode.getFormData()
-            await updateBotManagedModeConfigApi({ ...managedModeData, id })
+
+            // 验证价格不能低于成本价
+            const costPrices = priceConfig.agent_price || {}
+            if (managedModeData.price_trx_65000 < costPrices.manage_price_65000) {
+              ElMessage.error(`65000能量价格不能低于成本价 ${costPrices.manage_price_65000} TRX`)
+              return false
+            }
+            if (managedModeData.price_trx_131000 < costPrices.manage_price_13100) {
+              ElMessage.error(`131000能量价格不能低于成本价 ${costPrices.manage_price_13100} TRX`)
+              return false
+            }
+
+            // 先获取当前配置
+            const currentConfigRes = await v1GetBotPriceConfig(id)
+            const currentConfig = currentConfigRes.data || {}
+            const currentAgentPrice = currentConfig.agent_price || {}
+
+            // 使用新接口 v1UpdateBotPrice，合并当前配置和新数据
+            await v1UpdateBotPrice({
+              bot_id: id,
+              agent_price: {
+                ...currentAgentPrice, // 保留其他字段的原值
+                hosting_65k: managedModeData.price_trx_65000, // 只更新托管模式相关字段
+                hosting_131k: managedModeData.price_trx_131000
+              },
+              // 保留其他配置字段的原值
+              allow_pledge: currentConfig.allow_pledge,
+              max_trx_2_usdt: currentConfig.max_trx_2_usdt,
+              max_usdt_2_trx: currentConfig.max_usdt_2_trx,
+              min_trx_balance: currentConfig.min_trx_balance,
+              notice_status: currentConfig.notice_status,
+              weal_hour_limit: currentConfig.weal_hour_limit,
+              weal_total_limit: currentConfig.weal_total_limit
+            })
+
             return true
           } catch (error) {
             console.error('保存托管模式配置失败:', error)
@@ -449,7 +845,41 @@ export function useBotConfig() {
           if (!formMethods.batchOrder) return false
           try {
             const batchOrderData = await formMethods.batchOrder.getFormData()
-            await updateBotBatchOrderConfigApi({ ...batchOrderData, id })
+
+            // 验证价格不能低于成本价
+            const costPrices = priceConfig.agent_price || {}
+            if (batchOrderData.batch_energy_price < costPrices.batch_energy_price) {
+              ElMessage.error(`批量能量价格不能低于成本价 ${costPrices.batch_energy_price} TRX`)
+              return false
+            }
+            if (batchOrderData.batch_active_price < costPrices.batch_active_price) {
+              ElMessage.error(`批量激活价格不能低于成本价 ${costPrices.batch_active_price} TRX`)
+              return false
+            }
+
+            // 先获取当前配置
+            const currentConfigRes = await v1GetBotPriceConfig(id)
+            const currentConfig = currentConfigRes.data || {}
+            const currentAgentPrice = currentConfig.agent_price || {}
+
+            // 使用新接口 v1UpdateBotPrice，合并当前配置和新数据
+            await v1UpdateBotPrice({
+              bot_id: id,
+              agent_price: {
+                ...currentAgentPrice, // 保留其他字段的原值
+                batch_flash: batchOrderData.batch_energy_price, // 只更新批量下单相关字段
+                active: batchOrderData.batch_active_price
+              },
+              // 保留其他配置字段的原值
+              allow_pledge: currentConfig.allow_pledge,
+              max_trx_2_usdt: currentConfig.max_trx_2_usdt,
+              max_usdt_2_trx: currentConfig.max_usdt_2_trx,
+              min_trx_balance: currentConfig.min_trx_balance,
+              notice_status: currentConfig.notice_status,
+              weal_hour_limit: currentConfig.weal_hour_limit,
+              weal_total_limit: currentConfig.weal_total_limit
+            })
+
             return true
           } catch (error) {
             console.error('保存批量下单配置失败:', error)
@@ -462,7 +892,42 @@ export function useBotConfig() {
           if (!formMethods.flashExchange) return false
           try {
             const flashExchangeData = await formMethods.flashExchange.getFormData()
-            await updateBotFlashExchangeConfigApi({ ...flashExchangeData, id })
+
+            // 验证价格不能低于成本价
+            const costPrices = priceConfig.agent_price || {}
+            if (flashExchangeData.profit_usdt_to_trx < costPrices.profit_usdt_to_trx) {
+              ElMessage.error(`USDT兑TRX利润不能低于成本价 ${costPrices.profit_usdt_to_trx}%`)
+              return false
+            }
+            if (flashExchangeData.profit_trx_to_usdt < costPrices.profit_trx_to_usdt) {
+              ElMessage.error(`TRX兑USDT利润不能低于成本价 ${costPrices.profit_trx_to_usdt}%`)
+              return false
+            }
+
+            // 先获取当前配置
+            const currentConfigRes = await v1GetBotPriceConfig(id)
+            const currentConfig = currentConfigRes.data || {}
+            const currentAgentPrice = currentConfig.agent_price || {}
+
+            // 使用新接口 v1UpdateBotPrice，合并当前配置和新数据
+            await v1UpdateBotPrice({
+              bot_id: id,
+              agent_price: {
+                ...currentAgentPrice, // 保留其他字段的原值
+                usdt_2_trx: flashExchangeData.profit_usdt_to_trx, // 只更新闪兑相关字段
+                trx_2_usdt: flashExchangeData.profit_trx_to_usdt
+              },
+              // 更新闪兑配置字段
+              min_trx_balance: flashExchangeData.min_trx_balance,
+              max_usdt_2_trx: flashExchangeData.max_usdt_to_trx,
+              max_trx_2_usdt: flashExchangeData.max_trx_to_usdt,
+              // 保留其他配置字段的原值
+              allow_pledge: currentConfig.allow_pledge,
+              notice_status: currentConfig.notice_status,
+              weal_hour_limit: currentConfig.weal_hour_limit,
+              weal_total_limit: currentConfig.weal_total_limit
+            })
+
             return true
           } catch (error) {
             console.error('保存闪兑配置失败:', error)
@@ -475,9 +940,36 @@ export function useBotConfig() {
           try {
             const welfarePriceData = await formMethods.welfarePrice.getFormData()
 
-            await updateWelfarePriceConfigApi({ ...welfarePriceData, id })
-            // 临时返回成功，等待API接口确认
-            console.log('福利价格配置数据:', welfarePriceData)
+            // 验证价格不能低于成本价
+            const costPrices = priceConfig.agent_price || {}
+            if (welfarePriceData.weal_price_trx < costPrices.flash_rent_price) {
+              ElMessage.error(`福利TRX价格不能低于成本价 ${costPrices.flash_rent_price} TRX`)
+              return false
+            }
+
+            // 先获取当前配置
+            const currentConfigRes = await v1GetBotPriceConfig(id)
+            const currentConfig = currentConfigRes.data || {}
+            const currentAgentPrice = currentConfig.agent_price || {}
+
+            // 使用新接口 v1UpdateBotPrice，合并当前配置和新数据
+            await v1UpdateBotPrice({
+              bot_id: id,
+              agent_price: {
+                ...currentAgentPrice, // 保留其他字段的原值
+                weal_time_1h: welfarePriceData.weal_price_trx // 只更新福利相关字段
+              },
+              // 更新福利配置字段
+              weal_hour_limit: welfarePriceData.hour_limit_count,
+              weal_total_limit: welfarePriceData.total_limit_count,
+              // 保留其他配置字段的原值
+              allow_pledge: currentConfig.allow_pledge,
+              max_trx_2_usdt: currentConfig.max_trx_2_usdt,
+              max_usdt_2_trx: currentConfig.max_usdt_2_trx,
+              min_trx_balance: currentConfig.min_trx_balance,
+              notice_status: currentConfig.notice_status
+            })
+
             ElMessage.success('福利价格配置已保存')
             return true
           } catch (error) {
@@ -512,7 +1004,6 @@ export function useBotConfig() {
       }
       // 如果没有指定表单类型，则处理所有表单（兼容原有逻辑）
       else {
-        const promises: ApiResponse[] = []
         const strategyNames = Object.keys(formStrategies)
 
         // 执行所有可用的策略
@@ -555,7 +1046,7 @@ export function useBotConfig() {
     syncing,
     loading,
     submitting,
-    agentPrices,
+    priceConfig,
     syncTgStatus,
     loadBotAllConfigs,
     submitConfig

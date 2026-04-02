@@ -12,13 +12,13 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive, ref } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
-import { renewBotApi, getBotRenewPriceApi } from '@/api/botlist'
+import { renewBotApi, getBotRenewPriceApi, v1RenewBot, v1GetBotRenewPrice } from '@/api/botlist'
 
 const emit = defineEmits(['success', 'close'])
 const dialogVisible = ref(false)
@@ -28,19 +28,7 @@ const { required } = useValidator()
 const { formRegister, formMethods } = useForm()
 const botPrice = ref<any>(null)
 
-onMounted(async () => {
-  try {
-    const res = await getBotRenewPriceApi()
-    if (res && res.data) {
-      botPrice.value = res.data
-    } else {
-      ElMessage.error('获取配置失败')
-    }
-  } catch (error) {
-    console.error('获取配置失败:', error)
-    ElMessage.error('获取配置失败，请稍后重试')
-  }
-})
+// 移除 onMounted，改为在 open 方法中调用
 
 // 表单配置
 const formSchema = reactive<FormSchema[]>([
@@ -64,9 +52,23 @@ const formSchema = reactive<FormSchema[]>([
 ])
 
 // 打开弹窗
-const open = (botInfo: Record<string, any>) => {
+const open = async (botInfo: Record<string, any>) => {
   currentBot.value = botInfo
   console.log('currentBot', botInfo.fee)
+
+  // 获取续费价格
+  try {
+    const res = await v1GetBotRenewPrice()
+    if (res && res.data) {
+      botPrice.value = res.data
+    } else {
+      ElMessage.error('获取续费价格失败')
+    }
+  } catch (error) {
+    console.error('获取续费价格失败:', error)
+    ElMessage.error('获取续费价格失败，请稍后重试')
+  }
+
   dialogVisible.value = true
 
   // 设置表单数据
@@ -91,14 +93,22 @@ const submit = async () => {
     const formData = await formMethods.getFormData()
 
     try {
-      const res = await renewBotApi({
+      // 使用新接口 v1RenewBot
+      const res = await v1RenewBot({
         id: currentBot.value.id,
         month_num: formData.month_num
       })
       console.log('续费结果:', res)
-      ElMessage.success('续费成功')
-      dialogVisible.value = false
-      emit('success')
+
+      // 检查响应 code
+      if (res.code === '000000') {
+        ElMessage.success('续费成功')
+        dialogVisible.value = false
+        emit('success')
+      } else {
+        // 后端返回的业务错误
+        ElMessage.error((res as any).msg || '续费失败')
+      }
     } catch (error) {
       console.error('续费失败:', error)
       ElMessage.error('续费失败，请稍后重试')

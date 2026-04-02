@@ -16,27 +16,30 @@
         </ElTabPane>
 
         <ElTabPane label="时间能量价格" name="timeEnergy">
-          <TimeEnergyTab ref="timeEnergyTabRef" :agent-prices="agentPrices" />
+          <TimeEnergyTab ref="timeEnergyTabRef" :agent-prices="priceConfig.agent_price || {}" />
         </ElTabPane>
 
         <ElTabPane label="笔数能量价格" name="countEnergy">
-          <CountEnergyTab ref="countEnergyTabRef" :agent-prices="agentPrices" />
+          <CountEnergyTab ref="countEnergyTabRef" :agent-prices="priceConfig.agent_price || {}" />
         </ElTabPane>
 
         <ElTabPane label="托管模式价格" name="managedMode">
-          <ManagedModeTab ref="managedModeTabRef" :agent-prices="agentPrices" />
+          <ManagedModeTab ref="managedModeTabRef" :agent-prices="priceConfig.agent_price || {}" />
         </ElTabPane>
 
         <ElTabPane label="批量下单价格" name="batchOrder">
-          <BatchOrderTab ref="batchOrderTabRef" :agent-prices="agentPrices" />
+          <BatchOrderTab ref="batchOrderTabRef" :agent-prices="priceConfig.agent_price || {}" />
         </ElTabPane>
 
         <ElTabPane label="闪兑配置" name="flashExchange">
-          <FlashExchangeTab ref="flashExchangeTabRef" :agent-prices="agentPrices" />
+          <FlashExchangeTab
+            ref="flashExchangeTabRef"
+            :agent-prices="priceConfig.agent_price || {}"
+          />
         </ElTabPane>
 
         <ElTabPane label="福利板块" name="welfarePrice">
-          <WelfarePriceTab ref="welfarePriceTabRef" :agent-prices="agentPrices" />
+          <WelfarePriceTab ref="welfarePriceTabRef" :agent-prices="priceConfig.agent_price || {}" />
         </ElTabPane>
       </ElTabs>
     </div>
@@ -85,7 +88,7 @@ const {
   syncing,
   loading,
   submitting,
-  agentPrices,
+  priceConfig,
   syncTgStatus,
   loadBotAllConfigs,
   submitConfig
