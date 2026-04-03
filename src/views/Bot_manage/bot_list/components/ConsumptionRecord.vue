@@ -45,22 +45,24 @@ const total = ref(0)
 // 表格列配置
 const columns = [
   {
-    field: 'order_id',
-    label: '订单ID',
-    minWidth: 180,
-    slots: {
-      default: ({ row }: { row: ConsumptionRecord }) => <span>{row.order_id || '-'}</span>
-    }
+    field: 'bot_id',
+    label: '机器人ID',
+    width: 150
   },
-  { field: 'bot_name', label: '机器人名称', width: 150 },
+  {
+    field: 'bot_name',
+    label: '机器人昵称',
+    width: 180
+  },
   {
     field: 'amount',
-    label: '金额',
-    width: 120,
+    label: '费用',
+    width: 150,
     slots: {
       default: ({ row }: { row: ConsumptionRecord }) => (
         <span style={{ color: 'red' }}>
-          -{row.amount} {row.coin}
+          {row.amount}
+          {row.coin}
         </span>
       )
     }
@@ -68,21 +70,26 @@ const columns = [
   {
     field: 'balance',
     label: '余额',
-    width: 120,
+    width: 150,
     slots: {
       default: ({ row }: { row: ConsumptionRecord }) => (
         <span>
-          {row.balance} {row.coin}
+          {row.balance}
+          {row.coin}
         </span>
       )
     }
   },
-  { field: 'describe', label: '描述', minWidth: 150 },
+  {
+    field: 'describe',
+    label: '描述',
+    minWidth: 150
+  },
   {
     field: 'created_at',
     label: '创建时间',
-    minWidth: 160,
-    formatter: (row: ConsumptionRecord) => formatToDateTime(row.created_at)
+    width: 180,
+    formatter: (row: ConsumptionRecord) => formatToDateTime(row.created_at * 1000)
   }
 ]
 

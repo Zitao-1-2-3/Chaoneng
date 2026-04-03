@@ -85,12 +85,8 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
-import {
-  getMassSendRecordsApi,
-  getMassSendRecordDetailApi,
-  deleteMassSendRecordApi,
-  resendMassSendRecordApi
-} from '@/api/tgUser'
+import { v1GetMassSendList, v1DeleteMassSend, v1SendGroupMessage } from '@/api/tgUser'
+import type { MassSendListParamsV1 } from '@/api/tgUser/types'
 
 const props = defineProps({
   modelValue: {
@@ -112,6 +108,19 @@ const dialogVisible = computed({
 
 // 机器人选项
 const botOptions = computed<Array<{ label: string; value: number | string }>>(() => props.botList)
+
+// 机器人信息映射表
+const botInfoMap = computed(() => {
+  const map = new Map<number, string>()
+  props.botList.forEach((bot: any) => {
+    // 从 label 中提取机器人用户名（格式：user_name (first_name)）
+    const match = bot.label.match(/^([^\s]+)/)
+    if (match && bot.value) {
+      map.set(Number(bot.value), match[1])
+    }
+  })
+  return map
+})
 
 // SearchTable引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -210,23 +219,49 @@ const currentRecord = ref<Record<string, any>>({})
 // API封装 - 获取群发记录
 const fetchMassSendRecords = async (params: any) => {
   try {
-    const queryParams: any = {
-      bot_id: params.bot_id,
-      page_size: params.pageSize || 10,
-      current_page: params.currentPage || 1
-    }
-    if (params.date_range && params.date_range.length === 2) {
-      queryParams.start_date = params.date_range[0]
-      queryParams.end_date = params.date_range[1]
+    const queryParams: MassSendListParamsV1 = {
+      current_page: Number(params.currentPage) || 1,
+      page_size: Number(params.pageSize) || 10
     }
 
-    const response = await getMassSendRecordsApi(queryParams)
-    // Ensure the list data (response.data.list) contains all necessary fields for detail view:
-    // content, keyboards, ReceiveType, tg_user_ids, image, etc.
-    return {
-      list: response.data.list || [],
-      total: response.data.totalCount || 0
+    // 只有当 bot_id 有值时才添加参数
+    if (params.bot_id !== undefined && params.bot_id !== '') {
+      queryParams.bot_id = Number(params.bot_id)
     }
+
+    // 使用新接口 v1GetMassSendList
+    const response = await v1GetMassSendList(queryParams)
+
+    if (response.code === '000000' && response.data) {
+      const mappedList = (response.data.list || []).map((item: any) => {
+        // 从 botInfoMap 中获取机器人用户名
+        const botUserName = botInfoMap.value.get(item.bot_id) || ''
+
+        return {
+          id: item.id,
+          tg_bot_id: item.bot_id,
+          bot_name: botUserName,
+          status: item.status,
+          Percent: item.percent,
+          ok_num: item.ok_num,
+          fail_num: item.fail_num,
+          create_time: item.created_at,
+          // 详情字段
+          content: item.content,
+          keyboards: item.keyboards,
+          ReceiveType: item.receive_type,
+          tg_user_ids: item.tg_user_ids,
+          image: item.image
+        }
+      })
+
+      return {
+        list: mappedList,
+        total: response.data.pager?.total || 0
+      }
+    }
+
+    return { list: [], total: 0 }
   } catch (error) {
     console.error('获取群发记录失败:', error)
     ElMessage.error('获取记录失败')
@@ -245,16 +280,42 @@ const viewDetail = async (row: any) => {
   }
 }
 
-// 再发一次 处理函数
+// 再发一次 处理函数 - 使用群发消息接口重新发送
 const handleResend = async (row: any) => {
   try {
-    await ElMessageBox.confirm(`确定要再次发送这条群发消息吗？ (记录ID: ${row.id})`, '确认重发', {
+    await ElMessageBox.confirm(`确定要再次发送这条群发消息吗？`, '确认重发', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
 
-    await resendMassSendRecordApi(row.id)
+    // 使用群发消息接口 v1SendGroupMessage，参数与原记录一致
+    const apiParams: any = {
+      bot_id: row.tg_bot_id,
+      receive_type: row.ReceiveType,
+      content: row.content
+    }
+
+    if (row.keyboards && row.keyboards.length > 0) {
+      apiParams.keyboards = row.keyboards
+    }
+
+    if (row.image) {
+      apiParams.image = row.image
+    }
+
+    if (row.ReceiveType === 'user_custom' && row.tg_user_ids) {
+      // 将字符串转换为数字数组
+      const userIds = row.tg_user_ids
+        .split(',')
+        .map((id: string) => Number(id.trim()))
+        .filter((id: number) => !isNaN(id) && id !== 0)
+      if (userIds.length > 0) {
+        apiParams.tg_user_ids = userIds
+      }
+    }
+
+    await v1SendGroupMessage(apiParams)
     ElMessage.success('消息已成功再次发送！')
     searchTableRef.value?.reload()
   } catch (error) {
@@ -285,7 +346,8 @@ const handleDelete = async (row: any) => {
       }
     )
 
-    await deleteMassSendRecordApi(row.id)
+    // 使用新接口 v1DeleteMassSend
+    await v1DeleteMassSend(row.id)
     ElMessage.success('群发记录已删除！')
     searchTableRef.value?.reload()
   } catch (error) {

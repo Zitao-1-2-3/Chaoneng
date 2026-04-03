@@ -56,42 +56,28 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h, computed, reactive } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { ElButton, ElTag, ElMessage, ElLink } from 'element-plus'
+import { ElMessage, ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
-import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
-import { Form, FormSchema } from '@/components/Form'
-import { Descriptions } from '@/components/Descriptions'
+import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
-import type { DescriptionsSchema } from '@/components/Descriptions'
-import {
-  getTgUserListApi,
-  sendMessageToUserApi,
-  getUserBalanceRecordsApi,
-  exportTgUserListApi
-} from '@/api/tgUser'
-import { getBotListApi } from '@/api/botlist'
-import { useValidator } from '@/hooks/web/useValidator'
-import { useClipboard } from '@/hooks/web/useClipboard'
+import { v1GetUserList, exportTgUserListApi } from '@/api/tgUser'
+import type { UserListParamsV1 } from '@/api/tgUser/types'
+import { v1GetBotList } from '@/api/botlist'
 import MessageDialog from './components/MessageDialog.vue'
 import MassSendRecordDialog from './components/MassSendRecordDialog.vue'
 import { useRoute, useRouter } from 'vue-router'
 import RechargeDialog from './components/RechargeDialog.vue'
 import BalanceRecordDialog from './components/BalanceRecordDialog.vue'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
-import { nextTick } from 'vue'
 import { downloadByData } from '@/utils/download'
 
 const route = useRoute()
 const router = useRouter()
-// 表单校验
-const { required } = useValidator()
-
-const massSendRecordDialogRef = ref<InstanceType<typeof MassSendRecordDialog> | null>(null)
 
 // State for conditional rendering
 const isBotListLoaded = ref(false)
@@ -103,15 +89,25 @@ const botOptions = ref<{ label: string; value: string }[]>([{ label: '全部', v
 const fetchBotList = async () => {
   isBotListLoaded.value = false
   try {
-    const res = await getBotListApi({})
-    const bots = (res.data.list || []).map((bot: any) => ({
-      label: `${bot.name} (${bot.firstname})`,
-      value: String(bot.id)
-    }))
-    botOptions.value = [{ label: '全部', value: '' }, ...bots]
-    isBotListLoaded.value = true
+    const res = await v1GetBotList({ page_size: 1000, current_page: 1 })
+    if (res.code === '000000' && res.data) {
+      const bots = (res.data.list || []).map((bot: any) => {
+        // 保存机器人信息到 Map 中
+        botInfoMap.value.set(bot.id, {
+          user_name: bot.user_name,
+          first_name: bot.first_name
+        })
+        return {
+          label: `${bot.user_name} (${bot.first_name})`,
+          value: String(bot.id)
+        }
+      })
+      botOptions.value = [{ label: '全部', value: '' }, ...bots]
+      isBotListLoaded.value = true
+    }
   } catch (error) {
     console.error('获取机器人列表失败:', error)
+    isBotListLoaded.value = false
   }
 }
 
@@ -119,6 +115,9 @@ const fetchBotList = async () => {
 const botsForDialog = computed(() => {
   return botOptions.value.filter((option) => option.value !== '')
 })
+
+// 机器人信息映射表
+const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(new Map())
 
 // 当前选中账户
 const currentAccount = ref<any>({})
@@ -248,8 +247,56 @@ const searchSchema = computed<FormSchema[]>(() => [
 // API 封装 - 获取账户信息
 const fetchAccountList = async (params: any) => {
   try {
-    const response = await getTgUserListApi(params)
-    return response.data
+    const queryParams: UserListParamsV1 = {
+      current_page: Number(params.current_page) || 1,
+      page_size: Number(params.page_size) || 10
+    }
+
+    // 只有当 bot_id 有值时才添加参数
+    if (params.bot_id !== undefined && params.bot_id !== '') {
+      queryParams.bot_id = Number(params.bot_id)
+    }
+
+    // 只有当 query 有值时才添加 keyword 参数
+    if (params.query && params.query.trim()) {
+      queryParams.keyword = params.query.trim()
+    }
+
+    // 使用新接口 v1GetUserList
+    const response = await v1GetUserList(queryParams)
+
+    if (response.code === '000000' && response.data) {
+      const mappedList = (response.data.list || []).map((item: any) => {
+        // 从 botInfoMap 中获取机器人信息
+        const botInfo = botInfoMap.value.get(item.bot_id)
+        const botUserName = botInfo ? botInfo.user_name : ''
+        const botFirstName = botInfo ? botInfo.first_name : ''
+
+        return {
+          id: item.id,
+          tg_id: item.tg_user_id,
+          nickname: item.tg_first_name,
+          tg_name: item.tg_user_name,
+          tg_bot_id: item.bot_id,
+          bot_info: {
+            tg_bot_id: item.bot_id,
+            bot_name: botUserName,
+            firstname: botFirstName
+          },
+          trx_mount: item.trx_balance,
+          usdt_mount: item.usdt_balance,
+          create_time: item.created_at,
+          update_time: item.updated_at
+        }
+      })
+
+      return {
+        list: mappedList,
+        total: response.data.pager?.total || 0
+      }
+    }
+
+    return { list: [], total: 0 }
   } catch (error) {
     console.error('获取TG用户列表失败:', error)
     return { list: [], total: 0 }

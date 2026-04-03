@@ -40,8 +40,7 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
-import { sendMessageToUserApi, massSendMessageApi } from '@/api/tgUser'
-import { getBotReplyMenuListApi } from '@/api/menu_list'
+import { v1SendGroupMessage, v1SendMessage, v1GetInlineButtonList } from '@/api/tgUser'
 import { upload as uploadAPI } from '@/api/utils/upload'
 import type { MenuItem } from '@/api/menu_list/types'
 import { useRouter } from 'vue-router'
@@ -148,17 +147,25 @@ const getContent = async () => (await getFormData())?.content || ''
 const setContent = async (newContent: string) => await setValues({ content: newContent })
 const { renderFormattingButtons } = useHtmlInsert(getContent, setContent)
 
-// 获取内联菜单列表
+// 获取内联菜单列表 - 使用新接口 v1GetInlineButtonList，锁定 menu_type 为 2
 const fetchMenuList = async () => {
   try {
-    const res = await getBotReplyMenuListApi({})
+    const res = await v1GetInlineButtonList({
+      menu_type: 2, // 锁定为内联按钮类型
+      current_page: 1,
+      page_size: 100 // 获取足够多的菜单项
+    })
 
     console.log('res', res)
-    menuList.value = res.data || []
+    if (res.code === '000000' && res.data) {
+      menuList.value = res.data.list || []
+    } else {
+      menuList.value = []
+    }
   } catch (error: any) {
     menuList.value = []
     console.error('获取内联菜单失败:', error)
-    ElMessage.error('获取内联菜单失败: ' + error?.msg || '未知错误')
+    ElMessage.error('获取内联菜单失败: ' + (error?.msg || '未知错误'))
   }
 }
 
@@ -392,19 +399,18 @@ const handleSubmit = async () => {
 
     try {
       if (props.type === 'single') {
+        // 使用新接口 v1SendMessage
         const apiParams: any = {
-          id: props.user?.id,
+          user_id: props.user?.id,
           content: formData.content
         }
         if (keyboards.length > 0) {
           apiParams.keyboards = keyboards
         }
-        if (imageUrl) {
-          apiParams.image = imageUrl
-        }
-        await sendMessageToUserApi(apiParams)
+        // 注意：单个消息发送接口不支持图片，如果有图片需求需要确认后端接口
+        await v1SendMessage(apiParams)
       } else {
-        // 群发
+        // 群发 - 使用新接口 v1SendGroupMessage
         const apiParams: any = {
           bot_id: Number(formData.bot_id),
           receive_type: formData.filter_type,
@@ -440,7 +446,7 @@ const handleSubmit = async () => {
         }
         // 对于非 'user_custom' 类型，tg_user_ids 不需要传递
 
-        await massSendMessageApi(apiParams)
+        await v1SendGroupMessage(apiParams)
       }
 
       emit('success')

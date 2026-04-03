@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, reactive, nextTick, defineProps, defineEmits } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
@@ -27,9 +27,9 @@ import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
-import { rechargeUserBalanceApi } from '@/api/tgUser'
+import { v1RechargeUser } from '@/api/tgUser'
+import type { RechargeUserParamsV1 } from '@/api/tgUser/types'
 
-const formRef = ref<InstanceType<typeof Form>>()
 const props = defineProps({
   visible: {
     type: Boolean,
@@ -193,16 +193,16 @@ const handleRecharge = async () => {
       // 获取表单数据
       const formData = await formMethods.getFormData()
 
-      // 构建参数（符合API要求的类型）
-      const params = {
-        id: userAccount.value.id,
+      // 构建参数（使用新接口 v1RechargeUser）
+      const params: RechargeUserParamsV1 = {
+        user_id: userAccount.value.id,
         amount: formData.amount,
-        unit: formData.unit,
+        coin: formData.unit, // unit → coin
         describe: formData.describe
       }
 
-      // 调用充值API
-      await rechargeUserBalanceApi(params)
+      // 调用充值API - 使用新接口
+      await v1RechargeUser(params)
 
       ElMessage.success('充值成功')
       close()

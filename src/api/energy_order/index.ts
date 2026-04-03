@@ -1,4 +1,41 @@
 import request from '@/axios'
+import type {
+  EnergyOrderListParamsV1,
+  EnergyOrderListResponseV1,
+  EnergyOrderDetailResponseV1
+} from './types'
+
+// 导出类型定义
+export * from './types'
+
+// ========== 新接口 v1 ==========
+
+/**
+ * 获取能量订单列表 - 新接口 v1
+ * GET /v1/order/energy/list
+ */
+export const v1GetEnergyOrderList = (
+  params: EnergyOrderListParamsV1
+): Promise<IResponse<EnergyOrderListResponseV1>> => {
+  return request.get({
+    url: '/v1/order/energy/list',
+    params
+  })
+}
+
+/**
+ * 获取订单详情 - 新接口 v1
+ * GET /v1/order/{id}
+ */
+export const v1GetEnergyOrderDetail = (
+  id: string
+): Promise<IResponse<EnergyOrderDetailResponseV1>> => {
+  return request.get({
+    url: `/v1/order/${id}`
+  })
+}
+
+// ========== 旧接口 ==========
 
 // 获取能量订单列表
 export const getEnergyOrderListApi = (params: any) => {

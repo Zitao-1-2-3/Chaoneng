@@ -23,41 +23,22 @@
 
       <!-- 订单详情弹窗 (使用新组件) -->
       <OrderDetailDialog v-model="orderDialogVisible" :order-data="selectedOrderDetail" />
-
-      <!-- 交易详情弹窗 -->
-      <Dialog v-model="transactionDialogVisible" :title="'交易详情'">
-        <Descriptions
-          :schema="transactionDetailSchema"
-          :data="transactionDetail"
-          :column="2"
-          border
-        />
-        <template #footer>
-          <div class="flex justify-end">
-            <ElButton @click="transactionDialogVisible = false">关闭</ElButton>
-          </div>
-        </template>
-      </Dialog>
     </ContentWrap>
   </div>
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h, computed } from 'vue'
+import { ref, onMounted, h } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
-import { ElButton, ElTag, ElLink, ElMessage } from 'element-plus'
+import { ElTag, ElLink, ElMessage } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
-import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
-import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
-import type { DescriptionsSchema } from '@/components/Descriptions'
 import {
-  getEnergyOrderListApi,
-  getEnergyOrderDetailApi,
-  getBandwidthOrderDetailApi,
+  v1GetEnergyOrderList,
+  v1GetEnergyOrderDetail,
   exportEnergyOrderApi
 } from '@/api/energy_order'
 import OrderDetailDialog from './components/OrderDetailDialog.vue'
@@ -71,8 +52,6 @@ const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const totalCount = ref(0)
 const orderDialogVisible = ref(false)
 const selectedOrderDetail = ref<any>(null)
-const transactionDialogVisible = ref(false)
-const transactionDetail = ref<any>({})
 const currentSearchParams = ref({})
 
 // 表格列配置
@@ -245,25 +224,15 @@ const columns: TableColumn[] = [
 const actionColumn: TableColumn = {
   field: 'action',
   label: '操作',
-  width: 240,
+  width: 120,
   fixed: 'right',
   slots: {
     default: (data: any) => {
       const row = data.row
       return (
-        <>
-          <BaseButton type="primary" onClick={() => handleViewDetail(row)}>
-            订单详情
-          </BaseButton>
-
-          <BaseButton
-            type="success"
-            onClick={() => handleTransactionDetail(row)}
-            disabled={[3, 5].includes(row.order_type)}
-          >
-            交易详情
-          </BaseButton>
-        </>
+        <BaseButton type="primary" onClick={() => handleViewDetail(row)}>
+          订单详情
+        </BaseButton>
       )
     }
   }
@@ -373,12 +342,59 @@ const navigateToBotList = (botId: string | number) => {
 // API 封装
 const fetchEnergyOrderList = async (params: any) => {
   try {
-    const response = await getEnergyOrderListApi(params)
-    totalCount.value = response.data.totalCount
+    // 映射参数字段
+    const adaptedParams: any = {}
+
+    if (params.order_num) adaptedParams.order_id = params.order_num // order_num → order_id
+    if (params.status) adaptedParams.status = params.status
+    if (params.query) adaptedParams.keyword = params.query // query → keyword
+    if (params.order_type) adaptedParams.kind = params.order_type // order_type → kind
+    if (params.receive_address) adaptedParams.receive_address = params.receive_address
+    if (params.bot_address) adaptedParams.energy_address = params.bot_address // bot_address → energy_address
+    if (params.currentPage) adaptedParams.current_page = params.currentPage
+    if (params.pageSize) adaptedParams.page_size = params.pageSize
+
+    // 处理时间范围（转换为秒数）
+    if (params.dateRange && params.dateRange.length === 2) {
+      adaptedParams.start_time = Math.floor(params.dateRange[0] / 1000).toString()
+      adaptedParams.end_time = Math.floor(params.dateRange[1] / 1000).toString()
+    }
+
+    const response = await v1GetEnergyOrderList(adaptedParams)
+
+    // 映射返回数据字段
+    const list = (response.data?.list || []).map((item: any) => ({
+      id: item.id,
+      order_id: item.id,
+      order_num: item.id, // id → order_num
+      tg_name: item.tg_user_name, // tg_user_name → tg_name
+      nickname: item.tg_first_name, // tg_first_name → nickname
+      tg_id: item.user_id, // user_id → tg_id
+      bot_name: item.bot_name,
+      bot_id: item.bot_id,
+      order_type: item.kind, // kind → order_type
+      order_amount: item.amount, // amount → order_amount
+      pay_unit: item.coin, // coin → pay_unit
+      energy_num: item.energy_amount, // energy_amount → energy_num
+      energy_rent_text: '', // 新接口无此字段，需要根据订单类型计算
+      bot_address: item.energy_address, // energy_address → bot_address
+      receive_address: item.receive_address,
+      stroke_num: item.energy_count, // energy_count → stroke_num
+      status: item.status,
+      create_time: item.created_at, // created_at → create_time
+      finish_time: item.paid_at // paid_at → finish_time
+    }))
+
+    totalCount.value = response.data?.pager?.total || 0
     currentSearchParams.value = params
-    return response.data
+
+    return {
+      list,
+      total: response.data?.pager?.total || 0,
+      totalCount: response.data?.pager?.total || 0
+    }
   } catch (error) {
-    return { list: [], total: 0 }
+    return { list: [], total: 0, totalCount: 0 }
   }
 }
 
@@ -389,19 +405,30 @@ const handleViewDetail = async (row: any) => {
     return
   }
   try {
-    let response: any = null
-
-    // 根据订单类型调用不同的API
-    if (row.order_type === 7 || row.order_type === 9) {
-      // 按笔数-带宽类型和接口调用-带宽类型：调用带宽订单详情API
-      response = await getBandwidthOrderDetailApi(orderId)
-    } else {
-      // 其他类型：调用原有的能量订单详情API
-      response = await getEnergyOrderDetailApi(orderId)
-    }
+    // 使用新接口获取详情
+    const response = await v1GetEnergyOrderDetail(orderId)
 
     if (response && response.data) {
-      selectedOrderDetail.value = response.data
+      // 映射新接口返回的数据到旧的数据结构
+      const detail = response.data
+      selectedOrderDetail.value = {
+        ...detail,
+        // 保持旧字段名以兼容 OrderDetailDialog 组件
+        order_num: detail.id,
+        order_type: detail.kind,
+        tg_name: detail.tg_user_name,
+        create_time: detail.created_at,
+        finish_time: detail.paid_at,
+        pay_time: detail.paid_at,
+        order_amount: detail.amount,
+        pay_unit: detail.coin,
+        // 从列表数据中补充缺失的字段
+        nickname: row.nickname,
+        tg_id: row.tg_id,
+        energy_num: row.energy_num,
+        stroke_num: row.stroke_num,
+        bot_address: row.bot_address
+      }
       orderDialogVisible.value = true
     } else {
       // ElMessage.error removed
@@ -409,50 +436,6 @@ const handleViewDetail = async (row: any) => {
   } catch (error) {
     // ElMessage.error removed
     selectedOrderDetail.value = null
-  }
-}
-
-const handleTransactionDetail = async (row: any) => {
-  const orderId = row.id || row.order_id // 使用订单ID获取详情
-  const txid = row.txid // 保留 txid 用于可能的显示或参考
-
-  if (!orderId) {
-    return
-  }
-
-  try {
-    let response: any = null
-
-    // 根据订单类型调用不同的API
-    if (row.order_type === 7 || row.order_type === 9) {
-      // 按笔数-带宽类型和接口调用-带宽类型：调用带宽订单详情API
-      response = await getBandwidthOrderDetailApi(orderId)
-    } else {
-      // 其他类型：调用原有的能量订单详情API
-      response = await getEnergyOrderDetailApi(orderId)
-    }
-
-    if (response && response.data) {
-      // 将获取到的订单详情数据赋值给交易详情变量
-      transactionDetail.value = response.data
-      transactionDialogVisible.value = true // 打开交易详情弹窗
-    } else {
-      // API 调用失败时，显示基础信息
-      transactionDetail.value = {
-        order_id: orderId,
-        txid: txid || '-',
-        status: '查询失败' // 表明查询失败
-      }
-      transactionDialogVisible.value = true
-    }
-  } catch (error) {
-    // 发生错误时，显示基础信息
-    transactionDetail.value = {
-      order_id: orderId,
-      txid: txid || '-',
-      status: '查询失败'
-    }
-    transactionDialogVisible.value = true
   }
 }
 
@@ -478,99 +461,6 @@ const handleExport = async () => {
 const onSearch = (params: any) => {
   currentSearchParams.value = params
 }
-
-const transactionDetailSchema = computed((): DescriptionsSchema[] => {
-  const orderType = transactionDetail.value?.order_type
-  const isEnergy = orderType === 7 || orderType === 9
-
-  return [
-    {
-      field: 'txid',
-      label: '交易哈希',
-      span: 24,
-      slots: {
-        default: (data: any) => {
-          if (!data || !data.txid) return h('span', '-')
-          return h(
-            ElLink,
-            {
-              href: `${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${data.txid}`,
-              type: 'primary',
-              target: '_blank'
-            },
-            () => data.txid
-          )
-        }
-      }
-    },
-    { field: 'from_address', label: '发起地址', span: 24 },
-    {
-      field: 'receive_address',
-      label: isEnergy ? '带宽接收地址' : '能量接收地址',
-      span: 24
-    },
-    {
-      field: 'status',
-      label: '订单状态',
-      slots: {
-        default: (data: any) => {
-          if (data?.status === undefined) return h('span', '-')
-
-          const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
-            1: 'success', // 已完成
-            2: 'warning', // 已支付
-            3: 'danger' // 支付失败
-          }
-          const statusTextMap: Record<number, string> = {
-            1: '已完成',
-            2: '已支付',
-            3: '支付失败'
-          }
-          const numericStatus =
-            typeof data.status === 'string' ? parseInt(data.status, 10) : data.status
-          if (isNaN(numericStatus)) {
-            return h(ElTag, { type: 'info', size: 'small' }, () => String(data.status || '未知'))
-          }
-          const type = statusColorMap[numericStatus] || 'info'
-          const text = statusTextMap[numericStatus] || '-'
-          return h(ElTag, { type: type, size: 'small' }, () => text)
-        }
-      }
-    },
-    {
-      field: 'energy_num',
-      label: isEnergy ? '带宽数量' : '能量数量',
-      slots: {
-        default: (row: any) => {
-          const val = row?.energy_num
-          if (val === undefined || val === null) return h('span', '-')
-          if (typeof val === 'number' && val > 10000) {
-            return h('span', formatEnergyNum(val))
-          }
-          return h('span', val)
-        }
-      }
-    },
-    {
-      field: 'create_time',
-      label: '创建时间',
-      span: 24,
-      slots: {
-        default: (data: any) =>
-          h('span', {}, data.create_time ? formatToDateTime(data.create_time) : '-')
-      }
-    },
-    {
-      field: 'finish_time',
-      label: '完成时间',
-      span: 24,
-      slots: {
-        default: (data: any) =>
-          h('span', {}, data.finish_time ? formatToDateTime(data.finish_time) : '-')
-      }
-    }
-  ]
-})
 
 onMounted(() => {
   const query = useRoute().query

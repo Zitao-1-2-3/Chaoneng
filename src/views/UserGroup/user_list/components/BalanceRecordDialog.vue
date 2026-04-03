@@ -30,7 +30,11 @@ import { Dialog } from '@/components/Dialog'
 import { Table, TableColumn } from '@/components/Table'
 import { Search } from '@/components/Search'
 import type { FormSchema } from '@/components/Form'
-import { getUserBalanceRecordsApi, type UserBalanceRecordParams } from '@/api/tgUser/index'
+import {
+  getUserBalanceRecordsApi,
+  v1GetUserBillList,
+  type UserBalanceRecordParams
+} from '@/api/tgUser/index'
 import { formatToDateTime } from '@/utils/dateUtil'
 
 // ----------- Props and Emits -----------
@@ -158,22 +162,48 @@ const fetchData = async () => {
 
   loading.value = true
 
-  // --- 准备 API 参数 (包含分页和筛选) ---
-  const apiParams: UserBalanceRecordParams = {
+  // --- 准备 API 参数 (包含分页和筛选) - 使用新接口 v1GetUserBillList ---
+  const apiParams: any = {
     current_page: pagination.currentPage,
     page_size: pagination.pageSize,
-    unit: searchParams.value?.unit || undefined,
-    change_type: searchParams.value?.change_type || undefined
+    user_id: Number(props.accountId)
   }
 
+  // 字段映射：unit -> coin
+  if (searchParams.value?.unit) {
+    apiParams.coin = searchParams.value.unit
+  }
+
+  // 注意：新接口没有 change_type 参数，如果需要筛选收入/支出，需要在前端根据 amount 正负判断
+  // 暂时保留筛选逻辑，但不传递给后端
+
   try {
-    // 调用更新后的 API 函数
-    const res = await getUserBalanceRecordsApi(props.accountId, apiParams)
+    // 使用新接口 v1GetUserBillList
+    const res = await v1GetUserBillList(apiParams)
 
     // 使用 API 返回的数据和总数
-    if (res && res.data) {
-      recordList.value = res.data.list || []
-      pagination.total = res.data.totalCount || 0 // 确保 API 返回了 total
+    if (res && res.code === '000000' && res.data) {
+      let list = res.data.list || []
+
+      // 字段映射并处理数据
+      list = list.map((item: any) => ({
+        unit: item.coin, // coin -> unit
+        change_type: parseFloat(item.amount) >= 0 ? 'in' : 'out', // 根据金额正负判断收入/支出
+        amount: Math.abs(parseFloat(item.amount)).toString(), // 取绝对值
+        after_amount: item.balance, // balance -> after_amount
+        describe: item.describe,
+        create_time: item.created_at, // created_at -> create_time
+        order_id: item.order_id,
+        kind: item.kind
+      }))
+
+      // 前端筛选 change_type（如果有选择）
+      if (searchParams.value?.change_type) {
+        list = list.filter((item: any) => item.change_type === searchParams.value.change_type)
+      }
+
+      recordList.value = list
+      pagination.total = res.data.pager?.total || 0
     } else {
       recordList.value = []
       pagination.total = 0

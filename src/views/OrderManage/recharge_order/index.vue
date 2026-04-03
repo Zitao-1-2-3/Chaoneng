@@ -53,21 +53,14 @@ import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { Descriptions } from '@/components/Descriptions'
-import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import {
-  getRechargeOrderListApi,
-  getRechargeOrderDetailApi,
-  exportRechargeOrderApi
-} from '@/api/recharge_order'
+import { v1GetDepositList, v1GetDepositDetail, exportRechargeOrderApi } from '@/api/recharge_order'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { downloadByData } from '@/utils/download'
 
 const router = useRouter()
-const route = useRoute()
-const { t } = useI18n()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 
 // 订单详情相关
@@ -403,7 +396,9 @@ const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger
   const statusMap: Record<number, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
     1: 'success', //  已完成
     2: 'warning', // 待支付
-    3: 'danger' // 已取消
+    3: 'danger', // 已取消
+    4: 'warning', // 处理中
+    5: 'success' // 已完成（新接口）
   }
   return statusMap[status] || 'info'
 }
@@ -413,7 +408,9 @@ const getStatusText = (status: number): string => {
   const statusMap = {
     1: '已完成',
     2: '待支付',
-    3: '已取消'
+    3: '已取消',
+    4: '处理中',
+    5: '已完成'
   }
   return statusMap[status] || '-'
 }
@@ -422,24 +419,52 @@ const getStatusText = (status: number): string => {
 const fetchRechargeOrderList = async (params: any) => {
   try {
     // 处理排序参数
-    const adaptedParams = { ...params }
+    const adaptedParams: any = {}
 
-    // 如果有排序参数，转换为接口需要的格式
-    if (params.sort && params.order) {
-      adaptedParams.sort_by = params.sort
-      adaptedParams.order = params.order === 'ascending' ? 'asc' : 'desc'
-      delete adaptedParams.sort
-    }
+    // 映射参数字段
+    if (params.order_id) adaptedParams.order_id = params.order_id
+    if (params.status) adaptedParams.status = params.status
+    if (params.query) adaptedParams.keyword = params.query // query → keyword
+    if (params.order_type) adaptedParams.kind = params.order_type // order_type → kind
+    if (params.receive_address) adaptedParams.receive_address = params.receive_address
+    if (params.pay_address) adaptedParams.pay_address = params.pay_address
+    if (params.currentPage) adaptedParams.current_page = params.currentPage
+    if (params.pageSize) adaptedParams.page_size = params.pageSize
 
-    // 处理时间范围
+    // 处理时间范围（转换为秒数）
     if (params.dateRange && params.dateRange.length === 2) {
-      adaptedParams.start_time = params.dateRange[0]
-      adaptedParams.end_time = params.dateRange[1]
-      delete adaptedParams.dateRange
+      adaptedParams.start_time = Math.floor(params.dateRange[0] / 1000).toString()
+      adaptedParams.end_time = Math.floor(params.dateRange[1] / 1000).toString()
     }
 
-    const response = await getRechargeOrderListApi(adaptedParams)
-    return response.data
+    const response = await v1GetDepositList(adaptedParams)
+
+    // 映射返回数据字段
+    const list = (response.data?.list || []).map((item: any) => ({
+      id: item.id,
+      order_id: item.id, // id → order_id
+      tg_name: item.tg_user_name, // tg_user_name → tg_name
+      tg_nickname: item.tg_first_name, // tg_first_name → tg_nickname
+      tg_id: item.user_id, // user_id → tg_id
+      bot_name: item.bot_name,
+      bot_id: item.bot_id,
+      order_type: item.coin === 'TRX' ? 1 : 2, // 根据币种判断订单类型：TRX=1, USDT=2
+      in_mount: item.amount, // amount → in_mount
+      in_unit: item.coin, // coin → in_unit
+      pay_mount: item.cost && item.cost !== '0' ? item.cost : '0', // cost → pay_mount
+      pay_unit: item.cost && item.cost !== '0' ? 'USDT' : '', // 支付单位默认为USDT
+      status: item.status,
+      receive_address: item.receive_address,
+      pay_address: item.pay_address,
+      describe: item.describe,
+      create_time: item.created_at, // created_at → create_time
+      finish_time: item.paid_at // paid_at → finish_time
+    }))
+
+    return {
+      list,
+      total: response.data?.pager?.total || 0
+    }
   } catch (error) {
     console.error('获取充值订单列表失败:', error)
     return { list: [], total: 0 }
@@ -449,15 +474,41 @@ const fetchRechargeOrderList = async (params: any) => {
 // 查看订单详情
 const handleViewDetail = async (row: any) => {
   try {
-    const response = await getRechargeOrderDetailApi(row.id)
+    const response = await v1GetDepositDetail(row.id)
     console.log('response', response)
-    orderDetail.value = response.data.order_info || {}
-    rechargeDetail.value = response.data.recharge_info || {}
 
-    // 添加订单状态文本
-    if (orderDetail.value.status) {
-      orderDetail.value.statusText = getStatusText(orderDetail.value.status)
+    const detail = response.data || {}
+
+    // 映射订单详情字段
+    orderDetail.value = {
+      order_num: detail.id, // id → order_num
+      status: detail.status,
+      statusText: getStatusText(detail.status),
+      order_type: detail.coin === 'TRX' ? 1 : 2, // 根据币种判断订单类型
+      tg_id: detail.user_id, // user_id → tg_id
+      tg_name: detail.tg_user_name || row.tg_name || '', // 优先使用详情接口返回的，否则使用列表中的
+      tg_nickname: detail.tg_first_name || row.tg_nickname || '-', // 优先使用详情接口返回的，否则使用列表中的，都没有显示'-'
+      bot_id: detail.bot_id,
+      bot_name: detail.bot_name || row.bot_name || '', // 优先使用详情接口返回的，否则使用列表中的
+      in_mount: detail.amount, // amount → in_mount
+      in_unit: detail.coin, // coin → in_unit
+      pay_mount: detail.cost, // cost → pay_mount
+      pay_unit: detail.cost && detail.cost !== '0' ? 'USDT' : '', // 支付单位
+      describe: detail.describe,
+      create_time: detail.created_at, // created_at → create_time
+      pay_time: detail.paid_at, // paid_at → pay_time
+      finish_time: detail.paid_at // paid_at → finish_time
     }
+
+    // 映射充值详情字段
+    rechargeDetail.value = {
+      to_address: detail.receive_address, // receive_address → to_address
+      owner_address: row.pay_address || '', // 从列表数据中获取支付地址
+      hash: detail.pay_id // pay_id → hash
+    }
+
+    console.log('orderDetail.value:', orderDetail.value)
+    console.log('row data:', row)
 
     dialogVisible.value = true
     activeTab.value = 'order'
@@ -471,6 +522,10 @@ const handleViewDetail = async (row: any) => {
 const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
+    if (!params) {
+      ElMessage.warning('无法获取搜索参数')
+      return
+    }
     // 处理时间范围
     const exportParams = { ...params }
     if (params.dateRange && params.dateRange.length === 2) {
@@ -500,15 +555,18 @@ const onSearch = (params: any) => {
 
 onMounted(() => {
   const query = useRoute().query
-  setTimeout(() => {
-    if (searchTableRef.value) {
-      searchTableRef.value.setSearchParams({
-        order_id: query.order_num
-      })
-      console.log('手动触发数据刷新')
-      searchTableRef.value.reload()
-    }
-  }, 100)
+  // 只有当有 order_num 参数时才设置搜索参数并刷新
+  if (query.order_num) {
+    setTimeout(() => {
+      if (searchTableRef.value) {
+        searchTableRef.value.setSearchParams({
+          order_id: query.order_num
+        })
+        console.log('手动触发数据刷新')
+        searchTableRef.value.reload()
+      }
+    }, 100)
+  }
 })
 </script>
 
