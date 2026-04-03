@@ -1,25 +1,18 @@
 // ========== 新接口 v2 类型定义 ==========
 
 /**
- * 删除托管地址参数 - 新接口 v2
+ * 分页信息
  */
-export interface V2RemoveHostingParams {
-  address: string // 要删除的托管地址
-}
-
-/**
- * 删除托管地址响应 - 新接口 v2
- */
-export interface V2RemoveHostingResponse {
-  code: string // 响应码
-  data: string // 响应数据
-  msg: string // 响应消息
+export interface Pager {
+  current_page: number // 当前页码
+  page_size: number // 每页数量
+  total: number // 总数量
 }
 
 /**
  * 托管列表查询参数 - 新接口 v2
  */
-export interface V2HostingListParams {
+export interface HostingListParamsV2 {
   address?: string // 地址
   agent_id?: number // 代理ID
   bot_id?: number // 机器人ID
@@ -32,38 +25,81 @@ export interface V2HostingListParams {
 /**
  * 托管列表项 - 新接口 v2
  */
-export interface V2HostingItem {
-  id: number // ID
-  order_id: string // 订单ID
-  address: string // 地址
+export interface HostingItemV2 {
+  address: string // 托管地址
   agent_id: number // 代理ID
   agent_name: string // 代理名称
   bot_id: number // 机器人ID
   bot_name: string // 机器人名称
+  created_at: string // 创建时间
+  id: number // 托管ID
+  order_id: string // 订单ID
+  updated_at: string // 更新时间
   user_id: number // 用户ID
-  user_name: string // 用户名称
-  created_at: string // 创建时间（ISO时间格式字符串）
-  updated_at: string // 更新时间（ISO时间格式字符串）
-}
-
-/**
- * 分页信息 - 新接口 v2
- */
-export interface V2Pager {
-  current_page: number // 当前页码
-  page_size: number // 每页大小
-  total: number // 总数
+  user_name: string // 用户名
 }
 
 /**
  * 托管列表响应 - 新接口 v2
  */
-export interface V2HostingListResponse {
-  list: V2HostingItem[] // 托管列表
-  pager: V2Pager // 分页信息
+export interface HostingListResponseV2 {
+  list: HostingItemV2[] // 托管列表
+  pager: Pager // 分页信息
+}
+
+/**
+ * 删除托管地址请求参数 - 新接口 v2
+ */
+export interface RemoveHostingParamsV2 {
+  address: string // 托管地址（必填）
 }
 
 // ========== 旧接口类型定义 ==========
+
+export interface BotOption {
+  label: string
+  value: any
+}
+
+export interface AutoManageAddressListParams {
+  current_page: number
+  page_size: number
+  tg_bot_id?: number | string // 筛选机器人
+  address?: string // 托管地址关键词
+}
+
+export interface AutoManageAddressItem {
+  id: number // 记录ID，用于删除
+  manage_record_id?: number
+  order_id?: string
+  tg_id?: number // 用户TG ID
+  tg_bot_id: number // 机器人TG ID
+  bot_id?: number // 机器人ID（新接口字段）
+  address: string // 托管地址
+  from_address?: string
+  txid?: string
+  energy_num?: number
+  energy_rent_time?: number
+  energy_rent_text?: string
+  order_amount?: string
+  pay_amount?: string
+  pay_unit?: string
+  status?: number
+  manage_status?: number
+  create_time: number | string // 创建时间 (秒级时间戳或字符串)
+  finish_time?: number | string // 完成/更新时间 (秒级时间戳或字符串)
+  describe?: string
+  delegate_balance?: number
+  recycle_time?: number
+  recycle_txid?: string
+  handle_status?: number
+  delegate_status?: number
+  used_energy_num?: number
+  nickname?: string // 用户昵称
+  tg_name?: string // 用户TG名
+  user_name?: string // 用户名（新接口字段）
+  bot_name?: string // 机器人用户名
+}
 
 export interface TrustTransactionItem {
   // 基本信息
@@ -196,8 +232,6 @@ export interface HostedOrder {
   recycle_time: number // 回收时间 (int64, timestamp)
   recycle_txid: string // 回收交易hash (varchar(100))
   handle_status: number // 处理状态 (int unsigned, 1:已处理, 2:未处理, 3:处理失败)
-  // UI specific fields from previous example like 'username', 'bot_name' might need
-  // to be fetched separately or added to the backend response if required by the UI.
 }
 
 // 获取托管订单列表的响应类型 (No change here, already updated)
@@ -208,4 +242,44 @@ export interface HostedOrderListResponse {
     list: HostedOrder[] // 订单列表
     total: number // 总记录数
   }
+}
+
+/**
+ * 机器人列表查询参数 - v2
+ */
+export interface V2AgentBotListParams {
+  agent_name?: string // 代理名称
+  current_page?: number // 当前页码
+  keyword?: string // 关键字
+  page_size?: number // 每页大小
+  status?: number // 状态
+  user_name?: string // 机器人用户名
+}
+
+/**
+ * 机器人列表项 - v2
+ */
+export interface V2AgentBotItem {
+  agent_id: number // 代理ID
+  agent_name: string // 代理名称
+  auto_renew: number // 自动续费
+  created_at: string // 创建时间
+  describe: string // 描述
+  expired_at: string // 过期时间
+  first_name: string // 名字
+  id: number // 机器人ID
+  status: number // 状态
+  tg_admin: string // TG管理员
+  token: string // Token
+  total_fee: number // 总费用
+  updated_at: string // 更新时间
+  user_name: string // 用户名
+}
+
+/**
+ * 机器人列表响应 - v2
+ */
+export interface V2AgentBotListResponse {
+  list: V2AgentBotItem[] // 机器人列表
+  pager: Pager // 分页信息
 }

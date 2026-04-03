@@ -1,6 +1,7 @@
 <template>
   <Dialog v-model="visible" title="订单详情">
     <ElTabs v-model="activeTab" class="order-detail-tabs">
+      <!-- 基本信息标签页 - 始终显示 -->
       <ElTabPane label="基本信息" name="basic">
         <div v-if="currentOrder" class="order-detail">
           <Descriptions :schema="commonDetailSchema" :data="currentOrder" :column="2" border />
@@ -10,12 +11,22 @@
         </div>
       </ElTabPane>
 
+      <!-- 资源详情标签页 - 只有当 resources 数组存在且有数据时才显示 -->
       <ElTabPane
-        :label="detailTabLabel"
-        name="specificDetails"
-        v-if="currentOrder && currentOrder.order_type"
+        label="资源详情"
+        name="resources"
+        v-if="currentOrder && currentOrder.resources && currentOrder.resources.length > 0"
       >
-        <component :is="detailComponent" :order-data="currentOrder" :order-id="currentOrder?.id" />
+        <ResourceDetails :order-data="currentOrder" />
+      </ElTabPane>
+
+      <!-- 激活详情标签页 - 只有当 activations 数组存在且有数据时才显示 -->
+      <ElTabPane
+        label="激活详情"
+        name="activations"
+        v-if="currentOrder && currentOrder.activations && currentOrder.activations.length > 0"
+      >
+        <ActivationDetails :order-data="currentOrder" />
       </ElTabPane>
     </ElTabs>
     <template #footer>
@@ -32,18 +43,13 @@ import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { formatToWan } from '@/utils'
-import { getEnergyTransactionDetailApi, getBandwidthOrderDetailApi } from '@/api/energy_transaction'
+import { v2GetOrderDetail } from '@/api/energy_transaction'
+import type { V2OrderDetailResponse } from '@/api/energy_transaction/types'
 import Descriptions from '@/components/Descriptions/src/Descriptions.vue'
 
-const ByCountDetails = defineAsyncComponent(() => import('./details/ByCountDetails.vue'))
-const ByTimeDetails = defineAsyncComponent(() => import('./details/ByTimeDetails.vue'))
-const BatchOrderDetails = defineAsyncComponent(() => import('./details/BatchOrderDetails.vue'))
-const FlashRentDetails = defineAsyncComponent(() => import('./details/FlashRentDetails.vue'))
+// 导入资源详情和激活详情组件
+const ResourceDetails = defineAsyncComponent(() => import('./details/ResourceDetails.vue'))
 const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
-const WealOrderDetails = defineAsyncComponent(() => import('./details/WealOrderDetails.vue'))
-const BandwidthCountDetails = defineAsyncComponent(
-  () => import('./details/BandwidthCountDetails.vue')
-)
 
 const visible = ref(false)
 const currentOrder = ref<any | null>(null)
@@ -72,7 +78,7 @@ const commonDetailSchema = reactive<any[]>([
     field: 'order_amount',
     slots: {
       default: (data) => {
-        // 当订单类型为7、8、9时，支付金额固定为0 TRX
+        // 当订单类型为7(闪租)、9(批量下单)时，支付金额固定为0 TRX
         const orderType = Number(data?.order_type)
         if (orderType === 7 || orderType === 9) {
           return '0 TRX'
@@ -146,29 +152,45 @@ const commonDetailSchema = reactive<any[]>([
 ])
 
 const orderTypeMap = {
-  1: '按笔数',
-  2: '按时间',
-  3: '批量下单',
-  4: '闪租',
-  5: '激活',
+  4: '按时间',
+  5: '按笔数',
   6: '福利',
-  7: '按笔数-带宽',
-  8: '接口调用-按笔数',
-  9: '接口调用-带宽'
+  7: '闪租',
+  8: '托管',
+  9: '批量下单',
+  10: '激活'
 }
 const orderTypeColorMap = {
-  1: 'primary',
-  2: 'success',
-  3: 'warning',
-  4: 'danger',
-  5: 'info',
-  6: 'primary',
-  7: 'success',
+  4: 'info',
+  5: 'primary',
+  6: 'success',
+  7: 'danger',
   8: 'warning',
+  9: 'warning',
+  10: 'primary'
+}
+const statusMap = {
+  1: '新订单',
+  2: '已支付',
+  3: '已发送',
+  4: '已回收',
+  5: '已完成',
+  6: '失败订单',
+  7: '已退款',
+  8: '已取消',
+  9: '中止订单'
+}
+const statusColorMap = {
+  1: 'info',
+  2: 'warning',
+  3: 'primary',
+  4: 'primary',
+  5: 'success',
+  6: 'danger',
+  7: 'info',
+  8: 'info',
   9: 'danger'
 }
-const statusMap = { 1: '已完成', 2: '待支付' }
-const statusColorMap = { 1: 'success', 2: 'warning' }
 
 const getTagType = (field, value) => {
   if (isNaN(value)) return 'info'
@@ -184,52 +206,6 @@ const getTagText = (field, value) => {
   return '未知'
 }
 
-const detailComponent = computed(() => {
-  const type = Number(currentOrder.value?.order_type)
-  if (!currentOrder.value || isNaN(type)) return null
-
-  switch (type) {
-    case 1:
-      return ByCountDetails
-    case 2:
-      return ByTimeDetails
-    case 3:
-      return BatchOrderDetails
-    case 4:
-      return FlashRentDetails
-    case 5:
-      return ActivationDetails
-    case 6:
-      return WealOrderDetails
-    case 7: // 按笔数-带宽
-      return BandwidthCountDetails
-    case 8: // 接口调用-按笔数 (使用原有逻辑)
-      return ByCountDetails
-    case 9: // 接口调用-带宽
-      return BandwidthCountDetails
-    default:
-      return null
-  }
-})
-
-const detailTabLabel = computed(() => {
-  const type = Number(currentOrder.value?.order_type)
-  if (!currentOrder.value || isNaN(type)) return '详情'
-
-  const typeTextMap = {
-    1: '按笔数详情',
-    2: '按时间详情',
-    3: '批量下单详情',
-    4: '闪租详情',
-    5: '激活详情',
-    6: '福利详情',
-    7: '按笔数-带宽详情',
-    8: '接口调用-按笔数详情',
-    9: '接口调用-带宽详情'
-  }
-  return typeTextMap[type] || '详情'
-})
-
 const open = async (row: { id: string | number; order_type?: number }) => {
   if (!row || !row.id) {
     ElMessage.error('无效的订单信息')
@@ -240,41 +216,96 @@ const open = async (row: { id: string | number; order_type?: number }) => {
   currentOrder.value = null
 
   try {
-    let detailData: any = null
+    console.log('[OrderDetail] 调用新接口 v2GetOrderDetail, id:', row.id)
 
-    // 根据订单类型调用不同的API
-    if (row.order_type === 7 || row.order_type === 9) {
-      // 按笔数-带宽类型和接口调用-带宽类型：调用带宽订单详情API
-      const response = await getBandwidthOrderDetailApi(String(row.id))
-      if (response && response.code === '000000' && response.data) {
-        detailData = response.data
-        // 确保order_type与列表数据一致
-        detailData.order_type = row.order_type
-      } else {
-        const errorMsg =
-          row.order_type === 7 ? '未获取到带宽订单详情数据' : '未获取到接口调用订单详情数据'
-        ElMessage.warning((response as any)?.msg || errorMsg)
-        currentOrder.value = null
-        return
-      }
-    } else {
-      // 其他类型：调用原有的能量交易详情API
-      const response = await getEnergyTransactionDetailApi(String(row.id))
-      if (response && response.code === '000000' && response.data) {
-        detailData = response.data
-        // 如果详情API返回的order_type与列表数据不一致，使用列表数据的order_type
-        if (row.order_type && detailData.order_type !== row.order_type) {
-          detailData.order_type = row.order_type
+    // 调用新接口获取订单详情
+    const response = await v2GetOrderDetail(String(row.id))
+
+    if (response && response.data) {
+      const detailData: V2OrderDetailResponse = response.data
+
+      // 从 resources 中获取能量相关信息
+      let energyAmount = '0'
+      let energyAddress = ''
+      let energyRentText = '-'
+      let recycleTime = 0
+
+      if (detailData.resources && detailData.resources.length > 0) {
+        const firstResource = detailData.resources[0]
+        energyAmount = String(firstResource.amount || 0)
+        energyAddress = firstResource.target || ''
+
+        // 计算有效时长
+        if (firstResource.expirated_at && firstResource.delegated_at) {
+          const expTime = new Date(firstResource.expirated_at).getTime()
+          const delTime = new Date(firstResource.delegated_at).getTime()
+          const diffMs = expTime - delTime
+          const diffMinutes = Math.floor(diffMs / (1000 * 60))
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+          if (diffDays > 0) {
+            energyRentText = `${diffDays}天`
+          } else if (diffHours > 0) {
+            energyRentText = `${diffHours}小时`
+          } else if (diffMinutes > 0) {
+            energyRentText = `${diffMinutes}分钟`
+          }
         }
-      } else {
-        ElMessage.warning((response as any)?.msg || '未获取到订单详情数据或数据格式错误')
-        currentOrder.value = null
-        return
-      }
-    }
 
-    currentOrder.value = detailData
+        // 回收时间
+        if (firstResource.recycled_at) {
+          recycleTime = new Date(firstResource.recycled_at).getTime()
+        }
+      }
+
+      // 笔数能量(5)和自动托管(8)显示为长期有效
+      if (detailData.kind === 5 || detailData.kind === 8) {
+        energyRentText = '长期有效'
+      }
+
+      // 字段映射转换
+      currentOrder.value = {
+        id: detailData.id,
+        order_num: detailData.id, // 订单号
+        tg_name: detailData.tg_first_name || detailData.tg_user_name, // 用户名（优先使用 tg_first_name）
+        bot_id: detailData.bot_id, // 机器人ID
+        bot_name: detailData.bot_user_name || detailData.bot_first_name, // 机器人用户名（优先使用 bot_user_name）
+        username: detailData.agent_name, // 代理名称
+        order_type: detailData.kind, // 订单类型
+        order_amount: String(detailData.amount), // 支付金额（转换为字符串）
+        pay_unit: detailData.coin, // 支付单位
+        energy_num: energyAmount, // 能量数（从 resources 获取）
+        receive_address: energyAddress, // 接收地址（从 resources 获取）
+        status: detailData.status, // 订单状态
+        energy_rent_text: energyRentText, // 有效时长
+        recycle_time: recycleTime, // 回收时间（时间戳毫秒）
+        create_time: new Date(detailData.created_at).getTime(), // 创建时间（转换为毫秒）
+        finish_time: new Date(detailData.updated_at).getTime(), // 完成时间（转换为毫秒）
+        pay_time: detailData.paid_at ? new Date(detailData.paid_at).getTime() : null, // 支付时间（转换为毫秒）
+        stop_time: null, // 停止时间（新接口暂无此字段）
+        // 从 resources[0] 映射的字段（供子详情组件使用）
+        stroke_num: detailData.summary?.energy_count || 0, // 笔数（从 summary 获取）
+        txid: detailData.resources?.[0]?.delegated_txid || '', // 交易hash（委托交易ID）
+        from_address: detailData.resources?.[0]?.source || '', // 发放能量地址
+        recycle_txid: detailData.resources?.[0]?.recycled_txid || '', // 回收hash
+        used_txid: detailData.resources?.[0]?.used_txid || '', // 使用交易ID
+        flash_price: String(detailData.amount), // 闪租能量价格（直接使用订单金额）
+        summary: detailData.summary, // 订单汇总信息
+        resources: detailData.resources, // 订单资源列表
+        activations: detailData.activations, // 激活记录列表
+        exchange: detailData.exchange, // 兑换信息
+        deliver_transaction: detailData.deliver_transaction, // 发放交易信息
+        pay_transaction: detailData.pay_transaction // 支付交易信息
+      }
+
+      console.log('[OrderDetail] 订单详情加载成功:', currentOrder.value)
+    } else {
+      ElMessage.warning('未获取到订单详情数据或数据格式错误')
+      currentOrder.value = null
+    }
   } catch (error: any) {
+    console.error('[OrderDetail] 获取订单详情失败:', error)
     ElMessage.error(`获取订单详情失败: ${error?.message || '请检查网络或联系管理员'}`)
     currentOrder.value = null
   }

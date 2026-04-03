@@ -1,7 +1,13 @@
 import request from '@/axios'
 import type {
-  // TrustTransactionQueryParams, // Remove or comment out if unused
-  // TrustTransactionListResponse, // Remove or comment out if unused
+  AutoManageAddressListParams,
+  AutoManageAddressItem,
+  HostingListParamsV2,
+  HostingListResponseV2,
+  RemoveHostingParamsV2,
+  V2AgentBotListParams,
+  V2AgentBotListResponse,
+  TrustTransactionQueryParams,
   TrustTransactionDetailResponse,
   RetrieveAssetParams,
   RetrieveAssetResponse,
@@ -9,13 +15,12 @@ import type {
   RetrieveEnergyResponse,
   ResendEnergyParams,
   ResendEnergyResponse,
-  HostedOrderQueryParams, // Ensure this is imported
-  HostedOrderListResponse, // Ensure this is imported
-  V2HostingListParams,
-  V2HostingListResponse,
-  V2RemoveHostingParams,
-  V2RemoveHostingResponse
+  HostedOrderQueryParams,
+  HostedOrderListResponse
 } from './types'
+
+// 导出类型定义
+export * from './types'
 
 // ========== 新接口 v2 ==========
 
@@ -23,11 +28,12 @@ const BASE_URL = '/v2/manage/hosting/'
 
 /**
  * 获取托管列表 - 新接口 v2
- * GET /v2/manage/hosting/list
+ * GET /v2/hosting/list
  */
-export const v2GetHostingList = (params: V2HostingListParams) => {
-  console.log('[v2GetHostingList] 调用参数:', params)
-  return request.get<V2HostingListResponse>({
+export const v2GetHostingList = (
+  params: HostingListParamsV2
+): Promise<IResponse<HostingListResponseV2>> => {
+  return request.get({
     url: `${BASE_URL}list`,
     params
   })
@@ -35,28 +41,37 @@ export const v2GetHostingList = (params: V2HostingListParams) => {
 
 /**
  * 删除托管地址 - 新接口 v2
- * POST /v2/manage/hosting/remove
+ * POST /v2/hosting/remove
  */
-export const v2RemoveHosting = (data: V2RemoveHostingParams) => {
-  console.log('[v2RemoveHosting] 调用参数:', data)
-  return request.post<V2RemoveHostingResponse>({
+export const v2RemoveHosting = (data: RemoveHostingParamsV2): Promise<IResponse> => {
+  return request.post({
     url: `${BASE_URL}remove`,
     data
+  })
+}
+
+/**
+ * 获取机器人列表 - 新接口 v2
+ * GET /v2/manage/agent_bot/list
+ */
+export const v2GetAgentBotList = (
+  params: V2AgentBotListParams
+): Promise<IResponse<V2AgentBotListResponse>> => {
+  return request.get({
+    url: '/v2/manage/agent_bot/list',
+    params
   })
 }
 
 // ========== 旧接口 ==========
 
 // API URL前缀
-// 注意：这里使用 mock 前缀是为了对接 mock 数据，实际环境下需要修改为真实 API 地址
-// API_PREFIX might be less relevant now if '/v2/...' is used directly
 const API_PREFIX = '/v2/manage/order'
 
 /**
  * 获取托管订单列表 (原 getTrustTransactionListApi)
  */
 export const getTrustTransactionListApi = (params: HostedOrderQueryParams) => {
-  // 使用新的 URL 和类型
   return request.get<HostedOrderListResponse>({
     url: '/v2/manage/order/hosted_order/list',
     params
@@ -68,7 +83,7 @@ export const getTrustTransactionListApi = (params: HostedOrderQueryParams) => {
  */
 export const getTrustTransactionDetailApi = (id: string) => {
   return request.get<TrustTransactionDetailResponse>({
-    url: `${API_PREFIX}/detail`, // Keep existing prefix logic for others
+    url: `${API_PREFIX}/detail`,
     params: { id }
   })
 }
@@ -113,18 +128,9 @@ export const deleteTrustTransactionApi = (id: string) => {
   })
 }
 
-// 移除之前添加的 getHostedOrderListApi 函数
-// /**
-//  * 获取托管订单列表 (新增)
-//  */
-// export const getHostedOrderListApi = (params: HostedOrderQueryParams) => {
-//   // 注意：这里使用了您提供的完整路径，因为它与现有的 API_PREFIX 不同
-//   return request.get<HostedOrderListResponse>({
-//     url: '/v2/manage/order/hosted_order/list',
-//     params
-//   })
-// }
-
+/**
+ * 导出托管订单
+ */
 export const exportTrustTransactionApi = (params: HostedOrderQueryParams) => {
   return request.get<IResponse<boolean>>({
     url: '/v2/manage/order/hosted_order/export',
@@ -133,10 +139,28 @@ export const exportTrustTransactionApi = (params: HostedOrderQueryParams) => {
   })
 }
 
-//手动回收重置托管订单
+/**
+ * 手动回收重置托管订单
+ */
 export const handRecycleTrustTransactionApi = (data: { id: number }) => {
   return request.post<IResponse<boolean>>({
     url: '/v2/manage/manage_order/hand_recycle',
     data
+  })
+}
+
+// 获取tg用户智能托管地址列表
+export const getAutoManageAddressListApi = (params: AutoManageAddressListParams) => {
+  return request.get<{ list: AutoManageAddressItem[]; totalCount: number }>({
+    url: '/v1/bot/tg_user/auto_manage/list',
+    params
+  })
+}
+
+// 取消智能托管地址
+export const deleteAutoManageAddressApi = (id: number) => {
+  return request.post<boolean>({
+    url: '/v1/bot/tg_user/auto_manage/delete',
+    data: { id }
   })
 }

@@ -114,34 +114,30 @@ const handleExport = async () => {
 // 定义 ElTag 允许的类型
 type ElTagType = 'success' | 'warning' | 'info' | 'primary' | 'danger'
 
-// --- 状态映射 (根据 Go Struct 更新) ---
+// --- 状态映射 (合并发放状态和回收状态) ---
 
-// 发放状态 (delegate_status: 1已发放 2待补发 3已补发)
-const issueStatusMap: Record<number, string> = {
-  1: '已发放', // Updated
-  2: '待补发', // Updated
-  3: '已补发' // Updated
+// 订单状态 (合并后的状态)
+const orderStatusMap: Record<number, string> = {
+  1: '新订单',
+  2: '已支付',
+  3: '已发送',
+  4: '已回收',
+  5: '已完成',
+  6: '失败订单',
+  7: '已退款',
+  8: '已取消',
+  9: '中止订单'
 }
-const issueStatusColorMap: Record<number, ElTagType> = {
-  1: 'success',
+const orderStatusColorMap: Record<number, ElTagType> = {
+  1: 'info',
   2: 'warning',
-  3: 'primary' // Or maybe success?
-  // 3: 'danger',
-}
-
-// 回收状态 (handle_status: 1已处理 2未处理 3处理失败)
-const recycleStatusMap: Record<number, string> = {
-  1: '已回收', // Updated
-  2: '未回收', // Updated
-  3: '回收失败' // Updated
-  // 0: '未回收', // 这个看起来不适用于 handle_status
-  // ... 其他可能的状态?
-}
-const recycleStatusColorMap: Record<number, ElTagType> = {
-  1: 'success',
-  2: 'warning',
-  3: 'danger'
-  // ... 其他可能的状态?
+  3: 'primary',
+  4: 'primary',
+  5: 'success',
+  6: 'danger',
+  7: 'info',
+  8: 'info',
+  9: 'danger'
 }
 
 // 渲染状态标签的辅助函数
@@ -175,30 +171,22 @@ const columns = [
       default: ({ row }) => {
         const type = Number(row.order_type)
         const typeMap: Record<number, string> = {
-          1: '代理充值',
-          2: '用户充值',
-          3: '兑换',
-          4: '时间能量',
-          5: '笔数能量',
-          6: '福利能量',
-          7: '快速能量',
-          8: '自动托管',
-          9: '批量能量',
-          10: '批量激活',
-          11: '机器人付费'
+          4: '按时间',
+          5: '按笔数',
+          6: '福利',
+          7: '闪租',
+          8: '托管',
+          9: '批量下单',
+          10: '激活'
         }
         const typeColorMap: Record<number, ElTagType> = {
-          1: 'primary',
-          2: 'success',
-          3: 'warning',
           4: 'info',
           5: 'primary',
           6: 'success',
           7: 'danger',
           8: 'warning',
-          9: 'info',
-          10: 'primary',
-          11: 'success'
+          9: 'warning',
+          10: 'primary'
         }
         const text = typeMap[type] || '未知类型'
         const tagType = typeColorMap[type] || 'info'
@@ -240,21 +228,11 @@ const columns = [
     formatter: (row) => (row.recycle_time ? formatToDateTime(row.recycle_time * 1000) : '-')
   },
   {
-    field: 'delegate_status', // Updated field: delegate_status
-    label: '发放状态',
+    field: 'status',
+    label: '状态',
     width: 100,
     slots: {
-      default: ({ row }) =>
-        renderStatusTag(row.delegate_status, issueStatusMap, issueStatusColorMap) // Use delegate_status
-    }
-  },
-  {
-    field: 'handle_status', // Updated field: handle_status
-    label: '回收状态', // Note: field means "处理状态"
-    width: 100,
-    slots: {
-      default: ({ row }) =>
-        renderStatusTag(row.handle_status, recycleStatusMap, recycleStatusColorMap) // Use handle_status
+      default: ({ row }) => renderStatusTag(row.status, orderStatusMap, orderStatusColorMap)
     }
   },
   {
@@ -323,18 +301,16 @@ const searchSchema = [
     }
   },
   {
-    field: 'delegate_status', // Updated field name to match status map
+    field: 'status',
     component: 'Select' as const,
-    label: '发放状态：', // Updated label
+    label: '状态：',
     componentProps: {
-      placeholder: '请选择发放状态', // Updated placeholder
+      placeholder: '请选择状态',
       clearable: true,
       options: [
-        { label: '全部', value: '' }, // Add "All" option
-        // Dynamically generate options from issueStatusMap
-        ...Object.entries(issueStatusMap).map(([value, label]) => ({
+        { label: '全部', value: '' },
+        ...Object.entries(orderStatusMap).map(([value, label]) => ({
           label: label,
-          // Convert value back to number for the option's value
           value: Number(value)
         }))
       ]
@@ -348,17 +324,13 @@ const searchSchema = [
       placeholder: '请选择订单类型',
       options: [
         { label: '全部', value: '' },
-        { label: '代理充值', value: 1 },
-        { label: '用户充值', value: 2 },
-        { label: '兑换', value: 3 },
-        { label: '时间能量', value: 4 },
-        { label: '笔数能量', value: 5 },
-        { label: '福利能量', value: 6 },
-        { label: '快速能量', value: 7 },
-        { label: '自动托管', value: 8 },
-        { label: '批量能量', value: 9 },
-        { label: '批量激活', value: 10 },
-        { label: '机器人付费', value: 11 }
+        { label: '按笔数', value: 5 },
+        { label: '按时间', value: 4 },
+        { label: '批量下单', value: 9 },
+        { label: '闪租', value: 7 },
+        { label: '激活', value: 10 },
+        { label: '福利', value: 6 },
+        { label: '托管', value: 8 }
       ]
     }
   },
@@ -546,10 +518,10 @@ const fetchDataWrapper = async (params: any = {}) => {
       page_size: params.pageSize || params.page_size || 10
     }
 
-    // 处理时间范围
+    // 处理时间范围（毫秒转秒）
     if (params.dateRange && params.dateRange.length === 2) {
-      apiParams.start_time = String(params.dateRange[0])
-      apiParams.end_time = String(params.dateRange[1])
+      apiParams.start_time = String(Math.floor(params.dateRange[0] / 1000))
+      apiParams.end_time = String(Math.floor(params.dateRange[1] / 1000))
     }
 
     // 处理关键字查询
@@ -562,19 +534,19 @@ const fetchDataWrapper = async (params: any = {}) => {
       apiParams.kind = params.order_type
     }
 
-    // 处理收款钱包地址 (bot_address → energy_address)
+    // 处理收款钱包地址 (bot_address → receive_address)
     if (params.bot_address) {
-      apiParams.energy_address = params.bot_address
+      apiParams.receive_address = params.bot_address
     }
 
-    // 处理能量接收地址
+    // 处理能量接收地址 (receive_address → energy_address)
     if (params.receive_address) {
-      apiParams.receive_address = params.receive_address
+      apiParams.energy_address = params.receive_address
     }
 
     // 处理发放状态 (delegate_status → status)
-    if (params.delegate_status) {
-      apiParams.status = params.delegate_status
+    if (params.status) {
+      apiParams.status = params.status
     }
 
     console.log('[fetchDataWrapper] 调用新接口参数:', apiParams)
@@ -632,37 +604,6 @@ const fetchDataWrapper = async (params: any = {}) => {
           }
         }
 
-        // 判断回收状态 (handle_status)
-        // 1-已回收, 2-未回收, 3-回收失败
-        let handleStatus = 2 // 默认未回收
-        if (item.status === 4 || item.status === 5) {
-          // StatusRecycled(4) 或 StatusCompleted(5) 表示已回收
-          handleStatus = 1
-        } else if (item.recycled_at) {
-          // 有回收时间也表示已回收
-          handleStatus = 1
-        }
-
-        // 判断发放状态 (delegate_status)
-        // 根据 status 映射:
-        // 1-新订单 → 待补发
-        // 2-已支付 → 待补发
-        // 3-已发送 → 已发放
-        // 4-已回收 → 已发放
-        // 5-已完成 → 已发放
-        // 6-失败订单 → 待补发
-        // 7-已退款 → 待补发
-        // 8-已取消 → 待补发
-        // 9-中止订单 → 待补发
-        let delegateStatus = 2 // 默认待补发
-        if (item.status === 3 || item.status === 4 || item.status === 5) {
-          // 已发送、已回收、已完成 → 已发放
-          delegateStatus = 1
-        } else if (item.status === 6) {
-          // 失败订单 → 待补发
-          delegateStatus = 2
-        }
-
         return {
           id: item.id,
           order_num: item.id, // 订单ID
@@ -672,13 +613,12 @@ const fetchDataWrapper = async (params: any = {}) => {
           pay_unit: item.coin, // 支付单位
           energy_num: item.energy_amount, // 应发放能量
           delegate_energy_num: item.energy_actual_amount, // 实际发放能量
-          bot_address: item.energy_address, // 收款钱包地址（能量地址）
-          receive_address: item.receive_address, // 能量接收地址
+          bot_address: item.receive_address, // 收款钱包地址
+          receive_address: item.energy_address, // 能量接收地址
           stroke_num: item.energy_count, // 笔数
           energy_rent_text: energyRentText, // 有效时长
           recycle_time: recycleTime, // 回收时间（时间戳秒）
-          delegate_status: delegateStatus, // 发放状态
-          handle_status: handleStatus, // 回收状态
+          status: item.status, // 订单状态
           create_time: item.created_at, // 创建时间（时间戳秒）
           describe: item.describe // 描述
         }

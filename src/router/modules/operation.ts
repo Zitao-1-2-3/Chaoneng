@@ -84,11 +84,11 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           }
         },
         {
-          path: 'custody_details',
-          component: () => import('@/operationView/OperationCenter/TrustTransaction/index.vue'),
-          name: 'CustodyDetails',
+          path: 'hosted_list',
+          component: () => import('@/operationView/OperationCenter/HostedList/index.vue'),
+          name: 'HostedList',
           meta: {
-            title: '托管明细'
+            title: '托管列表'
           }
         }
       ]

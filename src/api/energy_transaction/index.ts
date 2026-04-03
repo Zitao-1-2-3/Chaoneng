@@ -9,7 +9,8 @@ import {
   EnergyCountListItem,
   BatchActiveListItem,
   V2EnergyListParams,
-  V2EnergyListResponse
+  V2EnergyListResponse,
+  V2OrderDetailResponse
 } from './types'
 
 // ========== 新接口 v2 ==========
@@ -27,6 +28,17 @@ export const v2GetEnergyList = (
   return request.get({
     url: `${BASE_URL}list`,
     params
+  })
+}
+
+/**
+ * 获取订单详情 - 新接口 v2
+ * GET /v2/order/{id}
+ */
+export const v2GetOrderDetail = (id: string): Promise<IResponse<V2OrderDetailResponse>> => {
+  console.log('[v2GetOrderDetail] 调用参数:', { id })
+  return request.get({
+    url: `/v2/order/${id}`
   })
 }
 
