@@ -10,8 +10,8 @@ export interface AgentQueryParams {
   current_page?: number // 页码
   page_size?: number // 每页数量
   status?: number | string // 状态：'' 或 undefined 表示全部, 1 表示启用, 2 表示禁用
-  start_time?: number // 开始时间 (时间戳)
-  end_time?: number // 结束时间 (时间戳)
+  start_time?: string // 开始时间 (Unix 时间戳字符串，秒级)
+  end_time?: string // 结束时间 (Unix 时间戳字符串，秒级)
 }
 
 /**
@@ -26,8 +26,12 @@ export interface AgentItem {
   gift_bandwidth: boolean // 是否赠送带宽
   trx_balance: string // TRX余额
   usdt_balance: string // USDT余额
-  created_at: number // 创建时间 (时间戳)
-  updated_at: number // 更新时间 (时间戳)
+  created_at: number // 创建时间 (时间戳-秒)
+  updated_at: number // 更新时间 (时间戳-秒)
+  bot_count: number // 机器人数量
+  user_count: number // 总用户数
+  trx_income: string // TRX收入
+  usdt_income: string // USDT收入
   role?: {
     id: number
     name: string
@@ -36,11 +40,11 @@ export interface AgentItem {
     updated_at: number
     permissions: any[] | null
   }
-  // 以下字段后端暂未提供
-  bot_num?: number // 机器人数量
-  tg_account_num?: number // TG账号数量
-  total_trx_amount?: string // TRX总收入
-  total_usdt_amount?: string // USDT总收入
+  // 兼容旧字段名（已废弃，保留兼容性）
+  bot_num?: number // @deprecated 使用 bot_count
+  tg_account_num?: number // @deprecated 使用 user_count
+  total_trx_amount?: string // @deprecated 使用 trx_income
+  total_usdt_amount?: string // @deprecated 使用 usdt_income
 }
 
 /**

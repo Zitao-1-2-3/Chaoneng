@@ -23,17 +23,16 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, onMounted, h } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElTag, ElMessage, ElMessageBox, ElLink } from 'element-plus'
 import { Icon } from '@/components/Icon'
-import { SearchTable, useSearchTable } from '@/components/SearchTable'
+import { SearchTable } from '@/components/SearchTable'
 import { FormSchema } from '@/components/Form'
 import { TableColumn } from '@/components/Table'
-import { UnixTime } from '@/components/UnixTime' // 使用UnixTime组件
+import { formatToDateTime } from '@/utils/dateUtil'
 import {
   getAgentBotListApi,
   updateAgentBotStatusApi,
-  AgentBotQueryParams,
   AgentBotItem,
   UpdateAgentBotStatusPayload,
   exportAgentBotListApi
@@ -61,8 +60,17 @@ const getAgentBotList = async (params?: any): Promise<{ list: AgentBotItem[]; to
   try {
     const res = await getAgentBotListApi(params)
     // 适配新的分页格式：从 pager 对象中获取 total
+    // 字段映射：将后端返回的字段名映射到前端使用的字段名
+    const mappedList = (res.data.list || []).map((item: any) => ({
+      ...item,
+      username: item.user_name, // 映射 user_name -> username
+      firstname: item.first_name, // 映射 first_name -> firstname
+      account_num: item.user_count || 0, // 映射 user_count -> account_num（用户数量）
+      order_count: item.order_count || 0 // 交易订单数
+    }))
+
     return {
-      list: res.data.list || [],
+      list: mappedList,
       total: res.data.pager?.total || 0
     }
   } catch (error) {
@@ -96,14 +104,6 @@ const searchSchema = ref<FormSchema[]>([
     label: '关键字',
     componentProps: {
       placeholder: '请输入关键字搜索'
-    }
-  },
-  {
-    field: 'agent_name', // 新增代理名称搜索
-    component: 'Input',
-    label: '代理名称',
-    componentProps: {
-      placeholder: '请输入代理名称'
     }
   },
   {
@@ -196,14 +196,18 @@ const columns = ref<TableColumn[]>([
   {
     field: 'created_at', // 新接口字段：created_at (原来是create_time)
     label: '创建时间',
+    minWidth: 160,
+    showOverflowTooltip: false,
     formatter: (row: AgentBotItem) =>
-      row.created_at ? h(UnixTime, { timestamp: row.created_at }) : '-'
+      row.created_at ? formatToDateTime(row.created_at * 1000) : '-'
   },
   {
     field: 'updated_at', // 新接口字段：updated_at (原来是update_time)
     label: '最后活动时间',
+    minWidth: 160,
+    showOverflowTooltip: false,
     formatter: (row: AgentBotItem) =>
-      row.updated_at ? h(UnixTime, { timestamp: row.updated_at }) : '-'
+      row.updated_at ? formatToDateTime(row.updated_at * 1000) : '-'
   },
   {
     field: 'action',

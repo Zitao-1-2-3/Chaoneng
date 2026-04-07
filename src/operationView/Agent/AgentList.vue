@@ -62,24 +62,16 @@ const currentAccount = ref<AgentItem>()
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-
-    // 保存时间范围用于前端过滤
-    let dateRange = null
     const exportParams: any = { ...params }
 
+    // 处理时间范围 - 转换为 Unix 时间戳（秒级，字符串格式）
     if (params.dateRange && params.dateRange.length === 2) {
-      dateRange = params.dateRange
-      // 不传递时间参数给后端
-      delete exportParams.dateRange
+      exportParams.start_time = String(Math.floor(new Date(params.dateRange[0]).getTime() / 1000))
+      exportParams.end_time = String(Math.floor(new Date(params.dateRange[1]).getTime() / 1000))
+      delete exportParams.dateRange // 删除前端的 dateRange 字段
     }
 
     const res = await exportAgentListApi(exportParams as AgentQueryParams)
-
-    // 注意：导出接口返回的是文件，无法在前端过滤
-    // 如果需要按时间范围导出，需要后端支持或者先获取数据再导出
-    if (dateRange) {
-      ElMessage.warning('导出功能暂不支持时间范围筛选，将导出全部数据')
-    }
 
     if (res.data instanceof Blob) {
       downloadByData(res.data, '代理列表.xlsx')
@@ -109,51 +101,24 @@ const STATUS_CONFIG = {
 // API 调用
 const getAgentList = async (params?: any) => {
   try {
-    // 保存时间范围用于前端过滤
-    let dateRange = null
-    const apiParams = { ...params }
+    const apiParams: any = { ...params }
 
+    // 处理时间范围 - 转换为 Unix 时间戳（秒级，字符串格式）
     if (params?.dateRange && params.dateRange.length === 2) {
-      dateRange = params.dateRange
-      // 不传递时间参数给后端，在前端过滤
-      delete apiParams.dateRange
-
-      console.log('=== 代理列表 - 前端时间范围过滤 ===')
-      console.log('时间范围:', dateRange)
-    }
-
-    // 如果有时间范围过滤，需要获取全部数据
-    if (dateRange) {
-      // 设置一个很大的 page_size 来获取所有数据
-      apiParams.page_size = 10000
-      apiParams.current_page = 1
+      apiParams.start_time = String(Math.floor(new Date(params.dateRange[0]).getTime() / 1000))
+      apiParams.end_time = String(Math.floor(new Date(params.dateRange[1]).getTime() / 1000))
+      delete apiParams.dateRange // 删除前端的 dateRange 字段
     }
 
     console.log('请求参数:', apiParams)
     const res = await getAgentListApi(apiParams)
     const data = (res?.data as any) || {}
-    let list = data.list || data.items || []
-    const originalTotal = data.totalCount || data.total || 0
-
-    // 前端过滤：根据创建时间范围筛选
-    if (dateRange && dateRange.length === 2) {
-      const startMs = typeof dateRange[0] === 'string' ? parseInt(dateRange[0], 10) : dateRange[0]
-      const endMs = typeof dateRange[1] === 'string' ? parseInt(dateRange[1], 10) : dateRange[1]
-
-      list = list.filter((item: AgentItem) => {
-        if (!item.created_at) return false
-        // created_at 是秒级时间戳，转换为毫秒
-        const itemMs = item.created_at * 1000
-        return itemMs >= startMs && itemMs <= endMs
-      })
-
-      console.log('过滤前数量:', data.list?.length || 0)
-      console.log('过滤后数量:', list.length)
-    }
+    const list = data.list || data.items || []
+    const total = data.totalCount || data.total || 0
 
     return {
       list: list,
-      total: dateRange ? list.length : originalTotal // 有时间过滤时返回过滤后的总数，否则返回原始总数
+      total: total
     }
   } catch (error) {
     console.error('获取代理列表失败:', error)
@@ -223,14 +188,14 @@ const columns = ref<TableColumn[]>([
   { field: 'email', label: '联系方式' },
   { field: 'username', label: '代理名称' },
   {
-    field: 'bot_num',
+    field: 'bot_count',
     label: '机器人数量',
-    formatter: (row: AgentItem) => row.bot_num ?? 0
+    formatter: (row: AgentItem) => row.bot_count ?? 0
   },
   {
-    field: 'tg_account_num',
+    field: 'user_count',
     label: '总用户数',
-    formatter: (row: AgentItem) => row.tg_account_num ?? 0
+    formatter: (row: AgentItem) => row.user_count ?? 0
   },
   {
     field: 'trx_balance',
@@ -241,14 +206,14 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
-    field: 'total_trx_amount',
+    field: 'trx_income',
     label: 'TRX收入',
-    formatter: (row: AgentItem) => row.total_trx_amount ?? 0
+    formatter: (row: AgentItem) => row.trx_income ?? '0'
   },
   {
-    field: 'total_usdt_amount',
+    field: 'usdt_income',
     label: 'USDT收入',
-    formatter: (row: AgentItem) => row.total_usdt_amount ?? 0
+    formatter: (row: AgentItem) => row.usdt_income ?? '0'
   },
   {
     field: 'gift_bandwidth',
@@ -269,7 +234,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'created_at',
     label: '创建时间',
-    formatter: (row: AgentItem) => (row.created_at ? formatToDateTime(row.created_at) : '-')
+    formatter: (row: AgentItem) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
   },
   {
     field: 'action',

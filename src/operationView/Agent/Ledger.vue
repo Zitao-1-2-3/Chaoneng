@@ -30,7 +30,7 @@ import { SearchTable } from '@/components/SearchTable'
 import { FormSchema } from '@/components/Form'
 import { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { getAgentLedgerListApi, exportAgentLedgerApi } from '@/api/agent/ledger'
+import { v2GetAgentBillList, v2ExportAgentBill } from '@/api/agent/ledger'
 import { ContentWrap } from '@/components/ContentWrap'
 import { isEmpty } from 'lodash-es'
 import { useRouter } from 'vue-router'
@@ -41,6 +41,7 @@ const router = useRouter()
 
 const orderTypeMap = () => {
   return {
+    1: '能量订单',
     2: '托管',
     3: '兑换',
     4: '按笔数',
@@ -50,27 +51,61 @@ const orderTypeMap = () => {
     8: '激活',
     9: '机器人续费',
     10: '后台手动变更',
-    20: '福利订单',
-    22: '接口调用-按笔数'
+    11: '福利订单'
   }
 }
 
 // 定义API函数调用
 const getAgentLedgerList = async (params?: any): Promise<{ list: any[]; total?: number }> => {
   try {
-    // 处理时间范围
-    const apiParams = { ...params }
-    if (params?.dateRange && params.dateRange.length === 2) {
-      apiParams.start_time = params.dateRange[0]
-      apiParams.end_time = params.dateRange[1]
-      delete apiParams.dateRange
+    // 映射参数字段
+    const adaptedParams: any = {
+      current_page: params?.current_page || params?.currentPage || 1,
+      page_size: params?.page_size || params?.pageSize || 10
     }
-    const res = await getAgentLedgerListApi(apiParams)
+
+    if (params?.query) adaptedParams.keyword = params.query // query → keyword
+    if (params?.order_type) adaptedParams.kinds = [Number(params.order_type)] // order_type → kinds数组
+
+    // 处理时间范围 - 转换为 Unix 时间戳（秒级）
+    if (params?.dateRange && params.dateRange.length === 2) {
+      adaptedParams.start_time = Math.floor(new Date(params.dateRange[0]).getTime() / 1000)
+      adaptedParams.end_time = Math.floor(new Date(params.dateRange[1]).getTime() / 1000)
+    }
+
+    console.log('[getAgentLedgerList] 调用新接口 v2GetAgentBillList, 参数:', adaptedParams)
+
+    // 使用新接口 v2GetAgentBillList
+    const res = await v2GetAgentBillList(adaptedParams)
+
+    // 映射返回数据字段
+    const list = (res.data?.list || []).map((item: any) => ({
+      id: item.order_id,
+      order_num: item.order_id, // order_id → order_num
+      email: item.agent_name, // agent_name → email (代理信息)
+      username: item.agent_name, // agent_name → username (代理名称)
+      bot_name: item.bot_name,
+      describe: item.describe, // 交易类型描述
+      amount: item.amount, // 金额变动
+      change_type: parseFloat(item.amount) < 0 ? 'out' : 'in', // 根据金额正负判断
+      unit: item.coin, // coin → unit
+      after_amount: item.balance, // balance → after_amount (交易后余额)
+      status: 1, // 新接口没有状态字段，默认为已完成
+      create_time: item.created_at * 1000, // created_at（秒）→ create_time（毫秒）
+      order_type: item.kind // kind → order_type
+    }))
+
+    console.log('[getAgentLedgerList] 返回数据:', {
+      total: res.data?.pager?.total,
+      count: list.length
+    })
+
     return {
-      list: res.data.list || [],
-      total: res.data.totalCount || 0
+      list,
+      total: res.data?.pager?.total || 0
     }
   } catch (error) {
+    console.error('获取代理账单列表失败:', error)
     ElMessage.error('获取代理账单列表失败')
     return {
       list: [],
@@ -86,7 +121,7 @@ const searchSchema = ref<FormSchema[]>([
     component: 'Input',
     label: {
       text: '关键字',
-      tips: '机器人名称/代理信息/关联订单ID'
+      tips: '机器人名称/代理名称/关联订单ID'
     },
     componentProps: {
       placeholder: '请输入关键字'
@@ -129,20 +164,20 @@ const columns = ref<TableColumn[]>([
       default: ({ row }: any) => {
         let href = '/operation'
         switch (row.order_type) {
-          case 4:
-          case 5:
-          case 6:
-          case 7:
-          case 8:
-          case 9:
-          case 22:
+          case 1: // 能量订单
+          case 4: // 按笔数
+          case 5: // 按时间
+          case 6: // 批量下单
+          case 7: // 闪租
+          case 8: // 激活
+          case 9: // 机器人续费
+          case 11: // 福利订单
             href = `${href}/energy_transaction`
-
             break
-          case 3:
+          case 3: // 兑换
             href = `${href}/flash_exchange`
             break
-          case 2:
+          case 2: // 托管
             href = `${href}/custody_details`
             break
           default:
@@ -242,25 +277,35 @@ const handleSearch = (_params) => {
 const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
-    // 处理时间范围
-    const exportParams = { ...params }
-    if (params.dateRange && params.dateRange.length === 2) {
-      exportParams.start_time = params.dateRange[0]
-      exportParams.end_time = params.dateRange[1]
-      delete exportParams.dateRange
+
+    // 映射导出参数
+    const exportParams: any = {
+      current_page: params?.current_page || 1,
+      page_size: params?.page_size || 10
     }
-    const res = await exportAgentLedgerApi(exportParams)
+
+    if (params?.query) exportParams.keyword = params.query
+    if (params?.order_type) exportParams.kinds = [Number(params.order_type)]
+
+    // 处理时间范围 - 转换为 Unix 时间戳（秒级）
+    if (params?.dateRange && params.dateRange.length === 2) {
+      exportParams.start_time = Math.floor(new Date(params.dateRange[0]).getTime() / 1000)
+      exportParams.end_time = Math.floor(new Date(params.dateRange[1]).getTime() / 1000)
+    }
+
+    console.log('[handleExport] 调用新接口 v2ExportAgentBill, 参数:', exportParams)
+
+    // 使用新接口 v2ExportAgentBill
+    const res = await v2ExportAgentBill(exportParams)
+
     // 使用下载工具处理 blob 数据
-    // Ensure res.data is a Blob before passing
     if (res.data instanceof Blob) {
       downloadByData(res.data, '代理账单.xlsx')
-
       ElMessage.success('账单导出成功')
     } else {
       ElMessage.error('导出失败: 文件数据格式错误')
     }
   } catch (error) {
-    // Try to provide a more specific error message
     const errorMsg =
       (error as any)?.response?.data?.message || (error as Error)?.message || '账单导出失败'
     ElMessage.error(errorMsg)

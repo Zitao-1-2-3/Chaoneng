@@ -117,7 +117,20 @@ export const batchDeleteTrxAddressApi = (data: { id_list: number[] }) => {
 }
 
 /**
- * 批量导入TRX地址 (File Upload)
+ * 批量导入TRX地址 - 新接口
+ */
+export const v2BatchImportAddress = (formData: FormData): Promise<IResponse> => {
+  return request.post({
+    url: `${NEW_BASE_URL}/import`,
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}
+
+/**
+ * 批量导入TRX地址 - 旧接口（保留兼容）
  */
 export const batchImportTrxAddressApi = (formData: FormData) => {
   return request.post({
@@ -130,7 +143,17 @@ export const batchImportTrxAddressApi = (formData: FormData) => {
 }
 
 /**
- * 导出模版
+ * 导出模版 - 新接口
+ */
+export const v2ExportAddressModule = () => {
+  return request.get({
+    url: `${NEW_BASE_URL}/module`,
+    responseType: 'blob'
+  })
+}
+
+/**
+ * 导出模版 - 旧接口（保留兼容）
  */
 export const exportAddressModuleApi = () => {
   return request.get({

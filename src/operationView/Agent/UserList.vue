@@ -22,7 +22,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h, computed } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { ElMessage, ElLink } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -31,10 +31,9 @@ import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
-import { getUserListApi, exportUserListApi } from '@/api/agent/user_list'
+import { v2GetUserList, v2ExportUserList } from '@/api/agent/user_list'
 import { getAgentBotListApi } from '@/api/agent/bot'
 import { useRoute, useRouter } from 'vue-router'
-import { nextTick } from 'vue'
 import { downloadByData } from '@/utils/download'
 
 const route = useRoute()
@@ -43,8 +42,9 @@ const router = useRouter()
 // 机器人下拉options，全部string类型
 const isBotListLoaded = ref(false)
 const botOptions = ref<{ label: string; value: string }[]>([{ label: '全部', value: '' }])
+const botMap = ref<Map<number, any>>(new Map()) // 机器人ID到机器人信息的映射
 
-// 获取机器人列表（用 operationView/Agent 的接口）
+// 获取机器人列表（使用运营端的机器人列表接口）
 const fetchBotList = async () => {
   isBotListLoaded.value = false
   try {
@@ -52,14 +52,25 @@ const fetchBotList = async () => {
       current_page: 1,
       page_size: 1000
     })
-    const bots = (res.data.list || []).map((bot: any) => ({
-      label: `${bot.name} (${bot.firstname})`,
-      value: String(bot.id)
-    }))
+
+    // 建立机器人映射
+    const bots = (res.data.list || []).map((bot: any) => {
+      // 存储到映射中
+      botMap.value.set(bot.id, bot)
+
+      return {
+        label: `${bot.user_name} (${bot.first_name})`,
+        value: String(bot.id)
+      }
+    })
+
     botOptions.value = [{ label: '全部', value: '' }, ...bots]
     isBotListLoaded.value = true
+
+    console.log('[fetchBotList] 机器人列表加载成功, 数量:', bots.length)
   } catch (error) {
     console.error('获取机器人列表失败:', error)
+    isBotListLoaded.value = true
   }
 }
 
@@ -167,15 +178,58 @@ const searchSchema = computed<FormSchema[]>(() => [
 // API 封装 - 获取账户信息（用 operationView/Agent 的接口）
 const fetchAccountList = async (params: any) => {
   try {
-    // 处理时间范围
-    const apiParams = { ...params }
-    if (params.dateRange && params.dateRange.length === 2) {
-      apiParams.start_time = params.dateRange[0]
-      apiParams.end_time = params.dateRange[1]
-      delete apiParams.dateRange
+    // 映射参数字段
+    const adaptedParams: any = {
+      current_page: params?.current_page || params?.currentPage || 1,
+      page_size: params?.page_size || params?.pageSize || 10
     }
-    const response = await getUserListApi(apiParams)
-    return response.data
+
+    if (params?.query) adaptedParams.keyword = params.query // query → keyword
+    if (params?.bot_id) adaptedParams.bot_id = Number(params.bot_id)
+
+    // 处理时间范围 - 转换为 Unix 时间戳（秒级）
+    if (params?.dateRange && params.dateRange.length === 2) {
+      adaptedParams.start_time = Math.floor(new Date(params.dateRange[0]).getTime() / 1000)
+      adaptedParams.end_time = Math.floor(new Date(params.dateRange[1]).getTime() / 1000)
+    }
+
+    console.log('[fetchAccountList] 调用新接口 v2GetUserList, 参数:', adaptedParams)
+
+    // 使用新接口 v2GetUserList
+    const response = await v2GetUserList(adaptedParams)
+
+    // 映射返回数据字段
+    const list = (response.data?.list || []).map((item: any) => {
+      // 从机器人映射中获取机器人信息
+      const botInfo = botMap.value.get(item.bot_id)
+
+      return {
+        id: item.id,
+        tg_id: item.tg_user_id, // tg_user_id → tg_id
+        tg_bot_id: item.bot_id, // bot_id → tg_bot_id
+        nickname: item.tg_first_name, // tg_first_name → nickname
+        tg_name: item.tg_user_name, // tg_user_name → tg_name
+        trx_mount: item.trx_balance, // trx_balance → trx_mount
+        usdt_mount: item.usdt_balance, // usdt_balance → usdt_mount
+        create_time: item.created_at, // created_at（秒）→ create_time（秒，formatter中会转毫秒）
+        update_time: item.updated_at, // updated_at（秒）→ update_time（秒，formatter中会转毫秒）
+        bot_info: {
+          tg_bot_id: item.bot_id,
+          bot_name: botInfo?.user_name || '' // 从机器人映射中获取机器人用户名
+        },
+        user_name: botInfo?.agent_name || '' // 从机器人映射中获取代理名称
+      }
+    })
+
+    console.log('[fetchAccountList] 返回数据:', {
+      total: response.data?.pager?.total,
+      count: list.length
+    })
+
+    return {
+      list,
+      total: response.data?.pager?.total || 0
+    }
   } catch (error) {
     console.error('获取用户列表失败:', error)
     return { list: [], total: 0 }
@@ -201,14 +255,27 @@ function onSearchTableReady(instance) {
 const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
-    // 处理时间范围
-    const exportParams = { ...params }
-    if (params.dateRange && params.dateRange.length === 2) {
-      exportParams.start_time = params.dateRange[0]
-      exportParams.end_time = params.dateRange[1]
-      delete exportParams.dateRange
+
+    // 映射导出参数
+    const exportParams: any = {
+      current_page: params?.current_page || 1,
+      page_size: params?.page_size || 10
     }
-    const res = await exportUserListApi(exportParams)
+
+    if (params?.query) exportParams.keyword = params.query
+    if (params?.bot_id) exportParams.bot_id = Number(params.bot_id)
+
+    // 处理时间范围 - 转换为 Unix 时间戳（秒级）
+    if (params?.dateRange && params.dateRange.length === 2) {
+      exportParams.start_time = Math.floor(new Date(params.dateRange[0]).getTime() / 1000)
+      exportParams.end_time = Math.floor(new Date(params.dateRange[1]).getTime() / 1000)
+    }
+
+    console.log('[handleExport] 调用新接口 v2ExportUserList, 参数:', exportParams)
+
+    // 使用新接口 v2ExportUserList
+    const res = await v2ExportUserList(exportParams)
+
     if (res.data instanceof Blob) {
       downloadByData(res.data, '机器人用户列表.xlsx')
       ElMessage.success('用户列表导出成功')

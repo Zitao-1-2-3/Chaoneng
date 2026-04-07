@@ -114,8 +114,8 @@ import {
   v2UpdateAddress, // 新接口 - 更新地址（绑定/解绑）
   v2DeleteAddress, // 新接口 - 删除地址
   v2GetUnboundAgents, // 新接口 - 获取未绑定的代理列表
-  batchImportTrxAddressApi,
-  exportAddressModuleApi
+  v2ExportAddressModule, // 新接口 - 导出模版
+  v2BatchImportAddress // 新接口 - 批量导入
 } from '@/api/marketing/trx_address'
 
 // Separate imports for clarity
@@ -216,7 +216,7 @@ const columns = ref<TableColumn[]>([
 // 搜索项配置 - 移除状态下拉框，只保留关键字
 const searchSchema = reactive<FormSchema[]>([
   {
-    field: 'query',
+    field: 'keyword',
     component: 'Input',
     label: '关键字：',
     componentProps: {
@@ -359,7 +359,7 @@ const submitBatchImport = async () => {
     formData.append('file', file) // 将文件添加到 FormData
 
     submitting.value = true
-    await batchImportTrxAddressApi(formData) // 调用批量导入 API
+    await v2BatchImportAddress(formData) // 使用新接口 v2BatchImportAddress
     ElMessage.success('批量导入成功')
     batchImportVisible.value = false
     reloadTable() // 刷新
@@ -577,7 +577,7 @@ const submitAddAddresses = async () => {
 // --- 导出模版处理函数 ---
 const handleExportTemplate = async () => {
   try {
-    const res = await exportAddressModuleApi()
+    const res = await v2ExportAddressModule()
     // 使用下载工具处理 blob 数据
     // Ensure res.data is a Blob before passing
     if (res.data instanceof Blob) {

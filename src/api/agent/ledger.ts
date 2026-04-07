@@ -1,43 +1,44 @@
 import request from '@/axios'
-import { formatToDateTime } from '@/utils/dateUtil'
+import type {
+  AgentBillListParamsV2,
+  AgentBillListResponseV2,
+  AgentLedgerQueryParams,
+  AgentLedgerListResponseData
+} from './ledger.types'
+
+// 导出类型定义
+export * from './ledger.types'
+
+// ========== 新接口 v2 ==========
+
+const BASE_URL = '/v2/manage/bill/agent/'
 
 /**
- * 代理账单数据项接口
+ * 获取代理账单列表 - 新接口 v2
+ * GET /v2/manage/bill/agent/list
  */
-export interface AgentLedgerItem {
-  id: number | string // 扣款ID
-  email: string // 代理信息
-  username: string // 代理名称
-  describe: string // 交易类型
-  amount: string | number
-  change_type: 'in' | 'out' // 用于格式化金额颜色
-  unit: string // 单位，例如 TRX
-  after_amount: string | number // 交易后TRX余额
-  status: number // 扣款状态 (0, 1: 已完成, 2: 已取消, 3: 进行中)
-  order_num: string | number // 关联订单ID
-  create_time: string | number // 扣款时间
+export const v2GetAgentBillList = (
+  params: AgentBillListParamsV2
+): Promise<IResponse<AgentBillListResponseV2>> => {
+  return request.get({
+    url: `${BASE_URL}list`,
+    params
+  })
 }
 
 /**
- * 代理账单查询参数
+ * 导出代理账单 - 新接口 v2
+ * GET /v2/manage/bill/agent/export
  */
-export interface AgentLedgerQueryParams {
-  query?: string // 关键字
-  status?: number | string // 扣款状态
-  current_page?: number
-  page_size?: number
-  dateRange?: number[] // 前端表单使用的时间范围 [startTime, endTime] (时间戳)
-  start_time?: number // API 使用的开始时间 (时间戳)
-  end_time?: number // API 使用的结束时间 (时间戳)
+export const v2ExportAgentBill = (params: AgentBillListParamsV2): Promise<IResponse<Blob>> => {
+  return request.get({
+    url: `${BASE_URL}export`,
+    params,
+    responseType: 'blob'
+  })
 }
 
-/**
- * 代理账单列表响应
- */
-interface AgentLedgerListResponseData {
-  list: AgentLedgerItem[]
-  totalCount: number
-}
+// ========== 旧接口 ==========
 
 /**
  * 获取代理账单列表
