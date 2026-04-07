@@ -7,6 +7,7 @@ import type {
   BotPriceConfig,
   AddressListParams,
   AddressListResponse,
+  BindAddressParams,
   UpdateBotParams,
   UpdateBotPriceParams,
   RenewBotParams,
@@ -148,6 +149,17 @@ export const v1GetAgentBillList = (
   return request.get({
     url: '/v1/bill/agent/list',
     params
+  })
+}
+
+/**
+ * 绑定地址 - 新接口 v1
+ * POST /v1/address/bind
+ */
+export const v1BindAddress = (data: BindAddressParams): Promise<IResponse> => {
+  return request.post({
+    url: '/v1/address/bind',
+    data
   })
 }
 

@@ -5,14 +5,12 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, defineExpose, ref, onMounted } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
-import { useFormValidation } from '../composables'
 
 // 表单相关
 const { formRegister, formMethods } = useForm()
-const { required } = useFormValidation()
 
 // 存储用户名
 const username = ref('')
@@ -48,7 +46,7 @@ const paymentSchema = reactive<FormSchema[]>([
       placeholder: '请输入闪充收款钱包地址'
     },
     formItemProps: {
-      rules: [{ required: true, message: '闪充收款钱包地址是必填项' }]
+      rules: []
     }
   },
   {
@@ -60,10 +58,9 @@ const paymentSchema = reactive<FormSchema[]>([
     },
     componentProps: {
       placeholder: '请输入余额收款钱包地址'
-      // disabled: true
     },
     formItemProps: {
-      rules: [{ required: true, message: '余额收款钱包地址是必填项' }]
+      rules: []
     }
   },
   {
@@ -78,7 +75,6 @@ const paymentSchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [
-        { required: true, message: 'TRX/USDT收款钱包地址是必填项' },
         {
           validator: (_: any, value: string, callback: (error?: Error) => void) => {
             // 当前值为空时不验证

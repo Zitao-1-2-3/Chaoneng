@@ -75,6 +75,7 @@ import RechargeDialog from './components/RechargeDialog.vue'
 import BalanceRecordDialog from './components/BalanceRecordDialog.vue'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -238,8 +239,11 @@ const searchSchema = computed<FormSchema[]>(() => [
     field: 'query',
     component: 'Input' as const,
     label: '关键词',
+    colProps: {
+      span: 8
+    },
     componentProps: {
-      placeholder: '请输入机器人id/用户名/昵称'
+      placeholder: '请输入TG用户ID/用户名/用户昵称'
     }
   }
 ])

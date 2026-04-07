@@ -29,10 +29,11 @@ import { ElButton, ElMessage, ElLink } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { getBalanceRecordApi } from '@/api/account'
+import { v1GetBillList } from '@/api/account'
 import type { TableColumn } from '@/components/Table'
 import isEmpty from 'lodash-es/isEmpty'
 import { useRouter } from 'vue-router'
+import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
 const props = defineProps({
@@ -42,19 +43,18 @@ const props = defineProps({
   }
 })
 
+// 交易类型映射：kind → 显示名称
 const orderTypeMap = () => {
   return {
-    2: '托管',
     3: '兑换',
-    4: '按笔数',
-    5: '按时间',
-    6: '批量下单',
-    7: '闪租',
-    8: '激活',
-    9: '机器人续费',
-    10: '后台手动变更',
-    20: '福利订单',
-    22: '接口调用-按笔数'
+    4: '按时间',
+    5: '按笔数',
+    6: '福利能量',
+    7: '快速能量',
+    8: '自动托管',
+    9: '批量能量',
+    10: '批量激活',
+    11: '机器人付费'
   }
 }
 
@@ -73,37 +73,41 @@ const columns: TableColumn[] = [
     slots: {
       default: ({ row }: any) => {
         let href = '/order_manage'
+        // 根据 kind 值判断订单类型
         switch (row.order_type) {
-          case 4:
-          case 5:
-          case 6:
-          case 7:
-          case 8:
-          case 9:
-          case 22:
+          case 4: // 按时间
+          case 5: // 按笔数
+          case 6: // 福利能量
+          case 7: // 快速能量
+          case 9: // 批量能量
+          case 10: // 批量激活
             href = `${href}/energy_order`
-
             break
-          case 3:
+          case 3: // 兑换
             href = `${href}/exchange_order`
             break
-          case 2:
+          case 8: // 自动托管
             href = `${href}/hosted_order`
             break
-          case 1:
-            href = `${href}/recharge_order`
+          case 11: // 机器人付费
+            // 机器人付费可能没有对应的订单页面
+            href = ''
             break
           default:
             href = ''
         }
         return (
           <>
-            <ElLink
-              type="primary"
-              onClick={() => router.push({ path: href, query: { order_num: row.order_num } })}
-            >
-              {row.order_num}
-            </ElLink>
+            {href ? (
+              <ElLink
+                type="primary"
+                onClick={() => router.push({ path: href, query: { order_num: row.order_num } })}
+              >
+                {row.order_num}
+              </ElLink>
+            ) : (
+              <span>{row.order_num}</span>
+            )}
           </>
         )
       }
@@ -190,27 +194,81 @@ const searchSchema = [
 
 // 获取扣款记录数据
 const getList = async (params: any = {}) => {
+  if (!props.accountId) {
+    ElMessage.warning('账户ID不能为空')
+    return { list: [], total: 0 }
+  }
+
   try {
-    // 调用通用API但使用/out路径表示扣款记录
-    const res = await getBalanceRecordApi({
-      ...params,
-      change_type: 'out',
-      accountId: props.accountId
-    })
-
-    if (res && res.data) {
-      // 如果有记录且没有保存账户名，就从第一条记录获取
-      if (res.data.list && res.data.list.length > 0 && !accountName.value) {
-        // 假设记录中包含账户名字段，实际情况可能需要调整
-        // accountName.value = res.data.list[0].account_name
-      }
-
-      return res.data
+    // 构建查询参数
+    const queryParams: any = {
+      current_page: params.current_page || params.page || 1,
+      page_size: params.page_size || params.limit || 10,
+      kinds: [3, 4, 5, 6, 7, 8, 9, 10, 11], // 扣款类型
+      agent_id: props.accountId
     }
 
+    // 处理搜索条件
+    if (params.order_type) {
+      queryParams.kinds = [Number(params.order_type)]
+    }
+    if (params.id) {
+      queryParams.order_id = params.id
+    }
+    if (params.time_range && params.time_range.length === 2) {
+      // time_range 是时间戳数组（毫秒），转换为秒级时间戳
+      const startTimestamp = Number(params.time_range[0])
+      const endTimestamp = Number(params.time_range[1])
+
+      const startDate = new Date(startTimestamp)
+      const endDate = new Date(endTimestamp)
+
+      // 设置开始时间为当天的 00:00:00
+      startDate.setHours(0, 0, 0, 0)
+      // 设置结束时间为当天的 23:59:59
+      endDate.setHours(23, 59, 59, 999)
+
+      // 转换为秒级时间戳（纯数字）
+      queryParams.start_time = Math.floor(startDate.getTime() / 1000)
+      queryParams.end_time = Math.floor(endDate.getTime() / 1000)
+    }
+
+    const res = await v1GetBillList(queryParams)
+
+    if (res && res.data) {
+      // 从第一条记录获取账户名称（如果父组件没有传入）
+      if (res.data.list && res.data.list.length > 0 && !accountName.value) {
+        accountName.value = res.data.list[0].agent_name || ''
+      }
+
+      // 映射字段：新接口 → 旧字段格式
+      const mappedList = (res.data.list || []).map((item) => ({
+        order_num: item.order_id,
+        order_type: item.kind,
+        bot_name: item.bot_name || '-',
+        amount: item.amount,
+        unit: item.coin,
+        after_amount: item.balance,
+        create_time: item.created_at * 1000, // 秒转毫秒
+        describe: item.describe
+      }))
+
+      const total = res.data.pager?.total || 0
+
+      // 添加数据为空提示
+      const hasSearchCondition = !!(params.order_type || params.id || params.time_range)
+      handleListMessage(mappedList, hasSearchCondition, '扣款记录')
+
+      return {
+        list: mappedList,
+        total: total
+      }
+    }
+
+    handleErrorMessage(res, '获取扣款记录失败')
     return { list: [], total: 0 }
   } catch (error) {
-    ElMessage.error('获取扣款记录失败')
+    handleErrorMessage(error, '获取扣款记录失败')
     return { list: [], total: 0 }
   }
 }
