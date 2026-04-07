@@ -79,6 +79,14 @@ import type {
   AddMenuParamsV1,
   UpdateMenuParamsV1
 } from '@/api/menu_list/types'
+import {
+  handleListMessage,
+  handleErrorMessage,
+  handleSuccessMessage,
+  handleWarningMessage,
+  handleDataFormatError
+} from '@/utils/messageHelper'
+} from '@/api/menu_list/types'
 import { useValidator } from '@/hooks/web/useValidator'
 import MenuPreview from './components/MenuPreview.vue'
 import { formatToDateTime } from '@/utils/dateUtil'
@@ -412,41 +420,44 @@ const fetchMenuList = async (params: any) => {
       status: params.status || undefined
     }
 
-    // 使用新接口 v1GetMenuList
     const response = await v1GetMenuList(queryParams)
 
     if (response.code === '000000' && response.data) {
+      const list = response.data.list || []
+      const hasSearchCondition = !!(params.menu_name || params.menu_type || params.status)
+      handleListMessage(list, hasSearchCondition, '菜单')
+
       return {
-        list: response.data.list || [],
+        list,
         totalCount: response.data.pager?.total || 0
       }
     }
 
+    handleDataFormatError('菜单列表')
     return { list: [], totalCount: 0 }
   } catch (error) {
-    console.error('获取菜单列表失败:', error)
+    handleErrorMessage(error, '获取菜单列表失败')
     return { list: [], totalCount: 0 }
   }
 }
 
-// 修改deleteMenu函数签名以满足接口要求
 const deleteMenu = async (): Promise<boolean> => {
-  // 获取当前选中行数据
   const row = searchTableRef.value?.currentRow
   if (row && row.id) {
     try {
-      // 直接调用API删除菜单
       const res = await deleteMenuApi(row.id)
-      // 返回删除操作的结果，useTable会根据此结果显示成功消息并刷新列表
-      return res.code === '000000'
+      if (res.code === '000000') {
+        handleSuccessMessage('删除成功')
+        return true
+      }
+      handleErrorMessage(res.msg || '删除失败', '删除失败')
+      return false
     } catch (error) {
-      console.error('删除菜单失败:', error)
-      ElMessage.error('删除失败')
+      handleErrorMessage(error, '删除菜单失败')
       return false
     }
   } else {
-    console.error('当前选中行不存在或ID为空')
-    ElMessage.error('删除失败：数据不完整')
+    handleWarningMessage('删除失败：数据不完整')
     return false
   }
 }
@@ -605,15 +616,15 @@ const fetchCallbackList = async () => {
   try {
     const response = await getCallBackListApi()
     if (response.code === '000000' && response.data) {
-      // 假设返回的数据结构包含name和callback_type字段
       callbackList.value = response.data.map((item: any) => ({
         label: item.name || item.callback_type,
         value: item.callback_type
       }))
+    } else {
+      handleDataFormatError('回调函数列表')
     }
   } catch (error) {
-    console.error('获取回调函数列表失败:', error)
-    ElMessage.error('获取回调函数列表失败')
+    handleErrorMessage(error, '获取回调函数列表失败')
   }
 }
 

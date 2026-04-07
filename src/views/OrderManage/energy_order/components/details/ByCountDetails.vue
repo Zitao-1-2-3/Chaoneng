@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, watch, h, onMounted } from 'vue'
-import { ElTag, ElLink, ElTable, ElTableColumn } from 'element-plus'
+import { computed, h, ref } from 'vue'
+import { ElTag, ElLink } from 'element-plus'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Table } from '@/components/Table'
 import type { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { getByCountDetailApi } from '@/api/energy_order'
 import isEmpty from 'lodash-es/isEmpty'
 
 const props = defineProps({
@@ -20,33 +19,84 @@ const props = defineProps({
   }
 })
 
-const countOrderDetails = ref<any[]>([])
-const countOrderLoading = ref(false)
-const countCurrentPage = ref(1)
-const countPageSize = ref(10)
-const apiTotalCount = ref(0)
+// 分页状态
+const currentPage = ref(1)
+const pageSize = ref(10)
+
+// 从 orderData.resources 获取按笔数订单列表（所有数据）
+const allCountOrderDetails = computed(() => {
+  if (!props.orderData?.resources) return []
+
+  // 过滤出能量类型的资源（code === 1）
+  return props.orderData.resources
+    .filter((item: any) => item.code === 1)
+    .map((item: any) => ({
+      to_address: item.target, // target → to_address
+      status: getResourceStatus(item), // 根据资源状态计算
+      create_time: item.created_at, // created_at → create_time（秒级时间戳）
+      end_time: item.recycled_at || item.expirated_at, // recycled_at 或 expirated_at → end_time
+      energy_txid: item.delegated_txid // delegated_txid → energy_txid
+    }))
+})
+
+// 当前页显示的数据
+const countOrderDetails = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return allCountOrderDetails.value.slice(start, end)
+})
+
+// 总数据量
+const totalCount = computed(() => allCountOrderDetails.value.length)
+
+// 根据资源状态计算显示状态
+const getResourceStatus = (resource: any): number => {
+  // 如果有交易hash，状态为已完成
+  if (resource.delegated_txid) return 2
+
+  // 否则为待使用
+  return 1
+}
 
 const byCountDetailSchema = computed((): DescriptionsSchema[] => [
-  { field: 'stroke_num', label: '租用笔数' },
   {
-    field: 'stroke_ext.price_trx',
-    label: '能量TRX价格',
+    field: 'stroke_num',
+    label: '租用笔数',
     slots: {
-      default: (data: any) => h('span', {}, `${data.stroke_ext?.price_trx || '-'}`)
+      default: () => h('span', {}, totalCount.value.toString())
     }
   },
   {
-    field: 'stroke_ext.price_usdt',
+    field: 'price_trx',
+    label: '能量TRX价格',
+    slots: {
+      default: (data: any) => {
+        // 尝试从多个可能的字段获取价格
+        const price = data.price_trx || data.stroke_ext?.price_trx || data.cost || '-'
+        return h('span', {}, price.toString())
+      }
+    }
+  },
+  {
+    field: 'price_usdt',
     label: '能量USDT价格',
     slots: {
-      default: (data: any) => h('span', {}, `${data.stroke_ext?.price_usdt || '-'}`)
+      default: (data: any) => {
+        // 尝试从多个可能的字段获取价格
+        const price = data.price_usdt || data.stroke_ext?.price_usdt || '-'
+        return h('span', {}, price.toString())
+      }
     }
   }
 ])
 
 const countOrderTableSchema = computed((): TableColumn[] => [
-  { type: 'index', label: '序号', width: 60, align: 'center', field: 'index' },
-  { field: 'to_address', label: '地址', minWidth: 180 },
+  {
+    field: 'to_address',
+    label: '地址',
+    minWidth: 250,
+    showOverflowTooltip: false // 地址全量显示，不截断
+  },
   {
     field: 'status',
     label: '状态',
@@ -65,17 +115,20 @@ const countOrderTableSchema = computed((): TableColumn[] => [
   {
     field: 'create_time',
     label: '创建时间',
+    width: 180,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
   },
   {
     field: 'end_time',
     label: '完成时间',
+    width: 180,
     formatter: (row) => (row.end_time ? formatToDateTime(row.end_time * 1000) : '-')
   },
   {
     field: 'energy_txid',
     label: '交易hash',
-    minWidth: 280,
+    minWidth: 400,
+    showOverflowTooltip: false, // 交易hash全量显示，不截断
     slots: {
       default: ({ row }) => {
         if (isEmpty(row?.energy_txid)) return h('span', '-')
@@ -96,8 +149,7 @@ const countOrderTableSchema = computed((): TableColumn[] => [
 const getCountStatusText = (status: number): string => {
   const statusMap: Record<number, string> = {
     1: '待使用',
-    2: '已使用',
-    3: '已过期'
+    2: '已完成'
   }
   return statusMap[status] ?? '未知'
 }
@@ -105,75 +157,10 @@ const getCountStatusText = (status: number): string => {
 const getCountStatusTagType = (status: number): 'success' | 'warning' | 'info' | 'danger' => {
   const typeMap: Record<number, 'success' | 'warning' | 'info' | 'danger'> = {
     1: 'success', // 待使用
-    2: 'warning', // 已使用
-    3: 'danger' // 已过期
+    2: 'warning' // 已完成
   }
   return typeMap[status] ?? 'info'
 }
-
-const fetchCountOrderDetails = async () => {
-  if (!props.orderId) {
-    countOrderDetails.value = []
-    apiTotalCount.value = 0
-    return
-  }
-  countOrderLoading.value = true
-  countOrderDetails.value = []
-  try {
-    const params = {
-      currentPage: countCurrentPage.value,
-      pageSize: countPageSize.value
-    }
-    const response = await getByCountDetailApi(props.orderId, params)
-    const apiData = response?.data
-    countOrderDetails.value = apiData?.list || []
-    apiTotalCount.value = apiData?.totalCount || 0
-    if (!Array.isArray(countOrderDetails.value)) {
-      console.warn('按次数下单详情 API (分页) 未返回预期的数组格式', response)
-      countOrderDetails.value = []
-      apiTotalCount.value = 0
-    }
-  } catch (error) {
-    console.error('获取按次数下单详情失败 (分页):', error)
-    countOrderDetails.value = []
-    apiTotalCount.value = 0
-  } finally {
-    countOrderLoading.value = false
-  }
-}
-
-const handleCountPageChange = (page: number) => {
-  if (countCurrentPage.value !== page) {
-    countCurrentPage.value = page
-    fetchCountOrderDetails()
-  }
-}
-
-const handleCountSizeChange = (size: number) => {
-  if (countPageSize.value !== size) {
-    countPageSize.value = size
-    if (countCurrentPage.value !== 1) {
-      countCurrentPage.value = 1
-    }
-    fetchCountOrderDetails()
-  }
-}
-
-onMounted(() => {
-  fetchCountOrderDetails()
-})
-
-watch(
-  () => props.orderId,
-  (newId, oldId) => {
-    if (newId !== oldId && newId) {
-      if (countCurrentPage.value !== 1) {
-        countCurrentPage.value = 1
-      }
-      fetchCountOrderDetails()
-    }
-  }
-)
 </script>
 
 <template>
@@ -183,16 +170,21 @@ watch(
       <Table
         :columns="countOrderTableSchema"
         :data="countOrderDetails"
-        :loading="countOrderLoading"
         :border="true"
         :showOverflowTooltip="true"
         :pagination="{
-          total: apiTotalCount,
-          currentPage: countCurrentPage,
-          pageSize: countPageSize
+          total: totalCount,
+          currentPage: currentPage,
+          pageSize: pageSize,
+          layout: 'total, sizes, prev, pager, next, jumper'
         }"
-        @update:current-page="handleCountPageChange"
-        @update:page-size="handleCountSizeChange"
+        @update:current-page="(page) => (currentPage = page)"
+        @update:page-size="
+          (size) => {
+            pageSize = size
+            currentPage = 1
+          }
+        "
       />
     </div>
   </div>

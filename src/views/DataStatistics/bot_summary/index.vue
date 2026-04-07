@@ -42,6 +42,7 @@ import { getBotSummaryApi } from '@/api/statistics'
 import { BotSummaryItem } from '@/api/statistics/types'
 import { Descriptions } from '@/components/Descriptions'
 import { DescriptionsSchema } from '@/components/Descriptions/src/types'
+import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 
 defineOptions({
   name: 'BotSummary'
@@ -202,7 +203,7 @@ const getBotOptions = async () => {
     }
     return []
   } catch (error) {
-    console.error('获取机器人列表失败:', error)
+    handleErrorMessage(error, '获取机器人列表失败')
     return []
   }
 }

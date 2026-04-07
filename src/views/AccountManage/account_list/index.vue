@@ -402,7 +402,7 @@ const handleRechargeRecord = () => {
     return
   }
 
-  rechargeRecordDialogRef.value?.open(userData.value.id)
+  rechargeRecordDialogRef.value?.open(userData.value.id, userData.value.username || '')
 }
 
 // 扣款记录 - 打开扣款记录弹窗

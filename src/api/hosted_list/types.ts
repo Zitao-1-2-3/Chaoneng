@@ -28,16 +28,16 @@ export interface HostingListParamsV1 {
  * 托管列表项 - 新接口 v1
  */
 export interface HostingItemV1 {
+  id: number // 托管ID
+  created_at: number // 创建时间（Unix时间戳-秒）
+  updated_at: number // 更新时间（Unix时间戳-秒）
   address: string // 托管地址
   agent_id: number // 代理ID
-  agent_name: string // 代理名称
   bot_id: number // 机器人ID
-  bot_name: string // 机器人名称
-  created_at: string // 创建时间
-  id: number // 托管ID
-  order_id: string // 订单ID
-  updated_at: string // 更新时间
   user_id: number // 用户ID
+  order_id: string // 订单ID
+  agent_name: string // 代理名称
+  bot_name: string // 机器人名称
   user_name: string // 用户名
 }
 

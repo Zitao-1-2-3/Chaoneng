@@ -1,5 +1,5 @@
 <template>
-  <Dialog v-model="dialogVisible" title="机器人续费" maxHeight="150px">
+  <Dialog v-model="dialogVisible" title="机器人续费" maxHeight="150px" width="">
     <div class="text-lg font-bold mb-4"> 机器人费用：{{ botPrice?.amount }} TRX/月 </div>
     <Form :schema="formSchema" @register="formRegister" />
     <template #footer>
@@ -18,7 +18,8 @@ import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
-import { renewBotApi, getBotRenewPriceApi, v1RenewBot, v1GetBotRenewPrice } from '@/api/botlist'
+import { v1RenewBot, v1GetBotRenewPrice } from '@/api/botlist'
+import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const emit = defineEmits(['success', 'close'])
 const dialogVisible = ref(false)
@@ -62,11 +63,10 @@ const open = async (botInfo: Record<string, any>) => {
     if (res && res.data) {
       botPrice.value = res.data
     } else {
-      ElMessage.error('获取续费价格失败')
+      handleErrorMessage(res, '获取续费价格失败')
     }
   } catch (error) {
-    console.error('获取续费价格失败:', error)
-    ElMessage.error('获取续费价格失败，请稍后重试')
+    handleErrorMessage(error, '获取续费价格失败')
   }
 
   dialogVisible.value = true
@@ -102,16 +102,15 @@ const submit = async () => {
 
       // 检查响应 code
       if (res.code === '000000') {
-        ElMessage.success('续费成功')
+        handleSuccessMessage('续费成功')
         dialogVisible.value = false
         emit('success')
       } else {
         // 后端返回的业务错误
-        ElMessage.error((res as any).msg || '续费失败')
+        handleErrorMessage(res, '续费失败')
       }
     } catch (error) {
-      console.error('续费失败:', error)
-      ElMessage.error('续费失败，请稍后重试')
+      handleErrorMessage(error, '续费失败')
     }
   })
 }

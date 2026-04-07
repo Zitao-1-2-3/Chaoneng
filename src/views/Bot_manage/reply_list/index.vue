@@ -66,6 +66,7 @@ import type {
 import { formatToDateTime } from '@/utils/dateUtil'
 import ReplyFormDialog from './components/ReplyFormDialog.vue'
 import { Dialog } from '@/components/Dialog'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const replyFormDialogRef = ref<InstanceType<typeof ReplyFormDialog> | null>(null)
 
@@ -96,7 +97,7 @@ const fetchBotOptionsForPage = async () => {
     }
     isBotlistLoaded.value = true
   } catch (error) {
-    console.error('获取机器人选项失败: ', error)
+    handleErrorMessage(error, '获取机器人列表失败')
     botOptionsForDialog.value = []
   }
 }
@@ -272,6 +273,10 @@ const fetchReplyList = async (params: any) => {
         }
       })
 
+      // 添加数据为空提示
+      const hasSearchCondition = !!(params.tg_bot_id || params.query || params.status)
+      handleListMessage(mappedList, hasSearchCondition, '关键词回复')
+
       return {
         list: mappedList,
         total: res.data.pager?.total || 0
@@ -280,7 +285,7 @@ const fetchReplyList = async (params: any) => {
 
     return { list: [], total: 0 }
   } catch (error) {
-    console.error('获取关键词回复列表失败:', error)
+    handleErrorMessage(error, '获取关键词回复列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -290,10 +295,10 @@ const deleteReplyAction = async () => {
     try {
       // 使用新接口 v1DeleteReply
       await v1DeleteReply(currentRowData.value.id)
-      ElMessage.success('删除成功')
+      handleSuccessMessage('删除成功')
       return true
     } catch (error) {
-      console.error('删除关键词回复失败:', error)
+      handleErrorMessage(error, '删除关键词回复失败')
       return false
     }
   }

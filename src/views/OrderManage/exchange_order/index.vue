@@ -78,7 +78,7 @@
 <script setup lang="tsx">
 import { ref, onMounted, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { useRoute, useRouter } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { ElButton, ElTag, ElMessage, ElTabs, ElTabPane, ElLink, ElEmpty } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
@@ -89,10 +89,9 @@ import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import {
-  getExchangeOrderListApi,
-  getExchangeOrderDetailApi,
-  exportExchangeOrderApi,
-  getTransactionDetailApi
+  v1GetExchangeOrderList,
+  v1GetExchangeOrderDetail,
+  exportExchangeOrderApi
 } from '@/api/exchange_order'
 import { Icon } from '@/components/Icon'
 import { downloadByData } from '@/utils/download'
@@ -100,7 +99,6 @@ import { ExchangeOrderListItem } from '@/api/exchange_transaction'
 
 // const { t } = useI18n()
 const router = useRouter()
-const route = useRoute()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 
 // 订单详情相关
@@ -135,7 +133,7 @@ const exchangeDetailSchema = computed(() => {
       slots: {
         default: (row: any) => {
           if (!row || !row.create_time) return h('span', '-')
-          return h('span', formatToDateTime(row.create_time * 1000))
+          return h('span', formatToDateTime(row.create_time))
         }
       }
     },
@@ -179,7 +177,7 @@ const exchangeDetailSchema = computed(() => {
       slots: {
         default: (row: any) => {
           if (!row || !row.pay_time) return h('span', '-')
-          return h('span', formatToDateTime(row.pay_time * 1000))
+          return h('span', formatToDateTime(row.pay_time))
         }
       }
     }
@@ -241,7 +239,7 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
     slots: {
       default: (row: any) => {
         console.log('row', row)
-        return h('span', formatToDateTime(row.in_time * 1000))
+        return h('span', formatToDateTime(row.in_time))
       }
     }
   }
@@ -291,7 +289,7 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
     label: '转出时间',
     slots: {
       default: (row: any) => {
-        return h('span', formatToDateTime(row.out_time * 1000))
+        return h('span', formatToDateTime(row.out_time))
       }
     }
   }
@@ -301,7 +299,9 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
 const columns: TableColumn[] = [
   {
     field: 'order_id',
-    label: '订单号'
+    label: '订单号',
+    minWidth: 180,
+    showOverflowTooltip: false // 订单号完整显示
   },
   // {
   //   field: 'tg_name',
@@ -328,6 +328,8 @@ const columns: TableColumn[] = [
   {
     field: 'bot_name',
     label: '机器人名称',
+    width: 150,
+    showOverflowTooltip: false,
     slots: {
       default: ({ row }) => {
         return h(
@@ -344,20 +346,28 @@ const columns: TableColumn[] = [
   {
     field: 'order_amount',
     label: '支付金额',
+    width: 120,
+    showOverflowTooltip: false,
     formatter: (row) => (row.order_amount ? `${row.order_amount} ${row.pay_unit}` : '-')
   },
   {
     field: 'exchange_amount',
     label: '兑换金额',
+    width: 120,
+    showOverflowTooltip: false,
     formatter: (row) => (row.exchange_amount ? `${row.exchange_amount} ${row.exchange_unit}` : '-')
   },
   {
     field: 'trx_price',
-    label: '兑换汇率'
+    label: '兑换汇率',
+    width: 100,
+    showOverflowTooltip: false
   },
   {
     field: 'order_type',
     label: '订单类型',
+    width: 140,
+    showOverflowTooltip: false, // 订单类型完整显示
     slots: {
       default: ({ row }: { row: ExchangeOrderListItem }) => {
         const orderTypeMap: Record<number, { label: string; color: string }> = {
@@ -372,6 +382,8 @@ const columns: TableColumn[] = [
   {
     field: 'status',
     label: '订单状态',
+    width: 100,
+    showOverflowTooltip: false,
     slots: {
       default: ({ row }) => {
         const type = getStatusType(row.status)
@@ -382,17 +394,23 @@ const columns: TableColumn[] = [
   },
   {
     field: 'describe',
-    label: '备注'
+    label: '备注',
+    minWidth: 120,
+    showOverflowTooltip: false
   },
   {
     field: 'create_time',
     label: '创建时间',
-    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
+    width: 180,
+    showOverflowTooltip: false, // 时间完整显示
+    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   },
   {
     field: 'pay_time',
     label: '支付时间',
-    formatter: (row) => (row.pay_time ? formatToDateTime(row.pay_time * 1000) : '-')
+    width: 180,
+    showOverflowTooltip: false, // 时间完整显示
+    formatter: (row) => (row.pay_time ? formatToDateTime(row.pay_time) : '-')
   }
   // {
   //   field: 'finish_time',
@@ -448,9 +466,9 @@ const searchSchema = [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: '已完成', value: 1 },
-        { label: '失败', value: 2 },
-        { label: '待支付', value: 3 }
+        { label: '新订单', value: 1 },
+        { label: '已完成', value: 5 },
+        { label: '失败订单', value: 6 }
       ],
       placeholder: '请选择订单状态'
     }
@@ -460,9 +478,9 @@ const searchSchema = [
 // 获取订单状态显示类型
 const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger' | 'primary' => {
   const statusMap: Record<number, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
-    1: 'success',
-    2: 'danger',
-    3: 'warning'
+    1: 'info', // 新订单
+    5: 'success', // 已完成
+    6: 'danger' // 失败订单
   }
   return statusMap[status] || 'info'
 }
@@ -470,9 +488,9 @@ const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger
 // 获取订单状态文本
 const getStatusText = (status: number): string => {
   const statusMap = {
-    1: '已完成',
-    2: '失败',
-    3: '待支付'
+    1: '新订单',
+    5: '已完成',
+    6: '失败订单'
   }
   return statusMap[status] || '-'
 }
@@ -498,10 +516,58 @@ const navigateToBotList = (botId: string) => {
 // API 封装
 const fetchExchangeOrderList = async (params: any) => {
   try {
-    const response = await getExchangeOrderListApi(params)
-    return response.data
+    // 映射参数字段
+    const adaptedParams: any = {}
+
+    if (params.order_id) adaptedParams.order_id = params.order_id
+    if (params.status) adaptedParams.status = params.status
+    if (params.query) adaptedParams.keyword = params.query // query → keyword
+
+    // 分页参数（支持两种命名方式）
+    adaptedParams.current_page = params.current_page || params.currentPage || 1
+    adaptedParams.page_size = params.page_size || params.pageSize || 10
+
+    // 处理时间范围
+    if (params.dateRange && params.dateRange.length === 2) {
+      adaptedParams.start_time = new Date(params.dateRange[0]).toISOString()
+      adaptedParams.end_time = new Date(params.dateRange[1]).toISOString()
+    }
+
+    // 使用新接口 v1GetExchangeOrderList
+    const response = await v1GetExchangeOrderList(adaptedParams)
+
+    // 映射返回数据字段
+    const list = (response.data?.list || []).map((item: any) => ({
+      id: item.id,
+      order_id: item.id,
+      tg_bot_id: item.bot_id, // bot_id → tg_bot_id
+      bot_name: item.bot_name,
+      order_amount: item.amount, // amount → order_amount
+      pay_unit: item.coin, // coin → pay_unit
+      exchange_amount: item.cost, // cost → exchange_amount
+      exchange_unit: item.out_coin, // out_coin → exchange_unit
+      trx_price: item.real_rate, // real_rate → trx_price
+      order_type: item.in_coin === 'USDT' ? 1 : 2, // USDT→TRX=1, TRX→USDT=2
+      status: item.status,
+      describe: item.describe,
+      create_time: item.created_at * 1000, // created_at（秒）→ create_time（毫秒）
+      pay_time: item.paid_at ? item.paid_at * 1000 : null // paid_at（秒）→ pay_time（毫秒）
+    }))
+
+    const total = response.data?.pager?.total || 0
+
+    // 成功提示
+    if (list.length === 0) {
+      ElMessage.info('暂无闪兑订单')
+    }
+
+    return {
+      list,
+      total
+    }
   } catch (error) {
     console.error('获取兑换订单列表失败:', error)
+    ElMessage.error('获取兑换订单列表失败，请稍后重试')
     return { list: [], total: 0 }
   }
 }
@@ -509,28 +575,70 @@ const fetchExchangeOrderList = async (params: any) => {
 // 查看兑换详情
 const handleViewDetail = async (row: any) => {
   try {
-    const response = await getExchangeOrderDetailApi(row.id)
-    orderDetail.value = response.data
-    dialogVisible.value = true
+    // 使用新接口 v1GetExchangeOrderDetail
+    const response = await v1GetExchangeOrderDetail(row.id)
+
+    if (response && response.data) {
+      const detail = response.data
+      // 映射新接口返回的数据到旧的数据结构
+      orderDetail.value = {
+        ...detail,
+        order_id: detail.id,
+        tg_bot_id: detail.bot_id,
+        bot_name: detail.bot_user_name,
+        order_amount: detail.amount,
+        pay_unit: detail.coin,
+        exchange_amount: detail.exchange?.out_amount || detail.cost,
+        exchange_unit: detail.exchange?.out_coin || '',
+        trx_price: detail.exchange?.real_rate || '',
+        order_type: detail.exchange?.in_coin === 'USDT' ? 1 : 2,
+        create_time: detail.created_at * 1000, // created_at（秒）→ create_time（毫秒）
+        pay_time: detail.paid_at ? detail.paid_at * 1000 : null // paid_at（秒）→ pay_time（毫秒）
+      }
+      dialogVisible.value = true
+    } else {
+      ElMessage.warning('获取兑换详情失败：数据格式错误')
+    }
   } catch (error) {
     console.error('获取兑换详情失败:', error)
-    ElMessage.error('获取兑换详情失败')
+    ElMessage.error('获取兑换详情失败，请稍后重试')
   }
 }
 
 // 查看交易详情
 const handleTransactionDetail = async (row: any) => {
   try {
-    const response = await getTransactionDetailApi(row.id)
+    // 使用新接口 v1GetExchangeOrderDetail
+    const response = await v1GetExchangeOrderDetail(row.id)
+
     if (response.data) {
-      transactionDetail.value = response.data
+      const detail = response.data
+      // 映射新接口返回的数据到旧的交易详情结构
+      transactionDetail.value = {
+        order_id: detail.id,
+        order_type: detail.exchange?.in_coin === 'USDT' ? 1 : 2,
+        // 转入交易信息
+        in_txid: detail.pay_transaction?.id || '',
+        in_to_address: detail.pay_transaction?.to || '',
+        in_from_address: detail.pay_transaction?.from || '',
+        in_time: detail.pay_transaction?.time ? detail.pay_transaction.time * 1000 : 0, // 秒转毫秒
+        order_amount: detail.amount,
+        // 转出交易信息
+        out_txid: detail.exchange?.out_txid || '',
+        out_to_address: detail.exchange?.out_address || '',
+        out_from_address: detail.receive_address || '',
+        out_time: detail.exchange?.out_at ? detail.exchange.out_at * 1000 : 0, // 秒转毫秒
+        user_get_amount: detail.exchange?.out_amount || '0'
+      }
+
       console.log('transactionDetail.value', transactionDetail.value)
+
       // 设置默认活动标签页
-      if (response.data.in_txid && response.data.out_txid) {
+      if (transactionDetail.value.in_txid && transactionDetail.value.out_txid) {
         activeTransactionTab.value = 'in' // 如果都有，默认显示转入
-      } else if (response.data.in_txid) {
+      } else if (transactionDetail.value.in_txid) {
         activeTransactionTab.value = 'in' // 只有转入
-      } else if (response.data.out_txid) {
+      } else if (transactionDetail.value.out_txid) {
         activeTransactionTab.value = 'out' // 只有转出
       } else {
         // 没有任何交易数据
@@ -576,9 +684,11 @@ const onSearch = (params: any) => {
 }
 
 onMounted(() => {
-  const query = useRoute().query
+  // 从路由获取查询参数
+  const route = useRouter().currentRoute.value
+  const query = route.query
   setTimeout(() => {
-    if (searchTableRef.value) {
+    if (searchTableRef.value && query.order_num) {
       searchTableRef.value.setSearchParams({
         order_id: query.order_num
       })

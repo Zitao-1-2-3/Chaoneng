@@ -76,6 +76,7 @@ import { v1GetBotList, v1CreateBot, updateBotApi, getBotRenewPriceApi } from '@/
 import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
+import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 interface SearchTableInstance {
   reload: () => Promise<void>
   reset: () => Promise<any>
@@ -97,6 +98,7 @@ const consumptionRecordRef = ref()
 const renewBotRef = ref()
 const botConfigRef = ref()
 const isLoaded = ref(false)
+const botPrice = ref<any>(null) // 机器人续费价格
 
 // 表格列配置
 const columns = [
@@ -168,7 +170,7 @@ const columns = [
     }
   },
   {
-    field: 'account_num',
+    field: 'user_count',
     label: '用户数量',
     slots: {
       default: (data: any) => {
@@ -178,7 +180,7 @@ const columns = [
             style="cursor:pointer"
             onClick={() => handleUserCountClick(data.row.id)}
           >
-            {data.row.account_num || 0}
+            {data.row.user_count || 0}
           </ElLink>
         )
       }
@@ -370,14 +372,19 @@ const handleAdd = () => {
 const handleStatusChange = async (value) => {
   if (!isLoaded.value) return
   console.log('状态切换:', value)
-  // 调用API更新状态
-  const res = await updateBotApi(value)
-  if (res.code === '000000') {
-    ElMessage.success('状态更新成功')
-  } else {
-    ElMessage.error('状态更新失败')
+  try {
+    // 调用API更新状态
+    const res = await updateBotApi(value)
+    if (res.code === '000000') {
+      ElMessage.success('状态更新成功')
+    } else {
+      handleErrorMessage(res, '状态更新失败')
+    }
+    console.log('状态切换结果:', res)
+  } catch (error) {
+    console.error('状态更新失败:', error)
+    ElMessage.error('状态更新失败，请稍后重试')
   }
-  console.log('状态切换结果:', res)
 }
 // 编辑
 const handleEdit = (row) => {
@@ -457,16 +464,25 @@ const fetchBotList = async (params) => {
     console.log('v1GetBotList 响应:', response)
 
     if (response.code === '000000' && response.data) {
-      totalCount.value = response.data.pager?.total || 0
-      return {
-        list: response.data.list || [],
-        total: response.data.pager?.total || 0
-      }
-    }
+      const list = response.data.list || []
+      const total = response.data.pager?.total || 0
 
-    return { list: [], total: 0 }
+      totalCount.value = total
+
+      // 添加数据为空提示
+      const hasSearchCondition = !!(params.keyword || params.agent_name || params.status)
+      handleListMessage(list, hasSearchCondition, '机器人')
+
+      return {
+        list,
+        total
+      }
+    } else {
+      handleErrorMessage(response, '获取机器人列表失败')
+      return { list: [], total: 0 }
+    }
   } catch (error) {
-    console.error('获取机器人列表失败:', error)
+    handleErrorMessage(error, '获取机器人列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -497,9 +513,7 @@ const handleDataLoaded = ({ data, total, success }) => {
   nextTick(() => {
     isLoaded.value = true
   })
-  if (data?.length === 0 && success) {
-    ElMessage.info('未查询到符合条件的数据')
-  }
+  // 移除这里的提示，因为已经在 fetchBotList 中处理
 }
 
 // 数据加载错误回调
@@ -541,11 +555,16 @@ const handleConfigSuccess = () => {
   }
 }
 
-const botPrice = ref<{ id: number; amount: number }>({ id: 0, amount: 0 })
 const getBotPrice = async () => {
-  const res = await getBotRenewPriceApi()
-  if (res.code === '000000') {
-    botPrice.value = res.data
+  try {
+    const res = await getBotRenewPriceApi()
+    if (res.code === '000000') {
+      botPrice.value = res.data
+    } else {
+      handleErrorMessage(res, '获取机器人价格失败')
+    }
+  } catch (error) {
+    handleErrorMessage(error, '获取机器人价格失败')
   }
 }
 

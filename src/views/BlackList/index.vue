@@ -49,6 +49,7 @@ import { formatToDateTime } from '@/utils/dateUtil' // 确保导入
 // 从API文件导入类型和函数
 import { v1GetBlackList, v1CreateBlackList, v1DeleteBlackList } from '@/api/black_list'
 import type { BlackListItemV1, BlackListParamsV1 } from '@/api/black_list/types'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 // const { t } = useI18n() // 按需保留或移除
 
@@ -131,15 +132,21 @@ const fetchBlackListData = async (params: {
     const res = await v1GetBlackList(queryParams)
 
     if (res.code === '000000' && res.data) {
+      const list = res.data.list || []
+
+      // 添加数据为空提示
+      const hasSearchCondition = !!params.address
+      handleListMessage(list, hasSearchCondition, '黑名单')
+
       return {
-        list: res.data.list || [],
+        list,
         total: res.data.pager?.total || 0
       }
     }
 
     return { list: [], total: 0 }
   } catch (error) {
-    console.error('获取黑名单列表失败:', error)
+    handleErrorMessage(error, '获取黑名单列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -152,11 +159,10 @@ const deleteBlackListItemAction = async () => {
         id: currentRowForDelete.value.id,
         address: currentRowForDelete.value.address
       })
-      ElMessage.success('删除成功')
+      handleSuccessMessage('删除成功')
       return true
     } catch (error) {
-      console.error('删除失败:', error)
-      ElMessage.error('删除失败')
+      handleErrorMessage(error, '删除黑名单失败')
       return false
     }
   }
@@ -188,12 +194,12 @@ const submitAdd = async () => {
       address: newAddressForm.address,
       describe: newAddressForm.describe
     })
-    ElMessage.success('新增成功')
+    handleSuccessMessage('新增成功')
     dialogVisible.value = false
     searchTableRef.value?.reload()
   } catch (error) {
     if (error !== false) {
-      console.error('新增失败:', error)
+      handleErrorMessage(error, '新增黑名单失败')
     }
   }
 }

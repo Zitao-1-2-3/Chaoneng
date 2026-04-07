@@ -5,6 +5,7 @@ import type {
   HostingListParamsV2,
   HostingListResponseV2,
   RemoveHostingParamsV2,
+  RecycleOrderParamsV2,
   V2AgentBotListParams,
   V2AgentBotListResponse,
   TrustTransactionQueryParams,
@@ -60,6 +61,17 @@ export const v2GetAgentBotList = (
   return request.get({
     url: '/v2/manage/agent_bot/list',
     params
+  })
+}
+
+/**
+ * 回收与重置 - 新接口 v2
+ * POST /v2/order/recycle
+ */
+export const v2RecycleOrder = (data: RecycleOrderParamsV2): Promise<IResponse> => {
+  return request.post({
+    url: '/v2/order/recycle',
+    data
   })
 }
 

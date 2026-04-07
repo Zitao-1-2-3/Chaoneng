@@ -59,6 +59,7 @@ import { v1GetDepositList, v1GetDepositDetail, exportRechargeOrderApi } from '@/
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -118,8 +119,11 @@ const orderDetailSchema = computed(() => {
       label: '支付金额',
       slots: {
         default: (row: any) => {
-          if (!row || !row.pay_mount) return h('span', '-')
-          return h('span', `${row.pay_mount} ${row.pay_unit || ''}`)
+          // 如果没有支付地址，说明用户还没支付，不显示支付金额
+          if (!row || !row.pay_address) return h('span', '-')
+          // 如果有支付地址，显示充值金额
+          if (!row.in_mount) return h('span', '-')
+          return h('span', `${row.in_mount} ${row.in_unit || ''}`)
         }
       }
     },
@@ -193,7 +197,9 @@ const rechargeDetailSchema = computed(() => {
 const columns: TableColumn[] = [
   {
     field: 'order_id',
-    label: '订单号'
+    label: '订单号',
+    minWidth: 180,
+    showOverflowTooltip: false
   },
   {
     field: 'tg_name',
@@ -256,12 +262,18 @@ const columns: TableColumn[] = [
   {
     field: 'pay_mount',
     label: '支付金额',
-    formatter: (row) =>
-      row.pay_mount && row.pay_mount !== '0' ? `${row.pay_mount} ${row.pay_unit || ''}` : '-'
+    formatter: (row) => {
+      // 如果pay_address为空，说明用户还没支付，不显示支付金额
+      if (!row.pay_address) return '-'
+      // 如果pay_address有值，显示充值金额
+      return row.in_mount ? `${row.in_mount} ${row.in_unit || 'TRX'}` : '-'
+    }
   },
   {
     field: 'status',
     label: '订单状态',
+    width: 100,
+    showOverflowTooltip: false,
     slots: {
       default: ({ row }) => {
         const type = getStatusType(row.status)
@@ -288,14 +300,16 @@ const columns: TableColumn[] = [
     field: 'create_time',
     label: '创建时间',
     sortable: 'custom',
-    minWidth: 120,
+    minWidth: 160,
+    showOverflowTooltip: false,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   },
   {
     field: 'finish_time',
     label: '完成时间',
     sortable: 'custom',
-    minWidth: 120,
+    minWidth: 160,
+    showOverflowTooltip: false,
     formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
   },
   {
@@ -331,9 +345,15 @@ const searchSchema = [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: '已完成', value: 1 },
-        { label: '待支付', value: 2 },
-        { label: '已取消', value: 3 }
+        { label: '新订单', value: 1 },
+        { label: '已支付', value: 2 },
+        { label: '已发送', value: 3 },
+        { label: '已回收', value: 4 },
+        { label: '已完成', value: 5 },
+        { label: '失败订单', value: 6 },
+        { label: '已退款', value: 7 },
+        { label: '已取消', value: 8 },
+        { label: '中止订单', value: 9 }
       ],
       placeholder: '请选择订单状态'
     }
@@ -394,11 +414,15 @@ const searchSchema = [
 // 获取订单状态显示类型
 const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger' | 'primary' => {
   const statusMap: Record<number, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
-    1: 'success', //  已完成
-    2: 'warning', // 待支付
-    3: 'danger', // 已取消
-    4: 'warning', // 处理中
-    5: 'success' // 已完成（新接口）
+    1: 'info', // 新订单
+    2: 'primary', // 已支付
+    3: 'warning', // 已发送
+    4: 'warning', // 已回收
+    5: 'success', // 已完成
+    6: 'danger', // 失败订单
+    7: 'warning', // 已退款
+    8: 'info', // 已取消
+    9: 'danger' // 中止订单
   }
   return statusMap[status] || 'info'
 }
@@ -406,11 +430,15 @@ const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger
 // 获取订单状态文本
 const getStatusText = (status: number): string => {
   const statusMap = {
-    1: '已完成',
-    2: '待支付',
-    3: '已取消',
-    4: '处理中',
-    5: '已完成'
+    1: '新订单',
+    2: '已支付',
+    3: '已发送',
+    4: '已回收',
+    5: '已完成',
+    6: '失败订单',
+    7: '已退款',
+    8: '已取消',
+    9: '中止订单'
   }
   return statusMap[status] || '-'
 }
@@ -425,7 +453,10 @@ const fetchRechargeOrderList = async (params: any) => {
     if (params.order_id) adaptedParams.order_id = params.order_id
     if (params.status) adaptedParams.status = params.status
     if (params.query) adaptedParams.keyword = params.query // query → keyword
-    if (params.order_type) adaptedParams.kind = params.order_type // order_type → kind
+    if (params.order_type) {
+      // order_type → coin (1=TRX, 2=USDT)
+      adaptedParams.coin = params.order_type == 1 ? 'TRX' : 'USDT'
+    }
     if (params.receive_address) adaptedParams.receive_address = params.receive_address
     if (params.pay_address) adaptedParams.pay_address = params.pay_address
     if (params.currentPage) adaptedParams.current_page = params.currentPage
@@ -461,17 +492,28 @@ const fetchRechargeOrderList = async (params: any) => {
       finish_time: item.paid_at // paid_at → finish_time
     }))
 
+    // 添加数据为空提示
+    const hasSearchCondition = !!(
+      params.order_id ||
+      params.status ||
+      params.query ||
+      params.order_type ||
+      params.receive_address ||
+      params.pay_address ||
+      params.dateRange
+    )
+    handleListMessage(list, hasSearchCondition, '充值订单')
+
     return {
       list,
       total: response.data?.pager?.total || 0
     }
   } catch (error) {
-    console.error('获取充值订单列表失败:', error)
+    handleErrorMessage(error, '获取充值订单列表失败')
     return { list: [], total: 0 }
   }
 }
 
-// 查看订单详情
 const handleViewDetail = async (row: any) => {
   try {
     const response = await v1GetDepositDetail(row.id)
@@ -494,6 +536,7 @@ const handleViewDetail = async (row: any) => {
       in_unit: detail.coin, // coin → in_unit
       pay_mount: detail.cost, // cost → pay_mount
       pay_unit: detail.cost && detail.cost !== '0' ? 'USDT' : '', // 支付单位
+      pay_address: row.pay_address || '', // 从列表数据中获取支付地址
       describe: detail.describe,
       create_time: detail.created_at, // created_at → create_time
       pay_time: detail.paid_at, // paid_at → pay_time

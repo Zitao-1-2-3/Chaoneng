@@ -29,6 +29,7 @@ import { v1GetHostingList, v1RemoveHosting } from '@/api/hosted_list'
 import { v1GetBotList } from '@/api/botlist'
 import type { AutoManageAddressItem, BotOption, HostingListParamsV1 } from '@/api/hosted_list/types'
 import { formatToDateTime } from '@/utils/dateUtil'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const currentRowForDelete = ref<AutoManageAddressItem | null>(null)
 
@@ -162,8 +163,8 @@ const fetchAutoManageList = async (params: any) => {
           tg_bot_id: item.bot_id,
           bot_id: item.bot_id,
           address: item.address,
-          create_time: item.created_at,
-          finish_time: item.updated_at,
+          create_time: item.created_at * 1000, // Unix时间戳（秒）转毫秒
+          finish_time: item.updated_at * 1000, // Unix时间戳（秒）转毫秒
           bot_name: item.bot_name,
           user_name: item.user_name,
           tg_name: item.user_name,

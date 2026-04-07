@@ -46,6 +46,7 @@ import formatEnergyNum from '../helpers/formatEnergyNum'
 import isEmpty from 'lodash-es/isEmpty'
 import { Icon } from '@/components/Icon'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -53,6 +54,40 @@ const totalCount = ref(0)
 const orderDialogVisible = ref(false)
 const selectedOrderDetail = ref<any>(null)
 const currentSearchParams = ref({})
+
+// 根据订单类型（kind）格式化能量有效期
+const formatExpirationTime = (
+  expirationTime: string | null,
+  delegatedTime?: string | null,
+  orderType?: number,
+  createdTime?: number,
+  finishTime?: number
+): string => {
+  // 根据订单类型返回对应的有效期
+  switch (orderType) {
+    case 4: // KindTimeEnergy - 时间能量（闪租能量，1小时有效）
+      return '1小时'
+
+    case 5: // KindStrokeEnergy - 笔数能量（长期有效，每天不用额外扣一笔，一次发放两笔，用完再扣）
+      return '一天'
+
+    case 6: // KindWealEnergy - 福利能量（打折的时间能量，有购买限制）
+      return '1小时'
+
+    case 7: // KindFlashEnergy - 快速能量（快速租用，1小时有效，用了会提前回收）
+      return '1小时'
+
+    case 8: // KindHosting - 自动托管（一次发放两笔）
+      return '一天'
+
+    case 9: // KindBatchEnergy - 批量能量（带自动激活）
+      return '1小时'
+
+    default:
+      // 其他订单类型不显示有效期
+      return '-'
+  }
+}
 
 // 表格列配置
 const columns: TableColumn[] = [
@@ -117,7 +152,8 @@ const columns: TableColumn[] = [
           6: '福利',
           7: '按笔数-带宽',
           8: '接口调用-按笔数',
-          9: '接口调用-带宽'
+          9: '接口调用-带宽',
+          10: '托管'
         }
         // Assign fixed color types
         const typeColorMap: Record<number, 'primary' | 'success' | 'warning' | 'danger' | 'info'> =
@@ -130,7 +166,8 @@ const columns: TableColumn[] = [
             6: 'primary',
             7: 'success',
             8: 'warning',
-            9: 'danger'
+            9: 'danger',
+            10: 'info'
           }
 
         const orderTypeNum =
@@ -172,12 +209,12 @@ const columns: TableColumn[] = [
     }
   },
   {
-    field: 'bot_address',
+    field: 'receive_address',
     label: '收款钱包地址',
     minWidth: 180
   },
   {
-    field: 'receive_address',
+    field: 'energy_address',
     label: '能量接收地址',
     minWidth: 180
   },
@@ -196,9 +233,15 @@ const columns: TableColumn[] = [
     slots: {
       default: ({ row }) => {
         const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
-          1: 'success', // 已完成
+          1: 'info', // 新订单
           2: 'warning', // 已支付
-          3: 'danger' // 支付失败
+          3: 'info', // 已发送
+          4: 'warning', // 已回收
+          5: 'success', // 已完成
+          6: 'danger', // 失败订单
+          7: 'info', // 已退款
+          8: 'info', // 已取消
+          9: 'danger' // 中止订单
         }
         const type = statusColorMap[row.status] || 'info'
         const text = getStatusTextForTable(row.status)
@@ -245,7 +288,7 @@ const searchSchema = [
     component: 'Input' as const,
     label: {
       text: '关键字',
-      tips: 'TG用户名/TG昵称/机器人名称'
+      tips: 'TG用户名/机器人名称'
     },
     componentProps: {
       placeholder: '请输入关键字'
@@ -254,17 +297,17 @@ const searchSchema = [
   {
     field: 'receive_address',
     component: 'Input' as const,
-    label: '能量接收地址',
-    componentProps: {
-      placeholder: '请输入能量接收地址'
-    }
-  },
-  {
-    field: 'bot_address',
-    component: 'Input' as const,
     label: '收款钱包地址',
     componentProps: {
       placeholder: '请输入收款钱包地址'
+    }
+  },
+  {
+    field: 'energy_address',
+    component: 'Input' as const,
+    label: '能量接收地址',
+    componentProps: {
+      placeholder: '请输入能量接收地址'
     }
   },
   {
@@ -288,6 +331,7 @@ const searchSchema = [
         { label: '闪租', value: 4 },
         { label: '激活', value: 5 },
         { label: '福利', value: 6 },
+        { label: '托管', value: 10 },
         { label: '按笔数-带宽', value: 7 },
         { label: '接口调用-按笔数', value: 8 },
         { label: '接口调用-带宽', value: 9 }
@@ -302,21 +346,33 @@ const searchSchema = [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: '已完成', value: 1 },
+        { label: '新订单', value: 1 },
         { label: '已支付', value: 2 },
-        { label: '支付失败', value: 3 }
+        { label: '已发送', value: 3 },
+        { label: '已回收', value: 4 },
+        { label: '已完成', value: 5 },
+        { label: '失败订单', value: 6 },
+        { label: '已退款', value: 7 },
+        { label: '已取消', value: 8 },
+        { label: '中止订单', value: 9 }
       ],
       placeholder: '请选择订单状态'
     }
   }
 ]
 
-// 获取订单状态文本 (Kept for clarity)
+// 获取订单状态文本
 const getStatusTextForTable = (status: number): string => {
   const statusMap: Record<number, string> = {
-    1: '已完成',
+    1: '新订单',
     2: '已支付',
-    3: '支付失败'
+    3: '已发送',
+    4: '已回收',
+    5: '已完成',
+    6: '失败订单',
+    7: '已退款',
+    8: '已取消',
+    9: '中止订单'
   }
   return statusMap[status] || '-'
 }
@@ -349,17 +405,20 @@ const fetchEnergyOrderList = async (params: any) => {
     if (params.status) adaptedParams.status = params.status
     if (params.query) adaptedParams.keyword = params.query // query → keyword
     if (params.order_type) adaptedParams.kind = params.order_type // order_type → kind
-    if (params.receive_address) adaptedParams.receive_address = params.receive_address
-    if (params.bot_address) adaptedParams.energy_address = params.bot_address // bot_address → energy_address
-    if (params.currentPage) adaptedParams.current_page = params.currentPage
-    if (params.pageSize) adaptedParams.page_size = params.pageSize
+    if (params.receive_address) adaptedParams.receive_address = params.receive_address // 收款钱包地址
+    if (params.energy_address) adaptedParams.energy_address = params.energy_address // 能量接收地址
 
-    // 处理时间范围（转换为秒数）
+    // 分页参数（支持两种命名方式）
+    adaptedParams.current_page = params.current_page || params.currentPage || 1
+    adaptedParams.page_size = params.page_size || params.pageSize || 10
+
+    // 处理时间范围（转换为秒级Unix时间戳字符串）
     if (params.dateRange && params.dateRange.length === 2) {
       adaptedParams.start_time = Math.floor(params.dateRange[0] / 1000).toString()
       adaptedParams.end_time = Math.floor(params.dateRange[1] / 1000).toString()
     }
 
+    console.log('能量订单查询参数:', adaptedParams)
     const response = await v1GetEnergyOrderList(adaptedParams)
 
     // 映射返回数据字段
@@ -370,31 +429,47 @@ const fetchEnergyOrderList = async (params: any) => {
       tg_name: item.tg_user_name, // tg_user_name → tg_name
       nickname: item.tg_first_name, // tg_first_name → nickname
       tg_id: item.user_id, // user_id → tg_id
-      bot_name: item.bot_name,
+      bot_name: item.bot_name, // bot_name
       bot_id: item.bot_id,
       order_type: item.kind, // kind → order_type
       order_amount: item.amount, // amount → order_amount
       pay_unit: item.coin, // coin → pay_unit
       energy_num: item.energy_amount, // energy_amount → energy_num
-      energy_rent_text: '', // 新接口无此字段，需要根据订单类型计算
-      bot_address: item.energy_address, // energy_address → bot_address
-      receive_address: item.receive_address,
+      energy_rent_text: formatExpirationTime(
+        item.expirated_at,
+        item.delegated_at,
+        item.kind,
+        item.created_at * 1000,
+        item.paid_at ? item.paid_at * 1000 : undefined
+      ), // 根据订单类型计算有效期
+      receive_address: item.receive_address, // 收款钱包地址
+      energy_address: item.energy_address, // 能量接收地址
       stroke_num: item.energy_count, // energy_count → stroke_num
       status: item.status,
-      create_time: item.created_at, // created_at → create_time
-      finish_time: item.paid_at // paid_at → finish_time
+      create_time: item.created_at * 1000, // created_at（秒）→ create_time（毫秒）
+      finish_time: item.paid_at ? item.paid_at * 1000 : undefined // paid_at（秒）→ finish_time（毫秒）
     }))
 
     totalCount.value = response.data?.pager?.total || 0
     currentSearchParams.value = params
 
+    // 提示消息
+    const hasSearchCondition = !!(
+      params.query ||
+      params.order_num ||
+      params.status ||
+      params.order_type ||
+      params.dateRange
+    )
+    handleListMessage(list, hasSearchCondition, '能量订单')
+
     return {
       list,
-      total: response.data?.pager?.total || 0,
-      totalCount: response.data?.pager?.total || 0
+      total: response.data?.pager?.total || 0
     }
   } catch (error) {
-    return { list: [], total: 0, totalCount: 0 }
+    handleErrorMessage(error, '获取能量订单列表失败')
+    return { list: [], total: 0 }
   }
 }
 
@@ -417,17 +492,16 @@ const handleViewDetail = async (row: any) => {
         order_num: detail.id,
         order_type: detail.kind,
         tg_name: detail.tg_user_name,
+        nickname: detail.tg_first_name,
+        bot_name: detail.bot_user_name,
         create_time: detail.created_at,
         finish_time: detail.paid_at,
         pay_time: detail.paid_at,
         order_amount: detail.amount,
         pay_unit: detail.coin,
-        // 从列表数据中补充缺失的字段
-        nickname: row.nickname,
-        tg_id: row.tg_id,
-        energy_num: row.energy_num,
-        stroke_num: row.stroke_num,
-        bot_address: row.bot_address
+        // 新增字段
+        summary: detail.summary,
+        resources: detail.resources
       }
       orderDialogVisible.value = true
     } else {

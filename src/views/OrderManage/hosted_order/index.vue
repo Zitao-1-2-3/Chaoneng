@@ -66,6 +66,7 @@ import {
 import formatEnergyNum from '@/views/OrderManage/helpers/formatEnergyNum'
 import { Icon } from '@/components/Icon'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -490,35 +491,38 @@ const navigateToBotList = (tgUserId: string) => {
 const fetchHostedOrderList = async (params: any) => {
   try {
     const response = await getHostedOrderListApi(params)
+    const list = response.data?.list || []
+    const hasSearchCondition = !!(
+      params.query ||
+      params.order_num ||
+      params.status ||
+      params.dateRange
+    )
+    handleListMessage(list, hasSearchCondition, '托管订单')
     return response.data
   } catch (error) {
-    console.error('获取托管订单列表失败:', error)
+    handleErrorMessage(error, '获取托管订单列表失败')
     return { list: [], total: 0 }
   }
 }
 
-// 查看托管详情
 const handleViewDetail = async (row: any) => {
   try {
     const response = await getHostedOrderDetailApi(row.id)
     orderDetail.value = response.data
     dialogVisible.value = true
   } catch (error) {
-    console.error('获取托管详情失败:', error)
-    ElMessage.error('获取托管详情失败')
+    handleErrorMessage(error, '获取托管详情失败')
   }
 }
 
-// 查看交易详情
 const handleTransactionDetail = async (row: any) => {
   try {
-    // 从 API 获取交易详情并展示（若无数据也展示空详情）
     const response = await getHostedOrderDetailApi(row.id)
     transactionDetail.value = response.data || {}
     transactionDialogVisible.value = true
   } catch (error) {
-    console.error('获取交易详情失败:', error)
-    ElMessage.error('获取交易详情失败')
+    handleErrorMessage(error, '获取交易详情失败')
   }
 }
 
