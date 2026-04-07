@@ -3,6 +3,7 @@ import { defaultRequestInterceptors, defaultResponseInterceptors } from './confi
 import { AxiosInstance, InternalAxiosRequestConfig, RequestConfig, AxiosResponse } from './types'
 import { ElMessage } from 'element-plus'
 import { REQUEST_TIMEOUT } from '@/constants'
+import qs from 'qs'
 // Remove system store import
 // import { useAppStore } from '@/store/modules/app' // Keep app store if used elsewhere, remove if not
 // import { useSystemStore } from '@/store/modules/system'
@@ -13,7 +14,13 @@ const abortControllerMap: Map<string, AbortController> = new Map()
 
 const axiosInstance: AxiosInstance = axios.create({
   timeout: REQUEST_TIMEOUT,
-  baseURL: PATH_URL // 如果使用mock，则不使用API基础路径
+  baseURL: PATH_URL, // 如果使用mock，则不使用API基础路径
+  // 配置参数序列化：数组参数序列化为 kinds=1&kinds=2 格式
+  paramsSerializer: {
+    serialize: (params) => {
+      return qs.stringify(params, { arrayFormat: 'repeat' })
+    }
+  }
 })
 
 axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {

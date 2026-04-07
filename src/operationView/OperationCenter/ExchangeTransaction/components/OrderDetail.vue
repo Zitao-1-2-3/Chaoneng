@@ -25,8 +25,8 @@ import { ElButton, ElMessage, ElTag, ElLink } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import { getExchangeOrderDetailApi } from '@/api/exchange_transaction'
-import type { ExchangeOrderDetailData } from '@/api/exchange_transaction/types'
+import { getExchangeOrderDetailApi, v2GetExchangeDetail } from '@/api/exchange_transaction'
+import type { ExchangeOrderDetailData, V2ExchangeDetail } from '@/api/exchange_transaction/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import Icon from '@/components/Icon/src/Icon.vue'
 
@@ -59,12 +59,24 @@ const orderDetail = ref<OrderDetailType | null>(null)
 
 const getStatusText = (status: number | undefined) => {
   switch (status) {
+    case 5:
+      return '已完成'
+    case 6:
+      return '失败订单'
+    case 8:
+      return '已取消'
     case 1:
-      return '成功'
+      return '新订单'
     case 2:
-      return '失败'
+      return '已支付'
     case 3:
-      return '待支付'
+      return '已发送'
+    case 4:
+      return '已回收'
+    case 7:
+      return '已退款'
+    case 9:
+      return '中止订单'
     default:
       return '未知'
   }
@@ -72,11 +84,19 @@ const getStatusText = (status: number | undefined) => {
 
 const getStatusType = (status: number | undefined): 'success' | 'warning' | 'info' | 'danger' => {
   switch (status) {
-    case 1:
+    case 5: // 已完成
       return 'success'
-    case 2:
+    case 6: // 失败订单
       return 'danger'
-    case 3:
+    case 8: // 已取消
+      return 'warning'
+    case 1: // 新订单
+    case 3: // 已发送
+    case 4: // 已回收
+      return 'info'
+    case 2: // 已支付
+    case 7: // 已退款
+    case 9: // 中止订单
       return 'warning'
     default:
       return 'info'
@@ -228,8 +248,8 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
 ])
 
 const open = async (orderIdValue: number | string) => {
-  const id = typeof orderIdValue === 'string' ? parseInt(orderIdValue, 10) : orderIdValue
-  if (isNaN(id)) {
+  const id = String(orderIdValue) // 转换为字符串类型
+  if (!id) {
     ElMessage.error('无效的订单ID')
     return
   }
@@ -239,13 +259,48 @@ const open = async (orderIdValue: number | string) => {
   orderDetail.value = null
 
   try {
-    const res = await getExchangeOrderDetailApi(id)
-    const responseData = (res as any)?.data
+    const res = await v2GetExchangeDetail(id)
+    const responseData = (res as any)?.data as V2ExchangeDetail
     const responseCode = (res as any)?.code
-    const responseMessage = (res as any)?.message
+    const responseMessage = (res as any)?.msg || (res as any)?.message
 
     if (responseCode === '000000' && responseData) {
-      orderDetail.value = responseData as OrderDetailType
+      // 字段映射：新接口 → 旧字段格式
+      const exchange = responseData.exchange
+      const payTx = responseData.pay_transaction
+      const deliverTx = responseData.deliver_transaction
+
+      // 判断订单类型
+      let orderType = 1 // 默认 USDT → TRX
+      if (exchange.in_coin === 'TRX' && exchange.out_coin === 'USDT') {
+        orderType = 2 // TRX → USDT
+      }
+
+      orderDetail.value = {
+        order_id: responseData.id,
+        username: responseData.agent_name,
+        user_id: responseData.user_id,
+        order_type: orderType,
+        order_amount: responseData.amount,
+        pay_unit: exchange.in_coin,
+        exchange_amount: exchange.out_amount,
+        exchange_unit: exchange.out_coin,
+        trx_price: exchange.actual_rate, // 对话汇率
+        real_price: exchange.real_rate, // 实时汇率
+        plate_profit: exchange.plate_profit,
+        agent_out_amount: responseData.amount, // 代理扣款
+        receive_address: responseData.receive_address,
+        status: responseData.status,
+        finish_time: responseData.paid_at || exchange.out_at || 0,
+        describe: responseData.describe,
+        // 地址信息
+        out_from_address: exchange.out_address, // 系统转出地址
+        in_from_address: payTx.from, // 用户支付地址
+        in_to_address: payTx.to, // 代理收款地址
+        // 交易hash
+        out_txid: exchange.out_txid || deliverTx.id, // 系统发放hash
+        in_txid: payTx.id // 用户支付hash
+      } as OrderDetailType
     } else {
       ElMessage.error(responseMessage || '获取订单详情失败')
     }

@@ -25,7 +25,12 @@ import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import { v2GetHostingList, v2RemoveHosting, v2GetAgentBotList } from '@/api/trust_transaction'
+import {
+  v2GetHostingList,
+  v2RemoveHosting,
+  v2GetAgentBotList,
+  v2RecycleOrder
+} from '@/api/trust_transaction'
 import type {
   AutoManageAddressItem,
   BotOption,
@@ -121,7 +126,9 @@ const actionColumn: TableColumn = {
     default: (data: { row: AutoManageAddressItem }) => {
       return (
         <div style="display: flex; gap: 8px;">
-          <BaseButton type="primary">回收与重置</BaseButton>
+          <BaseButton type="primary" onClick={() => handleRecycleAndReset(data.row)}>
+            回收与重置
+          </BaseButton>
           <BaseButton type="danger" onClick={() => handleDeleteConfirmation(data.row)}>
             取消托管
           </BaseButton>
@@ -237,6 +244,33 @@ const handleDeleteConfirmation = (row: AutoManageAddressItem) => {
     searchTableRef.value.delete(row)
   } else {
     console.warn('SearchTable ref is not available.')
+  }
+}
+
+const handleRecycleAndReset = async (row: AutoManageAddressItem) => {
+  if (!row.order_id) {
+    ElMessage.warning('订单号不存在，无法执行回收与重置操作')
+    return
+  }
+
+  try {
+    console.log('[handleRecycleAndReset] 调用新接口 v2RecycleOrder, 订单号:', row.order_id)
+
+    // 使用新接口 v2RecycleOrder
+    const res = await v2RecycleOrder({ order_id: row.order_id })
+
+    if (res.code === '000000') {
+      ElMessage.success('回收与重置成功')
+      // 刷新列表
+      if (searchTableRef.value) {
+        searchTableRef.value.reload()
+      }
+    } else {
+      ElMessage.error((res as any).msg || '回收与重置失败')
+    }
+  } catch (error) {
+    console.error('回收与重置失败:', error)
+    ElMessage.error('回收与重置失败')
   }
 }
 

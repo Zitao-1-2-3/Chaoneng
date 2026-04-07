@@ -561,37 +561,38 @@ const fetchDataWrapper = async (params: any = {}) => {
 
       // 字段映射转换
       const mappedList = list.map((item: V2EnergyItem) => {
-        // 计算有效时长文本
+        // 根据订单类型（kind）计算有效时长文本
         let energyRentText = '-'
 
-        // 笔数能量(5)和自动托管(8)显示为长期有效
-        if (item.kind === 5 || item.kind === 8) {
-          energyRentText = '长期有效'
-        } else if (item.expirated_at && item.delegated_at) {
-          // 其他类型根据过期时间和委托时间计算
-          try {
-            const expTime = new Date(item.expirated_at).getTime()
-            const delTime = new Date(item.delegated_at).getTime()
-            const diffMs = expTime - delTime
-            const diffMinutes = Math.floor(diffMs / (1000 * 60))
-            const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
-            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+        switch (item.kind) {
+          case 4: // 时间能量（闪租能量，1小时有效）
+            energyRentText = '1小时'
+            break
 
-            if (diffDays > 0) {
-              // 显示天数
-              energyRentText = `${diffDays}天`
-            } else if (diffHours > 0) {
-              // 显示小时数
-              energyRentText = `${diffHours}小时`
-            } else if (diffMinutes > 0) {
-              // 显示分钟数
-              energyRentText = `${diffMinutes}分钟`
-            } else {
-              energyRentText = '-'
-            }
-          } catch (e) {
-            console.warn('计算有效时长失败:', e)
-          }
+          case 5: // 笔数能量（长期有效）
+            energyRentText = '一天'
+            break
+
+          case 6: // 福利能量（打折的时间能量，有购买限制）
+            energyRentText = '1小时'
+            break
+
+          case 7: // 快速能量（快速租用，1小时有效）
+            energyRentText = '1小时'
+            break
+
+          case 8: // 自动托管（一次发放两笔）
+            energyRentText = '一天'
+            break
+
+          case 9: // 批量能量（带自动激活）
+            energyRentText = '1小时'
+            break
+
+          default:
+            // 其他订单类型不显示有效期
+            energyRentText = '-'
+            break
         }
 
         // 计算回收时间（转换为时间戳秒）

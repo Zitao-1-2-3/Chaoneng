@@ -160,22 +160,44 @@ const columns = reactive<TableColumn[]>([
         let type: 'success' | 'warning' | 'info' | 'danger' = 'info'
         let label = '未知'
         switch (row.status) {
-          case 1:
+          case 5:
             type = 'success'
-            label = '成功'
-            break // 匹配截图 "成功"
-          case 2:
-            type = 'danger'
-            label = '失败'
+            label = '已完成'
             break
-          case 3:
+          case 6:
+            type = 'danger'
+            label = '失败订单'
+            break
+          case 8:
             type = 'warning'
+            label = '已取消'
+            break
+          // 其他状态值
+          case 1:
+            type = 'info'
             label = '待支付'
             break
-          // 可以根据需要添加其他状态
+          case 2:
+            type = 'warning'
+            label = '支付中'
+            break
+          case 3:
+            type = 'info'
+            label = '处理中'
+            break
+          case 4:
+            type = 'warning'
+            label = '待确认'
+            break
+          case 7:
+            type = 'info'
+            label = '退款中'
+            break
+          case 9:
+            type = 'danger'
+            label = '已过期'
+            break
         }
-        // 使用 BaseButton 或仅文本模仿截图中的链接样式
-        // 这里暂时还用 ElTag
         return <ElTag type={type}>{label}</ElTag>
       }
     }
@@ -209,11 +231,10 @@ const searchSchema = reactive<FormSchema[]>([
     componentProps: {
       placeholder: '全部', // 匹配截图 placeholder
       options: [
-        { label: '全部', value: '' }, // 空字符串代表全部
-        { label: '成功', value: 1 },
-        { label: '失败', value: 2 },
-        { label: '待支付', value: 3 }
-        // 可以根据需要添加其他状态选项
+        { label: '全部', value: '' },
+        { label: '已完成', value: 5 },
+        { label: '失败订单', value: 6 },
+        { label: '已取消', value: 8 }
       ],
       clearable: true
     }
@@ -311,52 +332,36 @@ const fetchExchangeTransactionList = async (params: any) => {
 
       // 字段映射转换
       const mappedList = list.map((item: V2ExchangeItem) => {
-        // 转换时间字段（ISO字符串转为Unix时间戳秒）
-        let createTime = 0
-        let finishTime = 0
-
-        if (item.created_at) {
-          try {
-            createTime = Math.floor(new Date(item.created_at).getTime() / 1000)
-          } catch (e) {
-            console.warn('转换创建时间失败:', e)
-          }
-        }
-
-        if (item.paid_at) {
-          try {
-            finishTime = Math.floor(new Date(item.paid_at).getTime() / 1000)
-          } catch (e) {
-            console.warn('转换完成时间失败:', e)
-          }
-        }
-
         // 判断订单类型：kind=3 表示兑换
-        // 根据 coin 判断兑换方向：TRX → USDT(2) 或 USDT → TRX(1)
+        // 根据 in_coin 和 out_coin 判断兑换方向
         let orderType = 1 // 默认 USDT → TRX
-        if (item.coin === 'TRX') {
+        if (item.in_coin === 'TRX' && item.out_coin === 'USDT') {
           orderType = 2 // TRX → USDT
+        } else if (item.in_coin === 'USDT' && item.out_coin === 'TRX') {
+          orderType = 1 // USDT → TRX
         }
 
         return {
-          id: Number(item.id) || 0, // 转换为数字类型
+          id: item.id, // 订单ID（保持字符串类型）
           order_id: item.id, // 订单号
-          username: '', // 新接口没有返回，显示为空
+          username: item.agent_name || '', // 代理名称
           user_id: item.user_id,
           order_type: orderType, // 订单类型：1-USDT→TRX, 2-TRX→USDT
           order_amount: String(item.amount), // 支付金额
-          pay_unit: item.coin, // 支付单位
+          pay_unit: item.in_coin || item.coin, // 支付单位（输入币种）
           exchange_amount: String(item.cost), // 兑换数量（使用cost字段）
-          agent_out_amount: '0', // 新接口没有返回，默认0
-          plate_profit: '0', // 新接口没有返回，默认0
-          exchange_unit: item.coin === 'TRX' ? 'USDT' : 'TRX', // 兑换单位（与支付单位相反）
-          trx_price: '0', // 新接口没有返回，默认0
-          real_price: '0', // 新接口没有返回，默认0
+          agent_out_amount: String(item.amount), // 代理扣款（使用amount字段）
+          plate_profit: String(item.plate_profit || 0), // 平台利润
+          agent_profit: String(item.agent_profit || 0), // 代理利润
+          exchange_unit: item.out_coin || (item.coin === 'TRX' ? 'USDT' : 'TRX'), // 兑换单位（输出币种）
+          trx_price: String(item.actual_rate || 0), // 对话汇率（实际成交汇率）
+          real_price: String(item.real_rate || 0), // 实时汇率
           receive_address: item.receive_address, // 接收地址
           status: item.status, // 状态
-          create_time: createTime, // 创建时间（时间戳秒）
-          finish_time: finishTime, // 完成时间（时间戳秒）
-          in_txid: '', // 新接口没有返回
+          create_time: item.created_at, // 创建时间（Unix时间戳-秒）
+          finish_time: item.paid_at || item.completed_at || 0, // 完成时间（Unix时间戳-秒）
+          describe: item.describe || '', // 描述
+          in_txid: item.pay_id || '', // 支付交易hash
           out_txid: '' // 新接口没有返回
         }
       })

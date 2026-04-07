@@ -129,14 +129,14 @@ const managementRoutes: AppRouteRecordRaw[] = [
           title: '能量订单'
         }
       },
-      {
-        path: 'hosted_order',
-        component: () => import('@/views/OrderManage/hosted_order/index.vue'),
-        name: 'HostedOrder',
-        meta: {
-          title: '托管订单'
-        }
-      },
+      // {
+      //   path: 'hosted_order',
+      //   component: () => import('@/views/OrderManage/hosted_order/index.vue'),
+      //   name: 'HostedOrder',
+      //   meta: {
+      //     title: '托管订单'
+      //   }
+      // },
       {
         path: 'exchange_order',
         component: () => import('@/views/OrderManage/exchange_order/index.vue'),

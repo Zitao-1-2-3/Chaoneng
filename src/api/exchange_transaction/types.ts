@@ -19,20 +19,95 @@ export interface V2ExchangeListParams {
  */
 export interface V2ExchangeItem {
   id: string // 订单ID
-  created_at: string // 创建时间（ISO时间格式字符串）
-  updated_at: string // 更新时间（ISO时间格式字符串）
-  paid_at: string // 支付时间（ISO时间格式字符串）
+  created_at: number // 创建时间（Unix时间戳-秒）
+  updated_at: number // 更新时间（Unix时间戳-秒）
+  paid_at: number // 支付时间（Unix时间戳-秒）
   kind: number // 类型: 1-代理充值, 2-用户充值, 3-兑换, 4-时间能量, 5-笔数能量, 6-福利能量, 7-快速能量, 8-自动托管, 9-批量能量, 10-批量激活, 11-机器人付费
   status: number // 状态: 1-新订单, 2-已支付, 3-已发送, 4-已回收, 5-已完成, 6-失败订单, 7-已退款, 8-已取消, 9-中止订单
   user_id: number // 用户ID
   agent_id: number // 代理ID
   bot_id: number // 机器人ID
-  amount: number // 金额
+  amount: string // 金额
   coin: string // 币种: TRX, USDT
   receive_address: string // 收款地址
   pay_id: string // 支付ID
-  cost: number // 成本
+  cost: string // 成本
   describe: string // 描述
+  agent_name?: string // 代理名称
+  bot_name?: string // 机器人名称
+  bot_user_name?: string // 机器人用户名
+  bot_first_name?: string // 机器人昵称
+  tg_user_name?: string // TG用户名
+  tg_first_name?: string // TG昵称
+  in_coin?: string // 输入币种
+  out_coin?: string // 输出币种
+  real_rate?: string // 实时汇率
+  actual_rate?: string // 实际汇率
+  agent_profit?: string // 代理利润
+  plate_profit?: string // 平台利润
+  completed_at?: number | null // 完成时间（Unix时间戳-秒）
+}
+
+/**
+ * 闪兑详情 - 兑换信息
+ */
+export interface V2ExchangeInfo {
+  order_id: string // 订单ID
+  in_address: string // 输入地址
+  in_amount: string // 输入金额
+  in_coin: string // 输入币种
+  real_rate: string // 实时汇率
+  actual_rate: string // 实际汇率
+  out_address: string // 输出地址
+  out_amount: string // 输出金额
+  out_coin: string // 输出币种
+  out_txid: string // 输出交易hash
+  out_at: number // 输出时间（Unix时间戳-秒）
+  agent_profit: string // 代理利润
+  plate_profit: string // 平台利润
+}
+
+/**
+ * 闪兑详情 - 交易信息
+ */
+export interface V2TransactionInfo {
+  id: string // 交易hash
+  from: string // 发送地址
+  to: string // 接收地址
+  amount: string // 金额
+  coin: string // 币种
+  height: number // 区块高度
+  time: number // 交易时间（Unix时间戳-秒）
+  handled: boolean // 是否已处理
+}
+
+/**
+ * 闪兑订单详情 - 新接口 v2
+ */
+export interface V2ExchangeDetail {
+  id: string // 订单ID
+  created_at: number // 创建时间（Unix时间戳-秒）
+  updated_at: number // 更新时间（Unix时间戳-秒）
+  paid_at: number // 支付时间（Unix时间戳-秒）
+  kind: number // 类型
+  status: number // 状态
+  user_id: number // 用户ID
+  agent_id: number // 代理ID
+  bot_id: number // 机器人ID
+  amount: string // 金额
+  coin: string // 币种
+  receive_address: string // 收款地址
+  pay_id: string // 支付ID
+  cost: string // 成本
+  describe: string // 描述
+  agent_name: string // 代理名称
+  bot_user_name: string // 机器人用户名
+  bot_first_name: string // 机器人昵称
+  tg_user_name: string // TG用户名
+  tg_first_name: string // TG昵称
+  exchange: V2ExchangeInfo // 兑换信息
+  pay_transaction: V2TransactionInfo // 支付交易信息
+  deliver_transaction: V2TransactionInfo // 发放交易信息
 }
 
 /**

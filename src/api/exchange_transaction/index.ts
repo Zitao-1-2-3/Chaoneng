@@ -1,12 +1,10 @@
 import request from '@/axios'
 import type {
-  ExchangeOrderListItem,
   ExchangeOrderListParams,
   ExchangeOrderListResult,
   ExchangeOrderDetailData,
   ResendTrxParams,
-  V2ExchangeListParams,
-  V2ExchangeListResponse
+  V2ExchangeListParams
 } from './types'
 
 // ========== 新接口 v2 ==========
@@ -22,6 +20,17 @@ export const v2GetExchangeList = (params: V2ExchangeListParams) => {
   return request.get({
     url: `${BASE_URL}list`,
     params
+  })
+}
+
+/**
+ * 获取闪兑订单详情 - 新接口 v2
+ * GET /v2/order/{id}
+ */
+export const v2GetExchangeDetail = (id: string) => {
+  console.log('[v2GetExchangeDetail] 调用参数:', id)
+  return request.get({
+    url: `/v2/order/${id}`
   })
 }
 
@@ -65,9 +74,9 @@ export const getExchangeTxDetailApi = (id: number) => {
 
 /**
  * V2 - 补发TRX (逻辑暂时注释)
- * @param params 补发参数
+ * @param _params 补发参数
  */
-export const resendTrxApi = (params: ResendTrxParams) => {
+export const resendTrxApi = (_params: ResendTrxParams) => {
   // TODO: 需要后端确认实际的 V2 补发接口 URL
   const V2_RESEND_URL = '/v2/manage/exchange_order/resend_trx' // 假设的 V2 URL
   console.warn(`resendTrxApi is called but currently commented out. Target URL: ${V2_RESEND_URL}`)
