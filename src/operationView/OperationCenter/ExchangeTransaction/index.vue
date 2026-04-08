@@ -57,11 +57,11 @@ const totalCount = ref(0)
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    // 处理时间范围
+    // 处理时间范围 - 转换为秒级时间戳
     const exportParams = { ...params } as any
     if (params.dateRange && params.dateRange.length === 2) {
-      exportParams.start_time = params.dateRange[0]
-      exportParams.end_time = params.dateRange[1]
+      exportParams.start_time = Math.floor(params.dateRange[0] / 1000)
+      exportParams.end_time = Math.floor(params.dateRange[1] / 1000)
       delete exportParams.dateRange
     }
     const res = await exportExchangeOrderApi(exportParams)
@@ -247,7 +247,7 @@ const searchSchema = reactive<FormSchema[]>([
     component: 'DatePicker',
     label: '创建时间',
     componentProps: {
-      type: 'datetimerange',
+      type: 'daterange',
       valueFormat: 'x',
       startPlaceholder: '开始日期',
       endPlaceholder: '结束日期'
@@ -297,10 +297,10 @@ const fetchExchangeTransactionList = async (params: any) => {
       page_size: params.pageSize || params.page_size || 10
     }
 
-    // 处理时间范围
+    // 处理时间范围 - 转换为秒级时间戳
     if (params.dateRange && params.dateRange.length === 2) {
-      apiParams.start_time = String(params.dateRange[0])
-      apiParams.end_time = String(params.dateRange[1])
+      apiParams.start_time = String(Math.floor(params.dateRange[0] / 1000))
+      apiParams.end_time = String(Math.floor(params.dateRange[1] / 1000))
     }
 
     // 处理交易类型查询

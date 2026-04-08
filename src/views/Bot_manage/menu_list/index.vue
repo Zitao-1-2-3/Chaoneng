@@ -86,7 +86,6 @@ import {
   handleWarningMessage,
   handleDataFormatError
 } from '@/utils/messageHelper'
-} from '@/api/menu_list/types'
 import { useValidator } from '@/hooks/web/useValidator'
 import MenuPreview from './components/MenuPreview.vue'
 import { formatToDateTime } from '@/utils/dateUtil'

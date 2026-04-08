@@ -234,6 +234,10 @@ const columns = ref<TableColumn[]>([
   {
     field: 'created_at',
     label: '创建时间',
+    sortable: true,
+    sortMethod: (a: any, b: any) => {
+      return (a.created_at || 0) - (b.created_at || 0)
+    },
     formatter: (row: AgentItem) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
   },
   {

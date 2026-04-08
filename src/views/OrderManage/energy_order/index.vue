@@ -144,25 +144,19 @@ const columns: TableColumn[] = [
     slots: {
       default: ({ row }: any) => {
         const typeTextMap: Record<number, string> = {
-          1: '按笔数',
-          2: '按时间',
-          3: '批量下单',
-          4: '闪租',
-          5: '激活',
+          4: '按时间',
+          5: '按笔数',
           6: '福利',
-          7: '按笔数-带宽',
-          8: '接口调用-按笔数',
-          9: '接口调用-带宽',
-          10: '托管'
+          7: '闪租',
+          8: '托管',
+          9: '批量下单',
+          10: '激活'
         }
         // Assign fixed color types
         const typeColorMap: Record<number, 'primary' | 'success' | 'warning' | 'danger' | 'info'> =
           {
-            1: 'primary',
-            2: 'success',
-            3: 'warning',
-            4: 'danger',
-            5: 'info',
+            4: 'success',
+            5: 'primary',
             6: 'primary',
             7: 'success',
             8: 'warning',
@@ -325,16 +319,13 @@ const searchSchema = [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: '按笔数', value: 1 },
-        { label: '按时间', value: 2 },
-        { label: '批量下单', value: 3 },
-        { label: '闪租', value: 4 },
-        { label: '激活', value: 5 },
+        { label: '按时间', value: 4 },
+        { label: '按笔数', value: 5 },
         { label: '福利', value: 6 },
-        { label: '托管', value: 10 },
-        { label: '按笔数-带宽', value: 7 },
-        { label: '接口调用-按笔数', value: 8 },
-        { label: '接口调用-带宽', value: 9 }
+        { label: '闪租', value: 7 },
+        { label: '托管', value: 8 },
+        { label: '批量下单', value: 9 },
+        { label: '激活', value: 10 }
       ],
       placeholder: '请选择订单类型'
     }

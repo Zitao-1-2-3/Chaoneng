@@ -11,12 +11,6 @@ import formatEnergyNum from '../../helpers/formatEnergyNum'
 // Import the new detail components (using defineAsyncComponent for lazy loading)
 const ByCountDetails = defineAsyncComponent(() => import('./details/ByCountDetails.vue'))
 const ByTimeDetails = defineAsyncComponent(() => import('./details/ByTimeDetails.vue'))
-const BatchOrderDetails = defineAsyncComponent(() => import('./details/BatchOrderDetails.vue'))
-const FlashRentDetails = defineAsyncComponent(() => import('./details/FlashRentDetails.vue'))
-const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
-const BandwidthOrderListDetails = defineAsyncComponent(
-  () => import('./details/BandwidthOrderListDetails.vue')
-)
 
 const props = defineProps({
   modelValue: {
@@ -71,9 +65,15 @@ const handleClose = () => {
 
 const getStatusText = (status: number): string => {
   const statusMap: Record<number, string> = {
-    1: '已完成',
+    1: '新订单',
     2: '已支付',
-    3: '支付失败'
+    3: '已发送',
+    4: '已回收',
+    5: '已完成',
+    6: '失败订单',
+    7: '已退款',
+    8: '已取消',
+    9: '中止订单'
   }
   return statusMap[status] || '-'
 }
@@ -106,9 +106,15 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
         default: (data: any) => {
           if (!data || data.status === undefined) return h('span', '-')
           const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
-            1: 'success', // 已完成
+            1: 'info', // 新订单
             2: 'warning', // 已支付
-            3: 'danger' // 支付失败
+            3: 'info', // 已发送
+            4: 'info', // 已回收
+            5: 'success', // 已完成
+            6: 'danger', // 失败订单
+            7: 'warning', // 已退款
+            8: 'info', // 已取消
+            9: 'danger' // 中止订单
           }
           const tagType = statusColorMap[data.status] || 'info'
           return h(ElTag, { type: tagType, size: 'small' }, () => getStatusText(data.status))
@@ -122,29 +128,25 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
         default: (data: any) => {
           if (!data || data.order_type === undefined) return h('span', '-')
           const typeTextMap: Record<number, string> = {
-            1: '按笔数',
-            2: '按时间',
-            3: '批量下单',
-            4: '闪租',
-            5: '激活',
+            4: '按时间',
+            5: '按笔数',
             6: '福利',
-            7: '按笔数-带宽',
-            8: '接口调用-按笔数',
-            9: '接口调用-带宽'
+            7: '闪租',
+            8: '托管',
+            9: '批量下单',
+            10: '激活'
           }
           const typeColorMap: Record<
             number,
             'primary' | 'success' | 'warning' | 'danger' | 'info'
           > = {
-            1: 'primary',
-            2: 'success',
-            3: 'warning',
-            4: 'danger',
-            5: 'info',
+            4: 'success',
+            5: 'primary',
             6: 'primary',
             7: 'success',
             8: 'warning',
-            9: 'danger'
+            9: 'danger',
+            10: 'info'
           }
           const orderTypeNum =
             typeof data.order_type === 'string' ? parseInt(data.order_type, 10) : data.order_type
@@ -262,22 +264,20 @@ const detailComponent = computed(() => {
   const type = orderDetail.value?.order_type
   // Map the type number directly to the imported async component
   switch (type) {
-    case 1:
-      return ByCountDetails
-    case 2:
+    case 4: // 时间能量
       return ByTimeDetails
-    case 3:
-      return BatchOrderDetails
-    case 4:
-      return FlashRentDetails
-    case 5:
-      return ActivationDetails
-    case 7: // 按笔数-带宽
-      return BandwidthOrderListDetails
-    case 8: // 接口调用-按笔数 (使用原有逻辑)
+    case 5: // 笔数能量
       return ByCountDetails
-    case 9: // 接口调用-带宽
-      return BandwidthOrderListDetails
+    case 6: // 福利能量
+      return ByTimeDetails
+    case 7: // 按笔数-带宽 → 使用按笔数详情
+      return ByCountDetails
+    case 8: // 自动托管
+      return ByCountDetails
+    case 9: // 接口调用-按笔数 → 使用按笔数详情
+      return ByCountDetails
+    case 10: // 接口调用-带宽 → 使用按笔数详情
+      return ByCountDetails
     default:
       return null
   }
@@ -286,14 +286,13 @@ const detailComponent = computed(() => {
 const detailTabLabel = computed(() => {
   const type = orderDetail.value?.order_type
   const typeTextMap: Record<number, string> = {
-    1: '笔数详情',
-    2: '时间详情',
-    3: '批量订单详情',
-    4: '闪租详情',
-    5: '激活详情',
-    7: '按笔数-带宽详情',
-    8: '接口调用-按笔数详情',
-    9: '接口调用-带宽详情'
+    4: '时间详情',
+    5: '笔数详情',
+    6: '福利详情',
+    7: '闪租',
+    8: '托管详情',
+    9: '批量下单',
+    10: '激活'
   }
   return type ? typeTextMap[type] || '详情' : '详情'
 })
@@ -301,14 +300,13 @@ const detailTabLabel = computed(() => {
 const detailTabName = computed(() => {
   const type = orderDetail.value?.order_type
   const typeNameMap: Record<number, string> = {
-    1: 'byCount',
-    2: 'byTime',
-    3: 'batchOrder',
-    4: 'flashRent',
-    5: 'activate',
+    4: 'byTime',
+    5: 'byCount',
+    6: 'welfare',
     7: 'bandwidthCount',
-    8: 'apiByCount',
-    9: 'apiBandwidth'
+    8: 'hosting',
+    9: 'apiByCount',
+    10: 'apiBandwidth'
   }
   // Return a unique name for the tab based on type, fallback to 'details'
   return type ? typeNameMap[type] || `details-${type}` : 'details'
