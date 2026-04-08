@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, defineProps, PropType, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Echart } from '@/components/Echart'
 import {
   ElCard,
@@ -89,7 +89,6 @@ import type { EChartsOption } from 'echarts'
 import * as echarts from 'echarts/core'
 import { DataZoomComponent } from 'echarts/components'
 import axios from 'axios'
-import { debounce } from 'lodash-es'
 import { formatToDate } from '@/utils/dateUtil'
 
 // 注册DataZoom组件
@@ -128,15 +127,18 @@ const isLoading = computed(() => {
 // 时间范围选择
 const timeRange = ref('1month') // 默认显示近一个月数据
 
-// 日期范围选择器的值
+// 日期范围选择器的值 - 初始化时使用占位值，数据加载后会更新
 const dateRange = ref<[Date, Date]>([
-  new Date(new Date().setMonth(new Date().getMonth() - 1)), // 默认一个月前
-  new Date() // 当前日期
+  new Date(new Date().setMonth(new Date().getMonth() - 1)),
+  new Date()
 ])
 
 // 存储原始数据和筛选后的数据
 const allChartData = ref<TrxVolumeData[]>([])
 const chartData = ref<TrxVolumeData[]>([])
+
+// 添加响应式的 dataZoom 范围
+const currentZoomRange = ref({ start: 0, end: 100 })
 
 // 添加当前价格相关的状态
 const currentPrice = ref<number | null>(null)
@@ -169,45 +171,33 @@ const formatUpdateTime = (timestamp: number) => {
 const timeUtils = {
   // 获取昨天的日期对象
   getYesterday() {
-    // 当前时间
     const now = new Date()
-
-    // 创建昨天的日期对象
     const yesterday = new Date(now)
     yesterday.setDate(yesterday.getDate() - 1)
-
-    console.log('昨天:', yesterday.toLocaleString())
-
     return yesterday
   },
 
-  // 创建日期范围（起始时间戳和结束时间戳）
+  // 创建日期范围（起始时间戳和结束时间戳）- 使用UTC时间
   createDateRange(startDate: Date, endDate: Date) {
-    // 使用本地时间
-    const start = new Date(
+    // 转换为UTC时间戳，API需要的是UTC时间
+    const startTimestamp = Date.UTC(
       startDate.getFullYear(),
       startDate.getMonth(),
       startDate.getDate(),
       0,
       0,
-      0 // 00:00:00
+      0,
+      0
     )
 
-    const end = new Date(
+    const endTimestamp = Date.UTC(
       endDate.getFullYear(),
       endDate.getMonth(),
       endDate.getDate(),
       23,
       59,
       59,
-      999 // 23:59:59.999
-    )
-
-    const startTimestamp = start.getTime()
-    const endTimestamp = end.getTime()
-
-    console.log(
-      `创建日期范围: ${new Date(startTimestamp).toLocaleString()} 至 ${new Date(endTimestamp).toLocaleString()}`
+      999
     )
 
     return {
@@ -218,38 +208,67 @@ const timeUtils = {
 
   // 根据特定时间范围创建时间戳范围
   getRangeByType(rangeType: string) {
-    const today = new Date()
+    // 使用数据的最新日期作为结束日期，而不是今天
+    // 因为数据可能不是实时更新的
+    let endDate: Date
     let startDate: Date
 
+    if (allChartData.value && allChartData.value.length > 0) {
+      // 使用数据中最新的日期
+      const latestData = allChartData.value[allChartData.value.length - 1]
+      const latestTimestamp = latestData.time || latestData.timestamp || 0
+      endDate = new Date(latestTimestamp)
+
+      // 对于"全部"选项，使用数据中最早的日期
+      if (rangeType === 'all') {
+        const earliestData = allChartData.value[0]
+        const earliestTimestamp = earliestData.time || earliestData.timestamp || 0
+        startDate = new Date(earliestTimestamp)
+        return this.createDateRange(startDate, endDate)
+      }
+    } else {
+      // 如果没有数据，使用今天
+      endDate = new Date()
+    }
+
     if (rangeType === '1month') {
-      startDate = new Date(today)
+      startDate = new Date(endDate)
       startDate.setMonth(startDate.getMonth() - 1)
     } else if (rangeType === '3months') {
-      startDate = new Date(today)
+      startDate = new Date(endDate)
       startDate.setMonth(startDate.getMonth() - 3)
     } else if (rangeType === '1year') {
-      startDate = new Date(today)
+      startDate = new Date(endDate)
       startDate.setFullYear(startDate.getFullYear() - 1)
     } else if (rangeType === 'all') {
-      // TRX 发行时间附近
+      // 如果没有数据，使用 TRX 发行时间
       startDate = new Date(1507564800000)
     } else {
       // 默认一个月
-      startDate = new Date(today)
+      startDate = new Date(endDate)
       startDate.setMonth(startDate.getMonth() - 1)
     }
 
-    return this.createDateRange(startDate, today)
+    return this.createDateRange(startDate, endDate)
   },
 
-  // 检查日期是否不可选（今天或之后的日期）
+  // 检查日期是否不可选（数据最新日期之后的日期）
   isDateDisabled(date: Date) {
-    const yesterday = this.getYesterday()
-    const yesterdayEnd = new Date(yesterday)
-    yesterdayEnd.setHours(23, 59, 59, 999)
+    // 如果有数据，使用数据的最新日期
+    if (allChartData.value && allChartData.value.length > 0) {
+      const latestData = allChartData.value[allChartData.value.length - 1]
+      const latestTimestamp = latestData.time || latestData.timestamp || 0
+      const latestDate = new Date(latestTimestamp)
+      latestDate.setHours(23, 59, 59, 999)
 
-    // 禁用今天及以后的日期
-    return date >= yesterdayEnd
+      // 禁用数据最新日期之后的日期
+      return date > latestDate
+    }
+
+    // 如果没有数据，禁用今天及以后的日期
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return date >= today
   },
 
   // 获取日期的简单格式 YYYY-MM-DD
@@ -261,15 +280,12 @@ const timeUtils = {
 
 // 处理时间范围选择
 const handleTimeRangeChange = (value: string) => {
-  console.log('handleTimeRangeChange', value)
   if (value === 'custom' && dateRange.value && dateRange.value.length === 2) {
     // 自定义时间范围，使用dateRange的值
     const { startTimestamp, endTimestamp } = timeUtils.createDateRange(
       new Date(dateRange.value[0]),
       new Date(dateRange.value[1])
     )
-    console.log('startTimestamp', startTimestamp)
-    console.log('endTimestamp', endTimestamp)
     // 过滤数据并调整dataZoom位置
     filterDataByTimeRange(startTimestamp, endTimestamp)
     return
@@ -277,10 +293,14 @@ const handleTimeRangeChange = (value: string) => {
 
   // 使用预设的时间范围
   const { startTimestamp, endTimestamp } = timeUtils.getRangeByType(value)
-  console.log('startTimestamp', startTimestamp)
-  console.log('endTimestamp', endTimestamp)
-  // 更新日期选择器的值
-  dateRange.value = [new Date(startTimestamp), timeUtils.getYesterday()]
+
+  // 更新日期选择器的值 - 使用本地日期对象
+  const startDate = new Date(startTimestamp)
+  const endDate = new Date(endTimestamp)
+  dateRange.value = [
+    new Date(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()),
+    new Date(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate())
+  ]
 
   // 过滤数据并调整dataZoom位置
   filterDataByTimeRange(startTimestamp, endTimestamp)
@@ -289,7 +309,7 @@ const handleTimeRangeChange = (value: string) => {
 // 处理日期范围变化
 const handleDateRangeChange = (value: [Date, Date]) => {
   if (!value || value.length !== 2) return
-  console.log('handleDateRangeChange', value)
+
   // 设置为自定义模式
   timeRange.value = 'custom'
 
@@ -298,10 +318,9 @@ const handleDateRangeChange = (value: [Date, Date]) => {
     new Date(value[0]),
     new Date(value[1])
   )
-  console.log('startTimestamp', startTimestamp)
-  console.log('endTimestamp', endTimestamp)
+
   // 过滤数据并调整dataZoom位置
-  filterDataByTimeRange(startTimestamp + 32 * 60 * 60 * 1000, endTimestamp + 32 * 60 * 60 * 1000)
+  filterDataByTimeRange(startTimestamp, endTimestamp)
 }
 
 // 数据处理函数 - 确保数据格式一致
@@ -321,50 +340,46 @@ const processApiData = (data: any[]) => {
 
 // 根据时间范围过滤数据并更新图表
 const filterDataByTimeRange = (startTimestamp: number, endTimestamp: number) => {
-  console.log(
-    `过滤数据，时间范围: ${new Date(startTimestamp).toLocaleString()} 至 ${new Date(endTimestamp).toLocaleString()}`
-  )
-
   if (!allChartData.value || allChartData.value.length === 0) {
-    console.warn('没有可用的历史数据')
     return
   }
 
   // 找到时间范围在全部数据中的索引位置
-  const startIndex = allChartData.value.findIndex((item) => {
-    const itemTimestamp = item.time || item.timestamp
-    return itemTimestamp >= startTimestamp
-  })
+  let startIndex = -1
+  let endIndex = -1
 
-  const endIndex = allChartData.value.findIndex((item) => {
-    const itemTimestamp = item.time || item.timestamp
-    return itemTimestamp > endTimestamp
-  })
+  for (let i = 0; i < allChartData.value.length; i++) {
+    const itemTimestamp = allChartData.value[i].time || allChartData.value[i].timestamp
+
+    if (startIndex === -1 && itemTimestamp >= startTimestamp) {
+      startIndex = i
+    }
+
+    if (itemTimestamp > endTimestamp) {
+      endIndex = i
+      break
+    }
+  }
+
+  // 如果没有找到结束索引，说明数据都在范围内
+  if (endIndex === -1) {
+    endIndex = allChartData.value.length
+  }
+
+  // 如果没有找到开始索引，使用第一个数据
+  if (startIndex === -1) {
+    startIndex = 0
+  }
 
   // 计算在全部数据中的百分比位置
-  let startPercent = 0
-  let endPercent = 100
+  const totalLength = allChartData.value.length
+  const startPercent = (startIndex / totalLength) * 100
+  const endPercent = (endIndex / totalLength) * 100
 
-  if (startIndex !== -1) {
-    startPercent = (startIndex / allChartData.value.length) * 100
-  }
-
-  if (endIndex !== -1) {
-    endPercent = (endIndex / allChartData.value.length) * 100
-  } else {
-    endPercent = 100
-  }
-
-  console.log(`调整dataZoom位置: ${startPercent.toFixed(2)}% - ${endPercent.toFixed(2)}%`)
-
-  // 如果图表已初始化，只调整dataZoom位置
-  if (chartInstance.value) {
-    // 调整数据缩放区域
-    chartInstance.value.dispatchAction({
-      type: 'dataZoom',
-      start: startPercent,
-      end: endPercent
-    })
+  // 更新响应式的 zoom 范围 - 这会触发 chartOptions 的重新计算
+  currentZoomRange.value = {
+    start: startPercent,
+    end: endPercent
   }
 }
 
@@ -381,6 +396,8 @@ const fetchAllData = async () => {
 
     const startTimestamp = trxLaunchDate.getTime()
     const endTimestamp = today.getTime()
+
+    console.log('获取TRX全部历史数据...')
 
     console.log('获取TRX全部历史数据...')
 
@@ -406,25 +423,24 @@ const fetchAllData = async () => {
 
         // 保存所有历史数据
         allChartData.value = processedData
-        console.log(`成功获取${processedData.length}条TRX历史数据`)
 
-        // 初始化图表并设置默认时间范围的dataZoom位置
+        // 初始化 currentZoomRange - 先设置为默认值
+        const defaultZoom = calculateDefaultZoomRange.value
+        currentZoomRange.value = defaultZoom
+
+        // 更新昨日收盘价
+        updateYesterdayClosePrice()
+
+        // 如果图表已经初始化，立即应用时间范围过滤
         if (chartInstance.value) {
-          chartInstance.value.setOption(chartOptions.value)
-
           // 根据当前选择的时间范围调整dataZoom位置
           const { startTimestamp, endTimestamp } = timeUtils.getRangeByType(timeRange.value)
           filterDataByTimeRange(startTimestamp, endTimestamp)
         }
-
-        // 更新昨日收盘价
-        updateYesterdayClosePrice()
       } else {
-        console.warn('API返回的数据为空')
         allChartData.value = []
       }
     } else {
-      console.error('API返回的数据格式不正确')
       allChartData.value = []
     }
   } catch (error) {
@@ -439,7 +455,6 @@ const fetchAllData = async () => {
 const loadAllData = async () => {
   try {
     localLoading.value = true
-    console.log('开始加载图表数据...')
 
     // 获取所有历史数据
     await fetchAllData()
@@ -448,8 +463,6 @@ const loadAllData = async () => {
     if (chartInstance.value) {
       // 应用完整的图表配置
       chartInstance.value.setOption(chartOptions.value)
-
-      console.log('图表数据已更新并渲染')
     }
   } catch (error) {
     console.error('加载图表数据失败:', error)
@@ -501,8 +514,6 @@ const fetchCurrentPrice = async () => {
 
       // 价格更新后触发闪烁效果
       flashPrice()
-
-      console.log('当前TRX价格更新:', currentPrice.value, '之前价格:', previousPrice)
     }
   } catch (error) {
     console.error('获取当前TRX价格失败:', error)
@@ -521,7 +532,6 @@ const updateYesterdayClosePrice = () => {
       typeof latestData.close === 'string' ? parseFloat(latestData.close) : latestData.close || 0
 
     yesterdayClosePrice.value = closePrice
-    console.log('使用最新历史数据作为昨日收盘价:', yesterdayClosePrice.value)
   }
 
   // 如果当前价格已有值，则重新计算涨跌幅
@@ -585,13 +595,12 @@ const dates = computed(() => {
   if (!allChartData.value || allChartData.value.length === 0) return []
 
   return allChartData.value.map((item) => {
-    // 从时间戳创建日期 - 注意API时间戳是当天的结束时间
-    // 确保time是数字
+    // 从时间戳创建日期
     const timeValue = typeof item.time === 'number' ? item.time : 0
-    const date = new Date(timeValue - 8 * 60 * 60 * 1000)
+    const date = new Date(timeValue)
 
-    // 使用本地日期格式化
-    return formatToDate(date)
+    // 使用UTC日期格式化，避免时区问题
+    return date.toISOString().split('T')[0]
   })
 })
 
@@ -633,7 +642,8 @@ const chartOptions = computed<EChartsOption>(() => {
     } as EChartsOption
   }
 
-  const zoomRange = calculateDefaultZoomRange.value
+  // 使用响应式的 zoom 范围
+  const zoomRange = currentZoomRange.value
 
   return {
     tooltip: {
@@ -797,11 +807,14 @@ const chartInstance = ref<EChartsInstance | null>(null)
 
 // 添加handleChartInit函数
 const handleChartInit = (chart: any) => {
-  console.log('图表已初始化')
   chartInstance.value = chart
 
   // 如果数据已加载，则设置初始视图
   if (allChartData.value && allChartData.value.length > 0) {
+    // 初始化 currentZoomRange
+    const defaultZoom = calculateDefaultZoomRange.value
+    currentZoomRange.value = defaultZoom
+
     // 完整设置图表选项
     chart.setOption(chartOptions.value, true)
 
@@ -811,7 +824,6 @@ const handleChartInit = (chart: any) => {
 
     // 添加dataZoom事件监听器
     chart.on('datazoom', function () {
-      console.log('数据缩放事件被触发')
       // 延迟一点时间，等待缩放完成
       setTimeout(() => {
         // 确保tooltip仍然可用
@@ -841,8 +853,6 @@ const disableFutureDates = (time: Date) => {
 
 // 初始化
 onMounted(async () => {
-  console.log('TrxChart组件已挂载，准备加载数据...')
-
   // 初始加载所有数据
   await loadAllData()
 

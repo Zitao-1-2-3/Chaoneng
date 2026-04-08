@@ -212,18 +212,11 @@ const columns: TableColumn[] = [
     minWidth: 120,
     slots: {
       default: ({ row }) => {
+        if (!row.tg_name) return <span>-</span>
         return (
-          <span
-            style={{ color: '#409EFF', cursor: 'pointer' }}
-            onClick={() => {
-              router.push({
-                path: `/user_group/user_list`,
-                query: { tg_id: row.tg_id }
-              })
-            }}
-          >
-            {row.tg_name || '-'}
-          </span>
+          <ElLink href={`https://t.me/${row.tg_name}`} type="primary" target="_blank">
+            {row.tg_name}
+          </ElLink>
         )
       }
     }

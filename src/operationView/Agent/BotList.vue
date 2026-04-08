@@ -102,8 +102,14 @@ const searchSchema = ref<FormSchema[]>([
     field: 'keyword', // 使用新接口的 keyword 参数
     component: 'Input',
     label: '关键字',
+    colProps: {
+      span: 12 // 增加输入框占用的栅格列数，默认是6
+    },
     componentProps: {
-      placeholder: '请输入关键字搜索'
+      placeholder: '请输入机器人ID/用户名/代理名称',
+      style: {
+        width: '100%'
+      }
     }
   },
   {

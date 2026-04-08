@@ -68,8 +68,8 @@ import OrderDetail from './components/OrderDetail.vue'
 import {
   updateEnergyTransactionStatusApi,
   exportEnergyTransactionApi, // 新增导入
-  handleRecycleApi,
-  v2GetEnergyList
+  v2GetEnergyList,
+  v2RecycleOrder
 } from '@/api/energy_transaction'
 import type { V2EnergyItem } from '@/api/energy_transaction/types'
 import { formatToDateTime } from '@/utils/dateUtil'
@@ -257,11 +257,25 @@ const actionColumn = {
   slots: {
     default: (data: any) => {
       const row = data.row
+      // 判断逻辑：
+      // 1. recycled_at 为 null 且 status <= 4 → 显示"停止代理"
+      // 2. recycled_at 不为 null 且 status > 4 → 显示"启动代理"（禁用状态）
+      const isRecycled = row.recycled_at && row.recycled_at !== null
+      const showStop = !isRecycled && row.status <= 4
+      const showStart = isRecycled && row.status > 4
+
       return (
         <>
-          <BaseButton type="danger" onClick={() => handleStop(row)}>
-            停止代理
-          </BaseButton>
+          {showStop && (
+            <BaseButton type="danger" onClick={() => handleStop(row)}>
+              停止代理
+            </BaseButton>
+          )}
+          {showStart && (
+            <BaseButton type="success" disabled>
+              启动代理
+            </BaseButton>
+          )}
           <BaseButton type="primary" onClick={() => handleDetail(row)}>
             详情
           </BaseButton>
@@ -278,7 +292,7 @@ const searchSchema = [
     component: 'Input' as const,
     label: '关键字：', // Updated label
     componentProps: {
-      placeholder: '请输入订单ID/代理ID/代理名称', // Updated placeholder
+      placeholder: '请输入订单ID/代理名称', // Updated placeholder
       clearable: true
     }
   },
@@ -619,6 +633,7 @@ const fetchDataWrapper = async (params: any = {}) => {
           stroke_num: item.energy_count, // 笔数
           energy_rent_text: energyRentText, // 有效时长
           recycle_time: recycleTime, // 回收时间（时间戳秒）
+          recycled_at: item.recycled_at, // 回收时间（ISO格式，用于判断是否已回收）
           status: item.status, // 订单状态
           create_time: item.created_at, // 创建时间（时间戳秒）
           describe: item.describe // 描述
@@ -678,14 +693,24 @@ const handleLoadError = () => {
 }
 
 const handleStop = async (row) => {
-  const res = await handleRecycleApi({
-    id: row.id
-  })
-  if (res) {
+  try {
+    await v2RecycleOrder(row.order_num)
     ElMessage.success('停止代理成功')
     searchTableRef.value?.reload()
-  } else {
+  } catch (error) {
+    console.error('停止代理失败:', error)
     ElMessage.error('停止代理失败')
+  }
+}
+
+const handleStart = async (row) => {
+  try {
+    await v2RecycleOrder(row.order_num)
+    ElMessage.success('启动代理成功')
+    searchTableRef.value?.reload()
+  } catch (error) {
+    console.error('启动代理失败:', error)
+    ElMessage.error('启动代理失败')
   }
 }
 

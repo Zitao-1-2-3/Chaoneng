@@ -17,10 +17,9 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted, computed } from 'vue'
+import { reactive } from 'vue'
 import { useTable } from '@/hooks/web/useTable'
 import { Table, TableColumn } from '@/components/Table'
-import { formatToDate } from '@/utils/dateUtil'
 import axios from 'axios'
 
 // 定义数据结构
@@ -103,7 +102,10 @@ const columns = reactive<TableColumn[]>([
   {
     field: 'time',
     label: '日期',
-    formatter: (row: TrxPriceData) => formatToDate(row.time - 8 * 60 * 60 * 1000)
+    formatter: (row: TrxPriceData) => {
+      const date = new Date(row.time)
+      return date.toISOString().split('T')[0]
+    }
   },
   {
     field: 'open',

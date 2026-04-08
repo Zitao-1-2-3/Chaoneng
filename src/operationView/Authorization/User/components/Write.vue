@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, computed, defineExpose, defineEmits } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useI18n } from '@/hooks/web/useI18n'
@@ -78,7 +78,7 @@ const validateConfirmPassword = (rule: any, value: any, callback: any) => {
   }
   if (passwordRef.value) {
     if (!value) {
-      callback(new Error(t('userDemo.inputConfirmPassword', '请输入确认密码')))
+      callback(new Error(t('userDemo.passwordPlaceholder', '请输入密码 (至少8位，不能纯数字)')))
       return
     }
     if (passwordRef.value !== value) {
@@ -174,7 +174,7 @@ const formSchema = computed<FormSchema[]>(() => {
       componentProps: {
         type: 'password',
         showPassword: true,
-        placeholder: t('userDemo.inputConfirmPassword', '请再次输入密码以确认'),
+        placeholder: t('userDemo.passwordPlaceholder', '请输入密码 (至少8位，不能纯数字)'),
         disabled: isDisabledForPasswordField
       }
     }

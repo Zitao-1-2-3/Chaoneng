@@ -42,6 +42,18 @@ export const v2GetOrderDetail = (id: string): Promise<IResponse<V2OrderDetailRes
   })
 }
 
+/**
+ * 回收资源（停止代理）- 新接口 v2
+ * POST /v2/order/recycle
+ */
+export const v2RecycleOrder = (order_id: string): Promise<IResponse<string>> => {
+  console.log('[v2RecycleOrder] 调用参数:', { order_id })
+  return request.post({
+    url: '/v2/order/recycle',
+    data: { order_id }
+  })
+}
+
 // ========== 旧接口 ==========
 
 // --- 新增：精确匹配示例响应的 IResponse 接口 ---

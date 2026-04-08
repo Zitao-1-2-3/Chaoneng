@@ -147,7 +147,7 @@ const columns = ref<TableColumn[]>([
   },
   {
     field: 'agent_name',
-    label: '代理名称',
+    label: '代理信息',
     minWidth: '200px',
     formatter: (row) => {
       if (row.agent_name && row.email) {
@@ -220,7 +220,7 @@ const searchSchema = reactive<FormSchema[]>([
     component: 'Input',
     label: '关键字：',
     componentProps: {
-      placeholder: 'TRX地址',
+      placeholder: 'TRX地址/代理名称',
       clearable: true
     }
   }
@@ -230,8 +230,15 @@ const searchSchema = reactive<FormSchema[]>([
 // 数据获取函数，供 SearchTable 使用
 const fetchData = async (params) => {
   try {
+    // 处理关键字：如果包含括号，删除括号及后面的所有内容
+    const processedParams = { ...params }
+    if (processedParams.keyword) {
+      // 删除括号及后面的内容，例如 "代理名称 (邮箱)" -> "代理名称"
+      processedParams.keyword = processedParams.keyword.replace(/\s*[\(（].*$/g, '').trim()
+    }
+
     // 使用新接口 v2GetAddressList，指定 kind: 1
-    const res = await v2GetAddressList({ ...params, kind: 1 })
+    const res = await v2GetAddressList({ ...processedParams, kind: 1 })
     const data = res.data || {}
 
     // 新接口返回的数据结构：{ list: [...], pager: { current_page, page_size, total } }

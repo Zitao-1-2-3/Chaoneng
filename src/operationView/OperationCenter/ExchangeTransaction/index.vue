@@ -30,9 +30,6 @@
 
       <!-- 订单详情弹窗 -->
       <OrderDetail ref="orderDetailRef" />
-
-      <!-- 补发TRX弹窗 -->
-      <ResendTrx ref="resendTrxRef" @success="handleResendSuccess" />
     </ContentWrap>
   </div>
 </template>
@@ -46,7 +43,6 @@ import type { TableColumn } from '@/components/Table/src/types'
 import { FormSchema } from '@/components/Form'
 import { formatToDateTime, formatToDate } from '@/utils/dateUtil'
 import OrderDetail from './components/OrderDetail.vue'
-import ResendTrx from './components/ResendTrx.vue'
 import { exportExchangeOrderApi, v2GetExchangeList } from '@/api/exchange_transaction' // 新增导入
 import type { ExchangeOrderListItem, V2ExchangeItem } from '@/api/exchange_transaction/types'
 import { BaseButton } from '@/components/Button'
@@ -55,7 +51,6 @@ import { downloadByData } from '@/utils/download'
 // 引用
 const searchTableRef = ref<SearchTableExpose>()
 const orderDetailRef = ref()
-const resendTrxRef = ref()
 const totalCount = ref(0)
 
 // 导出
@@ -219,15 +214,23 @@ const columns = reactive<TableColumn[]>([
 // 搜索表单配置 (根据截图更新)
 const searchSchema = reactive<FormSchema[]>([
   {
-    field: 'query',
-    component: 'Input',
-    label: '关键字:',
-    componentProps: { placeholder: '请输入类型' } // 匹配截图 placeholder
+    field: 'coin',
+    component: 'Select',
+    label: '交易类型:',
+    componentProps: {
+      placeholder: '全部',
+      options: [
+        { label: '全部', value: '' },
+        { label: 'USDT → TRX', value: 'USDT' },
+        { label: 'TRX → USDT', value: 'TRX' }
+      ],
+      clearable: true
+    }
   },
   {
     field: 'status',
     component: 'Select',
-    label: '状态:',
+    label: '交易状态:',
     componentProps: {
       placeholder: '全部', // 匹配截图 placeholder
       options: [
@@ -283,16 +286,6 @@ const handleDetail = (row: ExchangeOrderListItem) => {
   orderDetailRef.value?.open(row.id)
 }
 
-// 处理补发TRX
-const handleResend = (row: ExchangeOrderListItem) => {
-  resendTrxRef.value?.open(row)
-}
-
-// 处理补发成功
-const handleResendSuccess = () => {
-  searchTableRef.value?.tableMethods.getList()
-}
-
 // 请求闪兑明细列表数据
 const fetchExchangeTransactionList = async (params: any) => {
   try {
@@ -310,9 +303,9 @@ const fetchExchangeTransactionList = async (params: any) => {
       apiParams.end_time = String(params.dateRange[1])
     }
 
-    // 处理关键字查询
-    if (params.query) {
-      apiParams.keyword = params.query
+    // 处理交易类型查询
+    if (params.coin) {
+      apiParams.keyword = params.coin
     }
 
     // 处理状态
