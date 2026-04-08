@@ -98,6 +98,19 @@ export interface ResourceDetail {
 }
 
 /**
+ * 激活记录
+ */
+export interface ActivationDetail {
+  id: number // 激活记录ID
+  order_id: string // 订单ID
+  target: string // 目标地址
+  actived_at: number // 激活时间（时间戳）
+  actived_txid: string // 激活交易ID
+  created_at: number // 创建时间（时间戳）
+  updated_at: number // 更新时间（时间戳）
+}
+
+/**
  * 能量订单详情 - 新接口 v1
  */
 export interface EnergyOrderDetailV1 {
@@ -123,6 +136,7 @@ export interface EnergyOrderDetailV1 {
   tg_first_name: string // TG用户昵称
   summary: OrderSummary // 订单摘要
   resources: ResourceDetail[] // 资源列表
+  activations?: ActivationDetail[] // 激活记录列表（可选，用于激活类型订单）
 }
 
 /**

@@ -9,8 +9,8 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import isEmpty from 'lodash-es/isEmpty'
 import formatEnergyNum from '../../helpers/formatEnergyNum'
 // Import the new detail components (using defineAsyncComponent for lazy loading)
-const ByCountDetails = defineAsyncComponent(() => import('./details/ByCountDetails.vue'))
-const ByTimeDetails = defineAsyncComponent(() => import('./details/ByTimeDetails.vue'))
+const ResourceDetails = defineAsyncComponent(() => import('./details/ResourceDetails.vue'))
+const ActivationDetails = defineAsyncComponent(() => import('./details/ActivationDetails.vue'))
 
 const props = defineProps({
   modelValue: {
@@ -192,14 +192,6 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
     },
     { field: 'bot_id', label: '机器人ID' },
     {
-      field: 'create_time',
-      label: '创建时间',
-      slots: {
-        default: (data: any) =>
-          h('span', {}, data.create_time ? formatToDateTime(data.create_time) : '-')
-      }
-    },
-    {
       field: 'order_amount',
       label: '订单金额',
       slots: {
@@ -214,10 +206,39 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       }
     },
     {
+      field: 'energy_num',
+      label: '能量数',
+      slots: {
+        default: (data: any) => h('span', {}, formatEnergyNum(data.energy_num))
+      }
+    },
+    {
+      field: 'receive_address',
+      label: '接收地址',
+      slots: {
+        default: (data: any) => h('span', {}, data.receive_address || '暂无')
+      }
+    },
+    {
+      field: 'energy_rent_text',
+      label: '有效时长',
+      slots: {
+        default: (data: any) => h('span', {}, data.energy_rent_text || '-')
+      }
+    },
+    {
       field: 'pay_type',
       label: '支付类型',
       slots: {
         default: (data: any) => h('span', {}, data.pay_type == 2 ? '波场钱包转账' : '余额支付')
+      }
+    },
+    {
+      field: 'create_time',
+      label: '创建时间',
+      slots: {
+        default: (data: any) =>
+          h('span', {}, data.create_time ? formatToDateTime(data.create_time) : '-')
       }
     },
     {
@@ -234,82 +255,18 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
         default: (data: any) =>
           h('span', {}, data.finish_time ? formatToDateTime(data.finish_time) : '-')
       }
-    }
-  ]
-  if (orderDetail.value.order_type === 4) {
-    const flash = [
-      {
-        field: 'energy_num',
-        label: '能量数',
-        slots: {
-          default: (data: any) => h('span', {}, formatEnergyNum(data.energy_num))
-        }
-      },
-      {
-        field: 'energy_rent_text',
-        label: '能量有效期',
-        slots: {
-          default: (data: any) => h('span', {}, data.energy_rent_text)
-        }
+    },
+    {
+      field: 'recycle_time',
+      label: '回收时间',
+      slots: {
+        default: (data: any) =>
+          h('span', {}, data.recycle_time ? formatToDateTime(data.recycle_time) : '-')
       }
-    ]
-    schema.push(...flash)
-  }
-  schema.push({ field: 'describe', label: '描述' })
+    },
+    { field: 'describe', label: '描述' }
+  ]
   return schema
-})
-
-// --- Dynamic Component Logic ---
-const detailComponent = computed(() => {
-  const type = orderDetail.value?.order_type
-  // Map the type number directly to the imported async component
-  switch (type) {
-    case 4: // 时间能量
-      return ByTimeDetails
-    case 5: // 笔数能量
-      return ByCountDetails
-    case 6: // 福利能量
-      return ByTimeDetails
-    case 7: // 按笔数-带宽 → 使用按笔数详情
-      return ByCountDetails
-    case 8: // 自动托管
-      return ByCountDetails
-    case 9: // 接口调用-按笔数 → 使用按笔数详情
-      return ByCountDetails
-    case 10: // 接口调用-带宽 → 使用按笔数详情
-      return ByCountDetails
-    default:
-      return null
-  }
-})
-
-const detailTabLabel = computed(() => {
-  const type = orderDetail.value?.order_type
-  const typeTextMap: Record<number, string> = {
-    4: '时间详情',
-    5: '笔数详情',
-    6: '福利详情',
-    7: '闪租',
-    8: '托管详情',
-    9: '批量下单',
-    10: '激活'
-  }
-  return type ? typeTextMap[type] || '详情' : '详情'
-})
-
-const detailTabName = computed(() => {
-  const type = orderDetail.value?.order_type
-  const typeNameMap: Record<number, string> = {
-    4: 'byTime',
-    5: 'byCount',
-    6: 'welfare',
-    7: 'bandwidthCount',
-    8: 'hosting',
-    9: 'apiByCount',
-    10: 'apiBandwidth'
-  }
-  // Return a unique name for the tab based on type, fallback to 'details'
-  return type ? typeNameMap[type] || `details-${type}` : 'details'
 })
 </script>
 
@@ -317,22 +274,27 @@ const detailTabName = computed(() => {
   <Dialog v-model="localVisible" :title="'订单详情'" @close="handleClose">
     <ElTabs v-if="orderDetail && orderDetail.order_num" v-model="activeTab">
       <!-- 基础订单详情页 -->
-      <ElTabPane label="订单详情" name="order">
+      <ElTabPane label="基本信息" name="order">
         <Descriptions :schema="orderDetailSchema" :data="orderDetail" :column="2" border />
       </ElTabPane>
 
-      <!-- Dynamic Detail Tab: Render only if a specific component is determined -->
-      <ElTabPane v-if="detailComponent" :label="detailTabLabel" :name="detailTabName">
-        <!-- Use a key based on order ID to force re-render/remount if the order changes -->
-        <component
-          :is="detailComponent"
-          :key="orderDetail.id"
-          :order-data="orderDetail"
-          :order-id="orderDetail.id"
-        />
+      <!-- 资源详情标签页 - 只有当 resources 数组存在且有数据时才显示 -->
+      <ElTabPane
+        label="资源详情"
+        name="resources"
+        v-if="orderDetail && orderDetail.resources && orderDetail.resources.length > 0"
+      >
+        <ResourceDetails :order-data="orderDetail" />
       </ElTabPane>
 
-      <!-- Removed all static v-if based ElTabPanes for types 1-5 -->
+      <!-- 激活详情标签页 - 只有当 activations 数组存在且有数据时才显示 -->
+      <ElTabPane
+        label="激活详情"
+        name="activations"
+        v-if="orderDetail && orderDetail.activations && orderDetail.activations.length > 0"
+      >
+        <ActivationDetails :order-data="orderDetail" />
+      </ElTabPane>
     </ElTabs>
     <div v-else>
       <p>加载订单详情中或无详情数据...</p>
@@ -343,8 +305,6 @@ const detailTabName = computed(() => {
       </div>
     </template>
   </Dialog>
-
-  <!-- Removed Transaction Detail Dialogs (now handled within subcomponents) -->
 </template>
 
 <style scoped>

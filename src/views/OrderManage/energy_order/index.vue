@@ -56,13 +56,7 @@ const selectedOrderDetail = ref<any>(null)
 const currentSearchParams = ref({})
 
 // 根据订单类型（kind）格式化能量有效期
-const formatExpirationTime = (
-  expirationTime: string | null,
-  delegatedTime?: string | null,
-  orderType?: number,
-  createdTime?: number,
-  finishTime?: number
-): string => {
+const formatExpirationTime = (orderType?: number): string => {
   // 根据订单类型返回对应的有效期
   switch (orderType) {
     case 4: // KindTimeEnergy - 时间能量（闪租能量，1小时有效）
@@ -426,13 +420,7 @@ const fetchEnergyOrderList = async (params: any) => {
       order_amount: item.amount, // amount → order_amount
       pay_unit: item.coin, // coin → pay_unit
       energy_num: item.energy_amount, // energy_amount → energy_num
-      energy_rent_text: formatExpirationTime(
-        item.expirated_at,
-        item.delegated_at,
-        item.kind,
-        item.created_at * 1000,
-        item.paid_at ? item.paid_at * 1000 : undefined
-      ), // 根据订单类型计算有效期
+      energy_rent_text: formatExpirationTime(item.kind), // 根据订单类型计算有效期
       receive_address: item.receive_address, // 收款钱包地址
       energy_address: item.energy_address, // 能量接收地址
       stroke_num: item.energy_count, // energy_count → stroke_num
@@ -475,24 +463,74 @@ const handleViewDetail = async (row: any) => {
     const response = await v1GetEnergyOrderDetail(orderId)
 
     if (response && response.data) {
-      // 映射新接口返回的数据到旧的数据结构
+      // 映射新接口返回的数据
       const detail = response.data
+
+      // 从 resources 中获取能量相关信息
+      let energyAmount = '0'
+      let energyAddress = ''
+      let energyRentText = '-'
+      let recycleTime = 0
+
+      if (detail.resources && detail.resources.length > 0) {
+        const firstResource = detail.resources[0]
+        energyAmount = String(firstResource.amount || 0)
+        energyAddress = firstResource.target || ''
+
+        // 计算有效时长
+        if (firstResource.expirated_at && firstResource.delegated_at) {
+          const expTime = firstResource.expirated_at * 1000
+          const delTime = firstResource.delegated_at * 1000
+          const diffMs = expTime - delTime
+          const diffMinutes = Math.floor(diffMs / (1000 * 60))
+          const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+          const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+
+          if (diffDays > 0) {
+            energyRentText = `${diffDays}天`
+          } else if (diffHours > 0) {
+            energyRentText = `${diffHours}小时`
+          } else if (diffMinutes > 0) {
+            energyRentText = `${diffMinutes}分钟`
+          }
+        }
+
+        // 回收时间
+        if (firstResource.recycled_at) {
+          recycleTime = firstResource.recycled_at * 1000
+        }
+      }
+
+      // 笔数能量(5)和自动托管(8)显示为长期有效
+      if (detail.kind === 5 || detail.kind === 8) {
+        energyRentText = '长期有效'
+      }
+
       selectedOrderDetail.value = {
         ...detail,
-        // 保持旧字段名以兼容 OrderDetailDialog 组件
+        // 基本字段映射
         order_num: detail.id,
         order_type: detail.kind,
+        tg_id: detail.user_id,
         tg_name: detail.tg_user_name,
         nickname: detail.tg_first_name,
         bot_name: detail.bot_user_name,
-        create_time: detail.created_at,
-        finish_time: detail.paid_at,
-        pay_time: detail.paid_at,
+        create_time: detail.created_at * 1000,
+        finish_time: detail.paid_at ? detail.paid_at * 1000 : null,
+        pay_time: detail.paid_at ? detail.paid_at * 1000 : null,
         order_amount: detail.amount,
+        pay_amount: detail.amount,
         pay_unit: detail.coin,
+        pay_type: 1, // 默认为余额支付
+        // 从 resources 计算的字段
+        energy_num: energyAmount,
+        receive_address: energyAddress,
+        energy_rent_text: energyRentText,
+        recycle_time: recycleTime,
         // 新增字段
         summary: detail.summary,
-        resources: detail.resources
+        resources: detail.resources,
+        activations: detail.activations // 添加激活记录列表
       }
       orderDialogVisible.value = true
     } else {
