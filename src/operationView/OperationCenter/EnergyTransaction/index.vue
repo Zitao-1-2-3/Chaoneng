@@ -257,23 +257,20 @@ const actionColumn = {
   slots: {
     default: (data: any) => {
       const row = data.row
-      // 判断逻辑：
-      // 1. recycled_at 为 null 且 status <= 4 → 显示"停止代理"
-      // 2. recycled_at 不为 null 且 status > 4 → 显示"启动代理"（禁用状态）
+      // 简化逻辑：只根据 recycled_at 判断
+      // 有 recycled_at（已回收）→ 显示灰色禁用的"停止成功"
+      // 没有 recycled_at（未回收）→ 显示红色可点击的"停止代理"
       const isRecycled = row.recycled_at && row.recycled_at !== null
-      const showStop = !isRecycled && row.status <= 4
-      const showStart = isRecycled && row.status > 4
 
       return (
         <>
-          {showStop && (
+          {isRecycled ? (
+            <BaseButton type="info" disabled>
+              停止成功
+            </BaseButton>
+          ) : (
             <BaseButton type="danger" onClick={() => handleStop(row)}>
               停止代理
-            </BaseButton>
-          )}
-          {showStart && (
-            <BaseButton type="success" disabled>
-              启动代理
             </BaseButton>
           )}
           <BaseButton type="primary" onClick={() => handleDetail(row)}>

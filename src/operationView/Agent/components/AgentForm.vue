@@ -40,17 +40,16 @@ const { formRegister: formRegister2, formMethods: formMethods2 } = useForm()
 const agentFormSchema = computed<FormSchema[]>(() => {
   const baseSchema: FormSchema[] = []
 
-  // 新增模式下显示代理名称
-  if (!isEdit.value) {
-    baseSchema.push({
-      field: 'username',
-      label: '代理名称',
-      component: 'Input' as const,
-      componentProps: {
-        placeholder: '请输入代理名称'
-      }
-    })
-  }
+  // 代理名称字段 - 新增时可编辑，编辑时只读
+  baseSchema.push({
+    field: 'username',
+    label: '代理名称',
+    component: 'Input' as const,
+    componentProps: {
+      placeholder: isEdit.value ? '' : '请输入代理名称',
+      disabled: isEdit.value // 编辑模式下禁用
+    }
+  })
 
   // 登录密码
   baseSchema.push({
@@ -147,7 +146,7 @@ async function openDialog(mode: 'add' | 'edit' = 'add', data: Partial<AgentFormD
   await nextTick()
 
   const formValues = {
-    username: isEdit.value ? '' : '',
+    username: data.username || '', // 编辑时显示代理名称
     password: '',
     gift_bandwidth: data.gift_bandwidth ?? 0
   }
@@ -267,11 +266,11 @@ defineExpose({ openDialog })
       :schema="agentFormSchema"
       :rules="formRules"
       :showActionButtonGroup="false"
-      label-width="120px"
+      :label-width="isEdit ? '180px' : '120px'"
     />
 
     <!-- 自定义邮箱输入 -->
-    <div class="custom-form-item">
+    <div class="custom-form-item" :class="{ 'edit-mode': isEdit }">
       <div class="form-item-label">
         <span class="required-mark">*</span>
         联系方式
@@ -290,12 +289,13 @@ defineExpose({ openDialog })
       :schema="[giftBandwidthSchema]"
       :rules="{}"
       :showActionButtonGroup="false"
-      label-width="120px"
+      :label-width="isEdit ? '180px' : '120px'"
     />
 
     <div class="gift-bandwidth-description">
       <p class="description-text">说明：开启状态，购买按笔数/托管两种类型订单，赠送 400点 带宽</p>
     </div>
+
     <template #footer>
       <BaseButton type="primary" @click="onSubmit">提交</BaseButton>
     </template>
@@ -316,6 +316,11 @@ defineExpose({ openDialog })
   color: #666;
 }
 
+/* 编辑模式下的描述文本 */
+.edit-mode ~ .gift-bandwidth-description .description-text {
+  padding-left: 180px;
+}
+
 .custom-form-item {
   display: flex;
   width: 48.4%; /* 限制宽度为50%，与代理名称和登录密码保持一致 */
@@ -333,6 +338,11 @@ defineExpose({ openDialog })
   text-align: right;
   box-sizing: border-box;
   flex-shrink: 0;
+}
+
+/* 编辑模式下的标签宽度 */
+.custom-form-item.edit-mode .form-item-label {
+  width: 180px;
 }
 
 .required-mark {
