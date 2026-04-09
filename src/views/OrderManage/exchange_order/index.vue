@@ -230,8 +230,12 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
   {
     field: 'order_amount',
     label: '数量',
-    formatter: (row) => {
-      return row.order_amount
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.order_amount) return h('span', '-')
+        const unit = row.order_type === 1 ? 'USDT' : 'TRX'
+        return h('span', `${row.order_amount}（${unit}）`)
+      }
     }
   },
   {
@@ -272,9 +276,12 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
   {
     field: 'user_get_amount',
     label: '数量',
-    formatter: (row) => {
-      if (!row.user_get_amount) return '0'
-      return row.user_get_amount
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.user_get_amount) return h('span', '-')
+        const unit = row.order_type === 1 ? 'TRX' : 'USDT'
+        return h('span', `${row.user_get_amount}（${unit}）`)
+      }
     }
   },
   // {
