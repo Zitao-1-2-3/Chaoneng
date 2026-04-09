@@ -74,7 +74,7 @@ const columns: TableColumn[] = [
   },
   {
     field: 'user_name',
-    label: '用户名',
+    label: 'TG用户名',
     width: 150,
     formatter: (row: AutoManageAddressItem) => row.user_name || '-'
   },
