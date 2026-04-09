@@ -459,12 +459,10 @@ const signIn = async () => {
           // 设置Token
           userStore.setToken(res.data)
 
-          // 获取用户信息
-          // TODO: 这里应该是从token解析或者调用获取用户信息接口
+          // 获取用户信息（运营端需要先获取权限）
           if (!isManagement) {
             const userInfo = await getUserInfoApi()
             if (userInfo && userInfo.code === '000000') {
-              console.log(userInfo.data)
               const { permissions, name, role_ID, role_name } = userInfo.data
               userStore.setUserInfo({
                 permissions,
@@ -477,27 +475,21 @@ const signIn = async () => {
             userStore.setUserInfo({ username: formData.username, password: formData.password })
           }
 
-          console.log('登录前 dynamicRouter 状态:', appStore.getDynamicRouter)
           // 确保设置为false
           appStore.$patch({
             dynamicRouter: false,
             serverDynamicRouter: false
           })
-          console.log('登录后 dynamicRouter 状态:', appStore.getDynamicRouter)
 
           // 是否使用动态路由
           if (appStore.getDynamicRouter) {
-            console.log('使用动态路由')
-            getRole()
+            await getRole()
           } else {
-            console.log('使用静态路由')
-            await permissionStore.generateRoutes('static').catch(() => {})
-            console.log('permissionStore.getAddRouters', permissionStore.getAddRouters)
+            await permissionStore.generateRoutes('static')
             permissionStore.getAddRouters.forEach((route) => {
-              addRoute(route as RouteRecordRaw) // 动态添加可访问路由表
+              addRoute(route as RouteRecordRaw)
             })
             permissionStore.setIsAddRouters(true)
-            console.log('permissionStore.addRouters', permissionStore.addRouters)
             push({ path: redirect.value || permissionStore.addRouters[0].path })
           }
 

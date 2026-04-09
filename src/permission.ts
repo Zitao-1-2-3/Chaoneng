@@ -18,6 +18,7 @@ router.beforeEach(async (to, from, next) => {
   const permissionStore = usePermissionStoreWithOut()
   const appStore = useAppStoreWithOut()
   const userStore = useUserStoreWithOut()
+
   if (userStore.getUserInfo) {
     if (to.path === '/login') {
       next({ path: '/' })
@@ -32,20 +33,23 @@ router.beforeEach(async (to, from, next) => {
 
       // 是否使用动态路由
       if (appStore.getDynamicRouter) {
-        appStore.serverDynamicRouter
-          ? await permissionStore.generateRoutes('server', roleRouters as AppCustomRouteRecordRaw[])
-          : await permissionStore.generateRoutes('frontEnd', roleRouters as string[])
+        await (appStore.serverDynamicRouter
+          ? permissionStore.generateRoutes('server', roleRouters as AppCustomRouteRecordRaw[])
+          : permissionStore.generateRoutes('frontEnd', roleRouters as string[]))
       } else {
         await permissionStore.generateRoutes('static')
       }
 
-      permissionStore.getAddRouters.forEach((route) => {
-        router.addRoute(route as unknown as RouteRecordRaw) // 动态添加可访问路由表
+      // 批量添加路由，减少循环次数
+      const addRouters = permissionStore.getAddRouters
+      addRouters.forEach((route) => {
+        router.addRoute(route as unknown as RouteRecordRaw)
       })
+
+      permissionStore.setIsAddRouters(true)
       const redirectPath = from.query.redirect || to.path
       const redirect = decodeURIComponent(redirectPath as string)
       const nextData = to.path === redirect ? { ...to, replace: true } : { path: redirect }
-      permissionStore.setIsAddRouters(true)
       next(nextData)
     }
   } else {

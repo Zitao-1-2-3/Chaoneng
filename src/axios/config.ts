@@ -42,7 +42,11 @@ const defaultResponseInterceptors = (response: AxiosResponse) => {
   } else if (response.data.code === SUCCESS_CODE) {
     return response.data
   } else {
-    ElMessage.error(response?.data?.msg)
+    // 检查是否跳过错误处理
+    const skipErrorHandler = (response.config as any)?.skipErrorHandler
+    if (!skipErrorHandler) {
+      ElMessage.error(response?.data?.msg || '网络错误，稍后重试')
+    }
     if (response?.data?.code == 400002) {
       const userStore = useUserStoreWithOut()
       userStore.logout()

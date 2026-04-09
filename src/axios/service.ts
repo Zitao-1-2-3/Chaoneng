@@ -82,7 +82,7 @@ axiosInstance.interceptors.response.use(
     if (url) {
       abortControllerMap.delete(url)
     }
-    ElMessage.error(error.message)
+    ElMessage.error('网络错误，稍后重试')
     return Promise.reject(error)
   }
 )

@@ -31,8 +31,10 @@ export const v2GetAddressList = (
 export const v2CreateAddress = (data: V2CreateAddressParams): Promise<IResponse> => {
   return request.post({
     url: `${NEW_BASE_URL}/create`,
-    data
-  })
+    data,
+    // 添加配置，跳过拦截器的错误提示
+    skipErrorHandler: true
+  } as any)
 }
 
 /**

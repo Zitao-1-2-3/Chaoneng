@@ -38,7 +38,7 @@ export const handleSuccessMessage = (message: string = '操作成功') => {
  * @param error 错误对象或错误消息
  * @param defaultMessage 默认错误消息
  */
-export const handleErrorMessage = (error: any, defaultMessage: string = '操作失败，请稍后重试') => {
+export const handleErrorMessage = (error: any, defaultMessage: string = '操作失败') => {
   console.error(defaultMessage, error)
 
   // 如果error是字符串，直接使用
@@ -47,14 +47,14 @@ export const handleErrorMessage = (error: any, defaultMessage: string = '操作�
     return
   }
 
-  // 如果error有msg或message属性
+  // 如果error有msg或message属性，且不是网络错误
   const errorMsg = error?.msg || error?.message
-  if (errorMsg) {
-    ElMessage.error(`${defaultMessage.split('，')[0]}：${errorMsg}`)
+  if (errorMsg && !errorMsg.includes('网络错误')) {
+    ElMessage.error(`${defaultMessage}：${errorMsg}`)
     return
   }
 
-  // 使用默认消息
+  // 网络错误已经在axios拦截器中统一处理，这里只显示简化的默认消息
   ElMessage.error(defaultMessage)
 }
 

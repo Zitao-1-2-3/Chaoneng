@@ -16,8 +16,10 @@ const request = (option: AxiosConfig) => {
       'Content-Type': CONTENT_TYPE,
       [userStore.getTokenKey ?? 'Authorization']: userStore.getToken ?? '',
       ...headers
-    }
-  })
+    },
+    // 传递 skipErrorHandler 配置
+    skipErrorHandler: (option as any).skipErrorHandler
+  } as any)
 }
 
 export default {
