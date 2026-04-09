@@ -583,7 +583,7 @@ const handleViewDetail = async (row: any) => {
         pay_unit: detail.coin,
         exchange_amount: detail.exchange?.out_amount || detail.cost,
         exchange_unit: detail.exchange?.out_coin || '',
-        trx_price: detail.exchange?.real_rate || '',
+        trx_price: detail.exchange?.actual_rate || '', // 使用实际成交汇率
         order_type: detail.exchange?.in_coin === 'USDT' ? 1 : 2,
         create_time: detail.created_at * 1000, // created_at（秒）→ create_time（毫秒）
         pay_time: detail.paid_at ? detail.paid_at * 1000 : null // paid_at（秒）→ pay_time（毫秒）
