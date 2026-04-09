@@ -119,9 +119,8 @@ export const usePermissionStore = defineStore('permission', {
     }
   },
   persist: {
-    // 只持久化必要的状态标识，不持久化完整路由配置
-    pick: ['isAddRouters'],
-    storage: sessionStorage // 使用 sessionStorage，关闭标签页自动清除
+    pick: ['routers', 'addRouters', 'menuTabRouters', 'isAddRouters'],
+    storage: localStorage // 使用 localStorage 持久化路由配置
   }
 })
 
