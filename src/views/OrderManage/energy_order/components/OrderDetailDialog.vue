@@ -166,16 +166,23 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       label: 'TG用户名',
       slots: {
         default: (data: any) => {
-          if (isEmpty(data?.tg_name)) return h('span', '-')
+          const tgName = data?.tg_name
+          if (isEmpty(tgName)) return h('span', '-')
           return h(
             ElLink,
             { type: 'primary', onClick: () => navigateToUserList(data.tg_id) },
-            () => data.tg_name
+            () => tgName
           )
         }
       }
     },
-    { field: 'nickname', label: 'TG用户昵称' },
+    {
+      field: 'nickname',
+      label: 'TG用户昵称',
+      slots: {
+        default: (data: any) => h('span', data?.nickname || '-')
+      }
+    },
     {
       field: 'bot_name',
       label: '机器人名称',
@@ -214,9 +221,9 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
     },
     {
       field: 'receive_address',
-      label: '接收地址',
+      label: '收款地址',
       slots: {
-        default: (data: any) => h('span', {}, data.receive_address || '暂无')
+        default: (data: any) => h('span', {}, data.receive_address || '余额支付')
       }
     },
     {

@@ -530,7 +530,8 @@ const handleViewDetail = async (row: any) => {
         pay_type: 1, // 默认为余额支付
         // 从 resources 计算的字段
         energy_num: energyAmount,
-        receive_address: energyAddress,
+        receive_address: detail.receive_address || '', // 使用API返回的收款地址
+        energy_address: energyAddress, // 能量接收地址
         energy_rent_text: energyRentText,
         recycle_time: recycleTime,
         // 新增字段
