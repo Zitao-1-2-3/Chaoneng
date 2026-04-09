@@ -127,6 +127,8 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
       target: 'es2015',
       outDir: env.VITE_SYSTEM_TYPE === 'Management' ? 'dist-management' : 'dist-operation',
       sourcemap: env.VITE_SOURCEMAP === 'true',
+      // 提高chunk大小警告阈值
+      chunkSizeWarningLimit: 1000,
       // brotliSize: false,
       rollupOptions: {
         plugins: env.VITE_USE_BUNDLE_ANALYZER === 'true' ? [visualizer()] : undefined,
@@ -136,15 +138,34 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
             'vue-chunks': ['vue', 'vue-router', 'pinia', 'vue-i18n'],
             'element-plus': ['element-plus'],
             'wang-editor': ['@wangeditor/editor', '@wangeditor/editor-for-vue'],
-            echarts: ['echarts', 'echarts-wordcloud']
+            echarts: ['echarts', 'echarts-wordcloud'],
+            vendor: ['axios', 'qs', 'dayjs', 'lodash-es']
           }
         }
       },
       cssCodeSplit: !(env.VITE_USE_CSS_SPLIT === 'false'),
-      cssTarget: ['chrome31']
+      cssTarget: ['chrome31'],
+      // 启用 minify 压缩
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: env.VITE_DROP_CONSOLE === 'true',
+          drop_debugger: env.VITE_DROP_DEBUGGER === 'true'
+        }
+      }
     },
     server: {
       port: env.VITE_SYSTEM_TYPE === 'Management' ? 4010 : 4011,
+      // 预热常用文件，减少首次访问延迟
+      warmup: {
+        clientFiles: [
+          './src/main.ts',
+          './src/App.vue',
+          './src/router/index.ts',
+          './src/store/index.ts',
+          './src/views/Login/Login.vue'
+        ]
+      },
       proxy: {
         // 选项写法
 
@@ -181,9 +202,12 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         'vue',
         'vue-router',
         'vue-types',
+        'pinia',
+        'pinia-plugin-persistedstate',
         'element-plus/es/locale/lang/zh-cn',
         'element-plus/es/locale/lang/en',
         '@iconify/iconify',
+        '@iconify/vue',
         '@vueuse/core',
         'axios',
         'qs',
@@ -195,8 +219,14 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         'vue-json-pretty',
         '@zxcvbn-ts/core',
         'dayjs',
-        'cropperjs'
-      ]
+        'cropperjs',
+        'lodash-es',
+        'nprogress',
+        'vue-i18n',
+        'mitt'
+      ],
+      // 强制预构建，避免首次访问时的延迟
+      force: false
     }
   }
 }

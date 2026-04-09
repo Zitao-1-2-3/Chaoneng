@@ -1,5 +1,8 @@
 import { Layout } from '@/utils/routerHelper'
 import { useI18n } from '@/hooks/web/useI18n'
+// 直接导入关键页面，避免懒加载导致首次访问延迟
+import Login from '@/views/Login/Login.vue'
+import NotFound from '@/views/Error/404.vue'
 
 // Rely on global AppRouteRecordRaw type
 
@@ -26,7 +29,7 @@ const baseRoutes: AppRouteRecordRaw[] = [
   },
   {
     path: '/login',
-    component: () => import('@/views/Login/Login.vue'),
+    component: Login, // 直接使用导入的组件，避免懒加载
     name: 'Login',
     meta: {
       hidden: true,
@@ -69,7 +72,7 @@ const baseRoutes: AppRouteRecordRaw[] = [
   },
   {
     path: '/404',
-    component: () => import('@/views/Error/404.vue'),
+    component: NotFound, // 直接使用导入的组件
     name: 'NoFind',
     meta: {
       hidden: true,
