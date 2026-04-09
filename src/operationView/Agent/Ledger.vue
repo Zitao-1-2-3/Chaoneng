@@ -83,7 +83,7 @@ const getAgentLedgerList = async (params?: any): Promise<{ list: any[]; total?: 
     const list = (res.data?.list || []).map((item: any) => ({
       id: item.order_id,
       order_num: item.order_id, // order_id → order_num
-      email: item.agent_name, // agent_name → email (代理信息)
+      email: item.agent_email || item.agent_name, // 优先使用 agent_email，兜底使用 agent_name
       username: item.agent_name, // agent_name → username (代理名称)
       bot_name: item.bot_name,
       describe: item.describe, // 交易类型描述

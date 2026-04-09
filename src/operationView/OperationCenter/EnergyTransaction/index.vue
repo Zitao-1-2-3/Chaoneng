@@ -283,19 +283,18 @@ const actionColumn = {
   slots: {
     default: (data: any) => {
       const row = data.row
-      // 简化逻辑：只根据 recycled_at 判断
-      // 有 recycled_at（已回收）→ 显示灰色禁用的"停止成功"
-      // 没有 recycled_at（未回收）→ 显示红色可点击的"停止代理"
-      const isRecycled = row.recycled_at && row.recycled_at !== null
+      // 判断逻辑：有 delegated_at 且 recycled_at 为 null 时，显示可点击的"停止代理"
+      // 其他情况显示灰色禁用的"停止代理"
+      const canStop = row.delegated_at && !row.recycled_at
 
       return (
         <>
-          {isRecycled ? (
-            <BaseButton type="info" disabled>
-              停止成功
+          {canStop ? (
+            <BaseButton type="danger" onClick={() => handleStop(row)}>
+              停止代理
             </BaseButton>
           ) : (
-            <BaseButton type="danger" onClick={() => handleStop(row)}>
+            <BaseButton type="info" disabled>
               停止代理
             </BaseButton>
           )}
@@ -656,6 +655,7 @@ const fetchDataWrapper = async (params: any = {}) => {
           stroke_num: item.energy_count, // 笔数
           energy_rent_text: energyRentText, // 有效时长
           recycle_time: recycleTime, // 回收时间（时间戳秒）
+          delegated_at: item.delegated_at, // 委托时间（ISO格式，用于判断是否已发送）
           recycled_at: item.recycled_at, // 回收时间（ISO格式，用于判断是否已回收）
           status: item.status, // 订单状态
           create_time: item.created_at, // 创建时间（时间戳秒）
