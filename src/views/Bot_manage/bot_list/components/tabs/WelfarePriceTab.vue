@@ -1,18 +1,24 @@
 <template>
   <div>
     <Form :isCol="true" labelPosition="top" :schema="welfarePriceSchema" @register="formRegister" />
+    <div style=" margin: 20px 0 10px;font-size: 16px; font-weight: bold">购买设置</div>
+    <Form
+      :isCol="true"
+      labelPosition="top"
+      :schema="purchaseSettingsSchema"
+      @register="purchaseFormRegister"
+    />
   </div>
 </template>
 
 <script setup lang="tsx">
-import { reactive, defineExpose, ref, computed } from 'vue'
+import { reactive, computed } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
-import { useFormValidation } from '../composables'
 
 // 表单相关
 const { formRegister, formMethods } = useForm()
-const { required } = useFormValidation()
+const { formRegister: purchaseFormRegister, formMethods: purchaseFormMethods } = useForm()
 
 // 定义 props 来接收 agentPrices
 const props = defineProps({
@@ -62,12 +68,11 @@ const welfarePriceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [{ required: true, message: '福利TRX价格是必填项' }]
     }
-  },
-  {
-    field: 'line',
-    component: 'Divider' as const,
-    label: '购买设置'
-  },
+  }
+])
+
+// 购买设置表单
+const purchaseSettingsSchema = reactive<FormSchema[]>([
   {
     field: 'hour_limit_count',
     component: 'InputNumber' as const,
@@ -115,7 +120,24 @@ const welfarePriceSchema = reactive<FormSchema[]>([
 
 // 暴露表单方法
 defineExpose({
-  formMethods
+  formMethods: {
+    ...formMethods,
+    getFormData: async () => {
+      const data1 = await formMethods.getFormData()
+      const data2 = await purchaseFormMethods.getFormData()
+      return { ...data1, ...data2 }
+    },
+    setValues: (values: any) => {
+      formMethods.setValues(values)
+      purchaseFormMethods.setValues(values)
+    },
+    validate: async () => {
+      const elForm1 = await formMethods.getElFormExpose()
+      const elForm2 = await purchaseFormMethods.getElFormExpose()
+      await elForm1?.validate()
+      await elForm2?.validate()
+    }
+  }
 })
 </script>
 

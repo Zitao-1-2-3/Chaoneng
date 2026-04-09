@@ -106,7 +106,7 @@ const orderDetailSchema = computed(() => {
     { field: 'bot_name', label: '机器人名称' },
     {
       field: 'in_mount',
-      label: '充值金额',
+      label: '金额',
       slots: {
         default: (row: any) => {
           if (!row || !row.in_mount) return h('span', '-')
@@ -114,20 +114,7 @@ const orderDetailSchema = computed(() => {
         }
       }
     },
-    {
-      field: 'pay_mount',
-      label: '支付金额',
-      slots: {
-        default: (row: any) => {
-          // 如果没有支付地址，说明用户还没支付，不显示支付金额
-          if (!row || !row.pay_address) return h('span', '-')
-          // 如果有支付地址，显示充值金额
-          if (!row.in_mount) return h('span', '-')
-          return h('span', `${row.in_mount} ${row.in_unit || ''}`)
-        }
-      }
-    },
-    { field: 'describe', label: '备注', span: 24 },
+    { field: 'describe', label: '备注' },
     {
       field: 'create_time',
       label: '创建时间',
@@ -199,7 +186,8 @@ const columns: TableColumn[] = [
     field: 'order_id',
     label: '订单号',
     minWidth: 180,
-    showOverflowTooltip: false
+    showOverflowTooltip: false,
+    formatter: (row) => row.order_id || '-'
   },
   {
     field: 'tg_name',
@@ -224,7 +212,8 @@ const columns: TableColumn[] = [
   },
   {
     field: 'tg_nickname',
-    label: 'TG用户昵称'
+    label: 'TG用户昵称',
+    formatter: (row) => row.tg_nickname || '-'
   },
   {
     field: 'bot_name',
@@ -237,7 +226,7 @@ const columns: TableColumn[] = [
             onClick={() => {
               router.push({
                 path: `/bot_manage/bot_list`,
-                query: { name: row.bot_name }
+                query: { tg_bot_id: row.bot_id }
               })
             }}
           >
@@ -254,20 +243,10 @@ const columns: TableColumn[] = [
   },
   {
     field: 'in_mount',
-    label: '充值金额',
+    label: '金额',
     sortable: 'custom',
     minWidth: 120,
     formatter: (row) => (row.in_mount ? `${row.in_mount} ${row.in_unit || 'TRX'}` : '-')
-  },
-  {
-    field: 'pay_mount',
-    label: '支付金额',
-    formatter: (row) => {
-      // 如果pay_address为空，说明用户还没支付，不显示支付金额
-      if (!row.pay_address) return '-'
-      // 如果pay_address有值，显示充值金额
-      return row.in_mount ? `${row.in_mount} ${row.in_unit || 'TRX'}` : '-'
-    }
   },
   {
     field: 'status',
@@ -285,16 +264,19 @@ const columns: TableColumn[] = [
   {
     field: 'receive_address',
     label: '收款地址',
-    minWidth: 150
+    minWidth: 150,
+    formatter: (row) => row.receive_address || '-'
   },
   {
     field: 'pay_address',
     label: '支付地址',
-    minWidth: 150
+    minWidth: 150,
+    formatter: (row) => row.pay_address || '-'
   },
   {
     field: 'describe',
-    label: '备注'
+    label: '备注',
+    formatter: (row) => row.describe || '-'
   },
   {
     field: 'create_time',
@@ -553,11 +535,10 @@ const handleViewDetail = async (row: any) => {
     console.log('orderDetail.value:', orderDetail.value)
     console.log('row data:', row)
 
-    dialogVisible.value = true
+    dialogVisible.value = 'order'
     activeTab.value = 'order'
   } catch (error) {
-    console.error('获取订单详情失败:', error)
-    ElMessage.error('获取订单详情失败')
+    handleErrorMessage(error, '获取充值详情失败')
   }
 }
 
@@ -579,16 +560,12 @@ const handleExport = async () => {
     const res = await exportRechargeOrderApi(exportParams)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '充值订单列表.xlsx')
-      ElMessage.success('订单导出成功')
+      handleSuccessMessage('订单导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('订单导出失败:', error)
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '订单导出失败')
   }
 }
 

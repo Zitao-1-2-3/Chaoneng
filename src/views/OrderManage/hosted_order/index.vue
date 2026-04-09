@@ -295,7 +295,8 @@ const transactionDetailSchema = computed(() => {
 const columns: TableColumn[] = [
   {
     field: 'order_id',
-    label: '订单号'
+    label: '订单号',
+    formatter: (row) => row.order_id || '-'
   },
   {
     field: 'tg_name',
@@ -308,14 +309,15 @@ const columns: TableColumn[] = [
             type: 'primary',
             onClick: () => navigateToUserList(row.tg_id)
           },
-          () => row.tg_name
+          () => row.tg_name || '-'
         )
       }
     }
   },
   {
     field: 'nickname',
-    label: 'TG用户昵称'
+    label: 'TG用户昵称',
+    formatter: (row) => row.nickname || '-'
   },
   {
     field: 'bot_name',
@@ -328,7 +330,7 @@ const columns: TableColumn[] = [
             type: 'primary',
             onClick: () => navigateToBotList(row.tg_bot_id)
           },
-          () => row.bot_name
+          () => row.bot_name || '-'
         )
       }
     }
@@ -350,7 +352,7 @@ const columns: TableColumn[] = [
   {
     field: 'pay_amount',
     label: '支付金额',
-    formatter: (row) => (row.pay_amount != 0 ? `${row.pay_amount} ${row.pay_unit}` : '-')
+    formatter: (row) => (row.pay_amount != 0 ? `${row.pay_amount} ${row.pay_unit || ''}` : '-')
   },
   {
     field: 'energy_num',
@@ -359,7 +361,8 @@ const columns: TableColumn[] = [
   },
   {
     field: 'energy_rent_text',
-    label: '有效期'
+    label: '有效期',
+    formatter: (row) => row.energy_rent_text || '-'
   },
   {
     field: 'status',
@@ -377,7 +380,8 @@ const columns: TableColumn[] = [
   },
   {
     field: 'describe',
-    label: '备注'
+    label: '备注',
+    formatter: (row) => row.describe || '-'
   },
   {
     field: 'create_time',
@@ -535,16 +539,12 @@ const handleExport = async () => {
     if (res.data instanceof Blob) {
       downloadByData(res.data, '托管订单列表.xlsx')
 
-      ElMessage.success('订单导出成功')
+      handleSuccessMessage('订单导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('订单导出失败:', error)
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '订单导出失败')
   }
 }
 

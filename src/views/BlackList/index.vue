@@ -67,7 +67,14 @@ const newAddressForm = reactive({
 })
 const newAddressFormRef = ref<InstanceType<typeof ElForm> | null>(null)
 const newAddressFormRules: ElementPlusFormRules = {
-  address: [{ required: true, message: '请输入地址', trigger: 'blur' }],
+  address: [
+    { required: true, message: '请输入地址', trigger: 'blur' },
+    {
+      pattern: /^[^\u4e00-\u9fa5]+$/,
+      message: '地址不能包含汉字',
+      trigger: 'blur'
+    }
+  ],
   describe: [{ required: true, message: '请输入描述', trigger: 'blur' }]
 }
 

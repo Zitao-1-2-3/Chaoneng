@@ -88,7 +88,8 @@ const columns: TableColumn[] = [
   {
     field: 'order_num',
     label: '订单号',
-    width: 180
+    width: 180,
+    formatter: (row) => row.order_num || '-'
   },
   {
     field: 'tg_name',
@@ -111,7 +112,8 @@ const columns: TableColumn[] = [
   {
     field: 'nickname',
     label: 'TG用户昵称',
-    width: 120
+    width: 120,
+    formatter: (row) => row.nickname || '-'
   },
   {
     field: 'bot_name',
@@ -177,7 +179,9 @@ const columns: TableColumn[] = [
     label: '支付金额',
     width: 100,
     formatter: (row) => {
-      return row.order_amount != 0 ? `${row.order_amount} ${row.pay_unit}` : '-'
+      return row.order_amount && row.order_amount != 0
+        ? `${row.order_amount} ${row.pay_unit || ''}`
+        : '-'
     }
   },
   {
@@ -185,7 +189,7 @@ const columns: TableColumn[] = [
     label: '能量数量',
     width: 100,
     formatter: (row) => {
-      return formatEnergyNum(row.energy_num)
+      return row.energy_num ? formatEnergyNum(row.energy_num) : '-'
     }
   },
   {
@@ -193,18 +197,20 @@ const columns: TableColumn[] = [
     label: '能量有效期',
     width: 100,
     formatter: (row) => {
-      return row.energy_rent_text ? row.energy_rent_text : '-'
+      return row.energy_rent_text || '-'
     }
   },
   {
     field: 'receive_address',
     label: '收款钱包地址',
-    minWidth: 180
+    minWidth: 180,
+    formatter: (row) => row.receive_address || '-'
   },
   {
     field: 'energy_address',
     label: '能量接收地址',
-    minWidth: 180
+    minWidth: 180,
+    formatter: (row) => row.energy_address || '-'
   },
   {
     field: 'stroke_num',
@@ -550,14 +556,12 @@ const handleExport = async () => {
     if (res.data instanceof Blob) {
       downloadByData(res.data, '能量订单列表.xlsx')
 
-      ElMessage.success('订单导出成功')
+      handleSuccessMessage('订单导出成功')
     } else {
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '订单导出失败')
   }
 }
 

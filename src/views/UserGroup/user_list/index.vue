@@ -107,7 +107,7 @@ const fetchBotList = async () => {
       isBotListLoaded.value = true
     }
   } catch (error) {
-    console.error('获取机器人列表失败:', error)
+    handleErrorMessage(error, '获取机器人列表失败')
     isBotListLoaded.value = false
   }
 }
@@ -302,7 +302,7 @@ const fetchAccountList = async (params: any) => {
 
     return { list: [], total: 0 }
   } catch (error) {
-    console.error('获取TG用户列表失败:', error)
+    handleErrorMessage(error, '获取TG用户列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -378,16 +378,12 @@ const handleExport = async () => {
     const res = await exportTgUserListApi(params)
     if (res.data instanceof Blob) {
       downloadByData(res.data, 'TG用户列表.xlsx')
-      ElMessage.success('用户列表导出成功')
+      handleSuccessMessage('用户列表导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('用户列表导出失败:', error)
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '用户列表导出失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '用户列表导出失败')
   }
 }
 

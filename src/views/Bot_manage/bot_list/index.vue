@@ -376,14 +376,12 @@ const handleStatusChange = async (value) => {
     // 调用API更新状态
     const res = await updateBotApi(value)
     if (res.code === '000000') {
-      ElMessage.success('状态更新成功')
+      handleSuccessMessage('状态更新成功')
     } else {
       handleErrorMessage(res, '状态更新失败')
     }
-    console.log('状态切换结果:', res)
   } catch (error) {
-    console.error('状态更新失败:', error)
-    ElMessage.error('状态更新失败，请稍后重试')
+    handleErrorMessage(error, '状态更新失败')
   }
 }
 // 编辑
@@ -430,18 +428,14 @@ const handleSubmit = async () => {
 
       // 检查响应 code
       if (res.code === '000000') {
-        ElMessage.success(dialogType.value === 'add' ? '添加成功' : '编辑成功')
+        handleSuccessMessage(dialogType.value === 'add' ? '添加成功' : '编辑成功')
         dialogVisible.value = false
-
-        // 刷新表格数据
         searchTableRef.value?.reload()
       } else {
-        // 后端返回的业务错误
-        ElMessage.error((res as any).msg || '操作失败')
+        handleErrorMessage(res, '操作失败')
       }
     } catch (error) {
-      console.error('创建机器人失败:', error)
-      ElMessage.error('操作失败，请稍后重试')
+      handleErrorMessage(error, '创建机器人失败')
     }
   })
 }
@@ -518,7 +512,7 @@ const handleDataLoaded = ({ data, total, success }) => {
 
 // 数据加载错误回调
 const handleLoadError = () => {
-  ElMessage.error('加载数据失败，请稍后重试')
+  ElMessage.error('加载数据失败')
 }
 
 // 消费记录

@@ -96,6 +96,7 @@ import {
 import { Icon } from '@/components/Icon'
 import { downloadByData } from '@/utils/download'
 import { ExchangeOrderListItem } from '@/api/exchange_transaction'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 // const { t } = useI18n()
 const router = useRouter()
@@ -301,30 +302,9 @@ const columns: TableColumn[] = [
     field: 'order_id',
     label: '订单号',
     minWidth: 180,
-    showOverflowTooltip: false // 订单号完整显示
+    showOverflowTooltip: false,
+    formatter: (row) => row.order_id || '-'
   },
-  // {
-  //   field: 'tg_name',
-  //   label: 'TG用户名',
-  //   width: 120,
-  //   slots: {
-  //     default: ({ row }) => {
-  //       return h(
-  //         ElLink,
-  //         {
-  //           type: 'primary',
-  //           onClick: () => navigateToUserList(row.tg_bot_id)
-  //         },
-  //         () => row.tg_name
-  //       )
-  //     }
-  //   }
-  // },
-  // {
-  //   field: 'nickname',
-  //   label: 'TG用户昵称',
-  //   width: 120
-  // },
   {
     field: 'bot_name',
     label: '机器人名称',
@@ -338,7 +318,7 @@ const columns: TableColumn[] = [
             type: 'primary',
             onClick: () => navigateToBotList(row.tg_bot_id)
           },
-          () => row.bot_name
+          () => row.bot_name || '-'
         )
       }
     }
@@ -348,26 +328,28 @@ const columns: TableColumn[] = [
     label: '支付金额',
     width: 120,
     showOverflowTooltip: false,
-    formatter: (row) => (row.order_amount ? `${row.order_amount} ${row.pay_unit}` : '-')
+    formatter: (row) => (row.order_amount ? `${row.order_amount} ${row.pay_unit || ''}` : '-')
   },
   {
     field: 'exchange_amount',
     label: '兑换金额',
     width: 120,
     showOverflowTooltip: false,
-    formatter: (row) => (row.exchange_amount ? `${row.exchange_amount} ${row.exchange_unit}` : '-')
+    formatter: (row) =>
+      row.exchange_amount ? `${row.exchange_amount} ${row.exchange_unit || ''}` : '-'
   },
   {
     field: 'trx_price',
     label: '兑换汇率',
     width: 100,
-    showOverflowTooltip: false
+    showOverflowTooltip: false,
+    formatter: (row) => row.trx_price || '-'
   },
   {
     field: 'order_type',
     label: '订单类型',
     width: 140,
-    showOverflowTooltip: false, // 订单类型完整显示
+    showOverflowTooltip: false,
     slots: {
       default: ({ row }: { row: ExchangeOrderListItem }) => {
         const orderTypeMap: Record<number, { label: string; color: string }> = {
@@ -399,25 +381,26 @@ const columns: TableColumn[] = [
     showOverflowTooltip: false
   },
   {
+    field: 'describe',
+    label: '备注',
+    minWidth: 120,
+    showOverflowTooltip: false,
+    formatter: (row) => row.describe || '-'
+  },
+  {
     field: 'create_time',
     label: '创建时间',
     width: 180,
-    showOverflowTooltip: false, // 时间完整显示
+    showOverflowTooltip: false,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   },
   {
     field: 'pay_time',
     label: '支付时间',
     width: 180,
-    showOverflowTooltip: false, // 时间完整显示
+    showOverflowTooltip: false,
     formatter: (row) => (row.pay_time ? formatToDateTime(row.pay_time) : '-')
   }
-  // {
-  //   field: 'finish_time',
-  //   label: '完成时间',
-  //   width: 180,
-  //   formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time * 1000) : '-')
-  // },
 ]
 
 const actionColumn: TableColumn = {
@@ -543,10 +526,10 @@ const fetchExchangeOrderList = async (params: any) => {
       tg_bot_id: item.bot_id, // bot_id → tg_bot_id
       bot_name: item.bot_name,
       order_amount: item.amount, // amount → order_amount
-      pay_unit: item.coin, // coin → pay_unit
-      exchange_amount: item.cost, // cost → exchange_amount
-      exchange_unit: item.out_coin, // out_coin → exchange_unit
-      trx_price: item.real_rate, // real_rate → trx_price
+      pay_unit: item.in_coin, // in_coin → pay_unit（支付币种）
+      exchange_amount: item.out_amount, // out_amount → exchange_amount（兑换得到的数量）
+      exchange_unit: item.out_coin, // out_coin → exchange_unit（兑换得到的币种）
+      trx_price: item.actual_rate, // actual_rate → trx_price（实际成交汇率）
       order_type: item.in_coin === 'USDT' ? 1 : 2, // USDT→TRX=1, TRX→USDT=2
       status: item.status,
       describe: item.describe,
@@ -556,18 +539,21 @@ const fetchExchangeOrderList = async (params: any) => {
 
     const total = response.data?.pager?.total || 0
 
-    // 成功提示
-    if (list.length === 0) {
-      ElMessage.info('暂无闪兑订单')
-    }
+    // 添加数据为空提示
+    const hasSearchCondition = !!(
+      params.order_id ||
+      params.status ||
+      params.query ||
+      params.dateRange
+    )
+    handleListMessage(list, hasSearchCondition, '闪兑订单')
 
     return {
       list,
       total
     }
   } catch (error) {
-    console.error('获取兑换订单列表失败:', error)
-    ElMessage.error('获取兑换订单列表失败，请稍后重试')
+    handleErrorMessage(error, '获取闪兑订单列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -597,11 +583,10 @@ const handleViewDetail = async (row: any) => {
       }
       dialogVisible.value = true
     } else {
-      ElMessage.warning('获取兑换详情失败：数据格式错误')
+      ElMessage.warning('数据格式错误')
     }
   } catch (error) {
-    console.error('获取兑换详情失败:', error)
-    ElMessage.error('获取兑换详情失败，请稍后重试')
+    handleErrorMessage(error, '获取闪兑详情失败')
   }
 }
 
@@ -648,12 +633,11 @@ const handleTransactionDetail = async (row: any) => {
       transactionDialogVisible.value = true
     } else {
       ElMessage.info('暂无交易数据')
-      transactionDetail.value = { order_id: row.order_id } // 至少保留订单号
+      transactionDetail.value = { order_id: row.order_id }
       transactionDialogVisible.value = true
     }
   } catch (error) {
-    console.error('获取交易详情失败:', error)
-    ElMessage.error('获取交易详情失败')
+    handleErrorMessage(error, '获取交易详情失败')
   }
 }
 
@@ -666,16 +650,12 @@ const handleExport = async () => {
     if (res.data instanceof Blob) {
       downloadByData(res.data, '闪兑订单列表.xlsx')
 
-      ElMessage.success('订单导出成功')
+      handleSuccessMessage('订单导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('订单导出失败:', error)
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '订单导出失败')
   }
 }
 

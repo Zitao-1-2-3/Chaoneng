@@ -50,7 +50,7 @@ const fetchBotOptions = async () => {
       isBotOptionsLoaded.value = true
     }
   } catch (error) {
-    console.error('获取机器人选项失败:', error)
+    handleErrorMessage(error, '获取机器人列表失败')
     botOptions.value = [{ label: '全部', value: '' }]
     isBotOptionsLoaded.value = true
   }
@@ -180,7 +180,7 @@ const fetchAutoManageList = async (params: any) => {
 
     return { list: [], total: 0 }
   } catch (error) {
-    console.error('获取托管地址列表失败:', error)
+    handleErrorMessage(error, '获取托管列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -191,9 +191,10 @@ const deleteAddressAction = async () => {
       // 使用新接口 v1RemoveHosting
       await v1RemoveHosting({ address: currentRowForDelete.value.address })
       ElMessage.success('取消托管成功')
+      handleSuccessMessage('取消托管成功')
       return true
     } catch (error) {
-      console.error('取消托管失败:', error)
+      handleErrorMessage(error, '取消托管失败')
       return false
     }
   }

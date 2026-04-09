@@ -342,7 +342,7 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         status: data.status
       }
       await v1UpdateReply(updateParams)
-      ElMessage.success('更新成功')
+      handleSuccessMessage('更新成功')
     } else {
       // 添加操作 - 使用新接口 v1CreateReply
       const createParams: CreateReplyParamsV1 = {
@@ -352,13 +352,13 @@ const handleDialogSubmitted = async (data: ReplySaveParams) => {
         status: data.status
       }
       await v1CreateReply(createParams)
-      ElMessage.success('添加成功')
+      handleSuccessMessage('添加成功')
     }
 
     dialogVisible.value = false
     searchTableRef.value?.reload()
   } catch (error) {
-    console.error('保存失败:', error)
+    handleErrorMessage(error, '保存失败')
   } finally {
     if (replyFormDialogRef.value && replyFormDialogRef.value.submitLoading !== undefined) {
       replyFormDialogRef.value.submitLoading = false
@@ -370,10 +370,9 @@ const handleStatusChange = async (row: ReplyItem, newStatus: number) => {
   if (!isLoaded.value) return
   try {
     await updateReplyStatusApi({ ...row, status: newStatus })
-    ElMessage.success('状态更新成功')
+    handleSuccessMessage('状态更新成功')
   } catch (error) {
-    console.error('状态更新失败:', error)
-    ElMessage.error('状态更新失败，请重试')
+    handleErrorMessage(error, '状态更新失败')
     row.status = newStatus === 1 ? 2 : 1
   }
 }
