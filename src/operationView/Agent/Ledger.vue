@@ -199,7 +199,7 @@ const columns = ref<TableColumn[]>([
   },
   {
     field: 'email',
-    label: '代理信息',
+    label: '代理邮箱',
     formatter: (row) => row.email || '-'
   },
   {

@@ -76,7 +76,7 @@ const resourceTableSchema = computed((): TableColumn[] => [
   },
   {
     field: 'delegated_txid',
-    label: '交易hash',
+    label: '发送hash',
     width: 120,
     align: 'center',
     slots: {

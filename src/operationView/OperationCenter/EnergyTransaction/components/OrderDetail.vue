@@ -105,9 +105,9 @@ const commonDetailSchema = reactive<any[]>([
     }
   },
   {
-    label: '接收地址',
+    label: '收款地址',
     field: 'receive_address',
-    slots: { default: (data) => data?.receive_address || '暂无' }
+    slots: { default: (data) => data?.receive_address || '余额支付' }
   },
   {
     label: '订单状态',
@@ -276,7 +276,8 @@ const open = async (row: { id: string | number; order_type?: number }) => {
         order_amount: String(detailData.amount), // 支付金额（转换为字符串）
         pay_unit: detailData.coin, // 支付单位
         energy_num: energyAmount, // 能量数（从 resources 获取）
-        receive_address: energyAddress, // 接收地址（从 resources 获取）
+        receive_address: detailData.receive_address || '', // 使用API返回的收款地址
+        energy_address: energyAddress, // 能量接收地址
         status: detailData.status, // 订单状态
         energy_rent_text: energyRentText, // 有效时长
         recycle_time: recycleTime, // 回收时间（时间戳毫秒）
