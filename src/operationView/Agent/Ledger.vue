@@ -35,6 +35,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { isEmpty } from 'lodash-es'
 import { useRouter } from 'vue-router'
 import { downloadByData } from '@/utils/download'
+import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 // 引用SearchTable实例
 const searchTableRef = ref()
 const router = useRouter()
@@ -105,8 +106,7 @@ const getAgentLedgerList = async (params?: any): Promise<{ list: any[]; total?: 
       total: res.data?.pager?.total || 0
     }
   } catch (error) {
-    console.error('获取代理账单列表失败:', error)
-    ElMessage.error('获取代理账单列表失败')
+    handleErrorMessage(error, '获取代理账单列表失败')
     return {
       list: [],
       total: 0
@@ -162,6 +162,7 @@ const columns = ref<TableColumn[]>([
     formatter: (row) => (isEmpty(row.order_num) ? '-' : row.order_num),
     slots: {
       default: ({ row }: any) => {
+        if (isEmpty(row.order_num)) return <span>-</span>
         let href = '/operation'
         switch (row.order_type) {
           case 1: // 能量订单
@@ -198,19 +199,23 @@ const columns = ref<TableColumn[]>([
   },
   {
     field: 'email',
-    label: '代理信息'
+    label: '代理信息',
+    formatter: (row) => row.email || '-'
   },
   {
     field: 'username',
-    label: '代理名称'
+    label: '代理名称',
+    formatter: (row) => row.username || '-'
   },
   {
     field: 'bot_name',
-    label: '机器人名称'
+    label: '机器人名称',
+    formatter: (row) => row.bot_name || '-'
   },
   {
     field: 'describe',
-    label: '交易类型'
+    label: '交易类型',
+    formatter: (row) => row.describe || '-'
   },
 
   {
@@ -219,18 +224,20 @@ const columns = ref<TableColumn[]>([
     width: '100px',
     formatter: (row) => {
       const value = parseFloat(row.amount)
-      const isOut = row.change_type === 'out'
+      const absValue = Math.abs(value)
+      const isOut = value < 0
       return (
         <span style={{ color: isOut ? 'red' : 'green' }}>
           {isOut ? '-' : '+'}
-          {value} {row.unit}
+          {absValue} {row.unit || ''}
         </span>
       )
     }
   },
   {
     field: 'after_amount',
-    label: '交易后TRX余额'
+    label: '交易后TRX余额',
+    formatter: (row) => row.after_amount || '-'
   },
   {
     field: 'status',
@@ -264,7 +271,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'create_time',
     label: '扣款时间',
-    formatter: (row) => formatToDateTime(row.create_time)
+    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   }
 ])
 
@@ -301,14 +308,12 @@ const handleExport = async () => {
     // 使用下载工具处理 blob 数据
     if (res.data instanceof Blob) {
       downloadByData(res.data, '代理账单.xlsx')
-      ElMessage.success('账单导出成功')
+      handleSuccessMessage('导出成功')
     } else {
-      ElMessage.error('导出失败: 文件数据格式错误')
+      handleErrorMessage('文件数据格式错误', '导出失败')
     }
   } catch (error) {
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '账单导出失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '导出失败')
   }
 }
 // 页面加载时自动查询

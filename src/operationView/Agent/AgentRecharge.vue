@@ -61,6 +61,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
+import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const searchTableRef = ref()
 const dialogVisible = ref(false)
@@ -233,8 +234,7 @@ const getAgentRechargeList = async (params?: any): Promise<{ list: any[]; total?
       total: res.data.totalCount || 0
     }
   } catch (error) {
-    console.error('获取代理充值明细列表失败:', error)
-    ElMessage.error('获取代理充值明细列表失败')
+    handleErrorMessage(error, '获取代理充值明细列表失败')
     return {
       list: [],
       total: 0
@@ -245,11 +245,10 @@ const getAgentRechargeList = async (params?: any): Promise<{ list: any[]; total?
 // 导出数据API（同之前）
 const exportAgentRecharge = async (params: AgentRechargeQueryParams) => {
   try {
-    ElMessage.success('导出已开始，请稍候')
     await exportAgentRechargeApi(params)
+    handleSuccessMessage('导出成功')
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    handleErrorMessage(error, '导出失败')
   }
 }
 
@@ -264,8 +263,7 @@ const handleExport = async () => {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
     await exportAgentRecharge(params as AgentRechargeQueryParams)
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    handleErrorMessage(error, '导出失败')
   }
 }
 
@@ -279,8 +277,7 @@ const handleViewDetail = async (row) => {
     dialogVisible.value = true
     activeTab.value = 'order'
   } catch (error) {
-    console.error('获取充值详情失败:', error)
-    ElMessage.error('获取充值详情失败')
+    handleErrorMessage(error, '获取充值详情失败')
   }
 }
 

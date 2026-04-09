@@ -61,6 +61,7 @@ import {
   type UpdateCustomerServiceParams
 } from '@/api/customer_service'
 import { UnixTime } from '@/components/UnixTime'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 // --- Refs and Reactive Variables ---
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -90,8 +91,7 @@ const fetchCustomerServiceListData = async (params: CustomerServiceQueryParams) 
       total: res.data.pager?.total || 0
     }
   } catch (error) {
-    console.error('获取客服列表失败:', error)
-    ElMessage.error('获取客服列表失败')
+    handleErrorMessage(error, '获取客服列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -253,12 +253,11 @@ const handleStatusChange = async (row: CustomerServiceItem, targetStatus: number
     }
 
     await updateCustomerServiceApi(updateData)
-    ElMessage.success(`${targetStatus === 1 ? '启用' : '禁用'}成功`)
+    handleSuccessMessage(`${targetStatus === 1 ? '启用' : '禁用'}成功`)
     searchTableRef.value?.reload()
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('状态切换失败:', error)
-      ElMessage.error('操作失败')
+      handleErrorMessage(error, '操作失败')
     }
   }
 }
@@ -313,22 +312,20 @@ const handleSubmit = async () => {
         status: formData.status
       }
       await updateCustomerServiceApi(updateData)
-      ElMessage.success('编辑成功')
+      handleSuccessMessage('编辑成功')
     } else {
-      // 新增 - 使用新的创建接口
       const createData: CreateCustomerServiceParams = {
         tg_name: formData.tg_name,
         status: formData.status
       }
       await createCustomerServiceApi(createData)
-      ElMessage.success('新增成功')
+      handleSuccessMessage('新增成功')
     }
 
     handleDialogClose()
     searchTableRef.value?.reload()
   } catch (error) {
-    console.error('提交失败:', error)
-    ElMessage.error('操作失败')
+    handleErrorMessage(error, '操作失败')
   } finally {
     submitLoading.value = false
   }

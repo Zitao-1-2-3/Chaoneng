@@ -77,6 +77,7 @@ import { useRoute } from 'vue-router'
 import { formatToWan } from '@/utils'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const { t } = useI18n()
 const { required } = useValidator()
@@ -97,17 +98,12 @@ const handleExport = async () => {
 
     if (res.data instanceof Blob) {
       downloadByData(res.data, '能量订单列表.xlsx')
-
-      ElMessage.success('订单导出成功')
+      handleSuccessMessage('订单导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('订单导出失败:', error)
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '订单导出失败')
   }
 }
 
@@ -161,8 +157,18 @@ const renderStatusTag = (
 
 // --- 表格列配置 (根据 Go Struct 更新字段名) ---
 const columns = [
-  { field: 'order_num', label: '订单ID', minWidth: 180 },
-  { field: 'username', label: '代理名称', width: 120 }, // Kept field: username - Check if correct
+  {
+    field: 'order_num',
+    label: '订单ID',
+    minWidth: 180,
+    formatter: (row) => row.order_num || '-'
+  },
+  {
+    field: 'username',
+    label: '代理名称',
+    width: 120,
+    formatter: (row) => row.username || '-'
+  },
   {
     field: 'order_type',
     label: '订单类型',
@@ -198,29 +204,48 @@ const columns = [
     field: 'order_amount',
     label: '交易金额',
     width: 100,
-    formatter: (row) => `${row.order_amount ?? '-'} ${row.pay_unit ?? ''}`
+    formatter: (row) => {
+      const amount = row.order_amount ?? ''
+      const unit = row.pay_unit ?? ''
+      return amount || unit ? `${amount} ${unit}`.trim() : '-'
+    }
   },
   {
     field: 'energy_num',
     label: '应发放能量',
     width: 100,
-    formatter: (row) => `${formatToWan(row.energy_num) ?? '-'}`
+    formatter: (row) => formatToWan(row.energy_num) || '-'
   },
   {
     field: 'delegate_energy_num',
     label: '实际发放能量',
     width: 110,
-    formatter: (row) => `${formatToWan(row.delegate_energy_num) ?? '-'}`
+    formatter: (row) => formatToWan(row.delegate_energy_num) || '-'
   },
-  { field: 'bot_address', label: '收款钱包地址', minWidth: 200 },
-  { field: 'receive_address', label: '能量接收地址', minWidth: 200 },
+  {
+    field: 'bot_address',
+    label: '收款钱包地址',
+    minWidth: 200,
+    formatter: (row) => row.bot_address || '-'
+  },
+  {
+    field: 'receive_address',
+    label: '能量接收地址',
+    minWidth: 200,
+    formatter: (row) => row.receive_address || '-'
+  },
   {
     field: 'stroke_num',
     label: '笔数',
     width: 100,
     formatter: (row) => (row.stroke_num == 0 ? '-' : row.stroke_num)
   },
-  { field: 'energy_rent_text', label: '有效时长', width: 100 },
+  {
+    field: 'energy_rent_text',
+    label: '有效时长',
+    width: 100,
+    formatter: (row) => row.energy_rent_text || '-'
+  },
   {
     field: 'recycle_time',
     label: '回收时间',
@@ -244,7 +269,8 @@ const columns = [
   {
     field: 'describe',
     label: '描述',
-    width: 160
+    width: 160,
+    formatter: (row) => row.describe || '-'
   }
 ]
 
@@ -641,6 +667,17 @@ const fetchDataWrapper = async (params: any = {}) => {
 
       console.log('[fetchDataWrapper] 返回数据:', { total, count: mappedList.length })
 
+      // 添加数据为空提示
+      const hasSearchCondition = !!(
+        params.query ||
+        params.bot_address ||
+        params.receive_address ||
+        params.status ||
+        params.order_type ||
+        params.dateRange
+      )
+      handleListMessage(mappedList, hasSearchCondition, '能量订单')
+
       return {
         list: mappedList,
         total: total
@@ -679,24 +716,21 @@ const fetchEnergyTransactionDelete = async () => {
 const handleDataLoaded = ({ data, total, success }) => {
   if (!success) {
     ElMessage.error('加载数据失败')
-  } else if (data?.length === 0 && total === 0) {
-    ElMessage.info('未查询到符合条件的数据')
   }
 }
 
 // 数据加载错误回调
 const handleLoadError = () => {
-  ElMessage.error('加载数据失败，请稍后重试')
+  ElMessage.error('加载数据失败')
 }
 
 const handleStop = async (row) => {
   try {
     await v2RecycleOrder(row.order_num)
-    ElMessage.success('停止代理成功')
+    handleSuccessMessage('停止代理成功')
     searchTableRef.value?.reload()
   } catch (error) {
-    console.error('停止代理失败:', error)
-    ElMessage.error('停止代理失败')
+    handleErrorMessage(error, '停止代理失败')
   }
 }
 

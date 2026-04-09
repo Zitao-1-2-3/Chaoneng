@@ -49,6 +49,7 @@ import {
 } from '@/api/system/resource_pool_account'
 import type { V2PoolItem } from '@/api/system/resource_pool_account_types'
 import { isPermission } from '@/utils/is'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 const formRef = ref()
 const searchTableRef = ref()
 
@@ -60,16 +61,6 @@ const resourceTypeMap = {
 }
 
 const columns = ref<TableColumn[]>([
-  // {
-  //   type: 'selection',
-  //   field: 'selection',
-  //   width: '55px'
-  // },
-  // {
-  //   field: 'id',
-  //   label: '序号',
-  //   width: '80px'
-  // },
   {
     field: 'resource_type',
     label: '配置类型',
@@ -81,22 +72,23 @@ const columns = ref<TableColumn[]>([
   {
     field: 'public_key',
     label: '公钥',
-    minWidth: '180px'
+    minWidth: '180px',
+    formatter: (row) => row.public_key || '-'
   },
   {
     field: 'permission_name',
     label: '权限名称',
-    minWidth: '180px'
+    minWidth: '180px',
+    formatter: (row) => row.permission_name || '-'
   },
   {
     field: '',
     label: '可用数量/阈值',
     minWidth: '180px',
     formatter: (row) => {
-      const displayValue =
-        row.resource_type === 3
-          ? `${row.amount} / ${row.amount_limit == 0 ? '-' : row.amount_limit}`
-          : `${row.amount}`
+      const amount = row.amount ?? '-'
+      const limit = row.amount_limit == 0 ? '-' : row.amount_limit
+      const displayValue = row.resource_type === 3 ? `${amount} / ${limit}` : `${amount}`
 
       if (row.resource_type === 3) {
         return (
@@ -112,7 +104,8 @@ const columns = ref<TableColumn[]>([
   {
     field: 'create_by',
     label: '创建人',
-    width: '120px'
+    width: '120px',
+    formatter: (row) => row.create_by || '-'
   },
   {
     field: 'status',
@@ -122,11 +115,10 @@ const columns = ref<TableColumn[]>([
       default: ({ row }) => {
         const statusMap = { 1: '启用', 2: '禁用', 3: '备用' }
         const statusColors = {
-          1: 'text-green-300 font-bold', // 启用 - 绿色
-          2: 'text-red-300 font-bold', // 禁用 - 红色
-          3: 'text-orange-300 font-bold' // 备用 - 橙色
+          1: 'text-green-300 font-bold',
+          2: 'text-red-300 font-bold',
+          3: 'text-orange-300 font-bold'
         }
-        // 判断是否应禁用非启用选项
         const disableOthers = row.status === 1
         return (
           <ElSelect
@@ -159,13 +151,13 @@ const columns = ref<TableColumn[]>([
     field: 'create_time',
     label: '创建时间',
     width: '180px',
-    formatter: (row) => formatToDateTime(new Date(row.create_time * 1000))
+    formatter: (row) => (row.create_time ? formatToDateTime(new Date(row.create_time * 1000)) : '-')
   },
   {
     field: 'update_time',
     label: '更新时间',
     width: '180px',
-    formatter: (row) => formatToDateTime(new Date(row.update_time * 1000))
+    formatter: (row) => (row.update_time ? formatToDateTime(new Date(row.update_time * 1000)) : '-')
   }
 ])
 
@@ -262,9 +254,7 @@ const getResourcePoolData = async (params) => {
       return { list: [], totalCount: 0 }
     }
   } catch (error) {
-    console.error('获取数据失败 (catch):', error)
-    const message = error instanceof Error ? error.message : '未知错误'
-    ElMessage.error(`获取列表失败: ${message}`)
+    handleErrorMessage(error, '获取列表失败')
     return { list: [], totalCount: 0 }
   }
 }
@@ -317,22 +307,20 @@ const handleStatusChangeAttempt = async (row, newValue) => {
       type: 'warning'
     })
 
-    // 使用新接口更新状态
     await v2UpdatePool({
       id: row.id,
       status: intendedStatus,
       limit: parseFloat(row.amount_limit) || 0
     })
 
-    ElMessage.success(`状态已更新为 "${actionText}"`)
+    handleSuccessMessage(`状态已更新为 "${actionText}"`)
     reloadTable()
   } catch (error) {
     console.error('操作失败:', error)
     if (error === 'cancel') {
       ElMessage.info('操作已取消')
     } else {
-      const message = error instanceof Error ? error.message : '未知错误'
-      ElMessage.error(`操作失败: ${message}`)
+      handleErrorMessage(error, '操作失败')
     }
   }
 }
@@ -428,20 +416,18 @@ const handleEditThreshold = async (row) => {
       return
     }
 
-    // 使用新接口更新阈值
     await v2UpdatePool({
       id: row.id,
       limit: newThreshold,
       status: row.status
     })
 
-    ElMessage.success('阈值更新成功')
+    handleSuccessMessage('阈值更新成功')
     reloadTable()
   } catch (error) {
     console.error('更新阈值失败:', error)
     if (error !== 'cancel') {
-      const message = error instanceof Error ? error.message : '未知错误'
-      ElMessage.error(`更新阈值失败: ${message}`)
+      handleErrorMessage(error, '更新阈值失败')
     }
   }
 }

@@ -9,6 +9,7 @@ import type { V2StatsData } from '@/api/statistics/types'
 import { set } from 'lodash-es'
 import { EChartsOption } from 'echarts'
 import { useI18n } from '@/hooks/web/useI18n'
+import { handleErrorMessage } from '@/utils/messageHelper'
 
 // Move Interface definition to the top
 interface ApiStatisticsData {
@@ -159,7 +160,7 @@ const fetchDashboardData = async () => {
       }
     }
   } catch (error) {
-    console.error('获取统计数据失败:', error)
+    handleErrorMessage(error, '获取统计数据失败')
   }
 }
 

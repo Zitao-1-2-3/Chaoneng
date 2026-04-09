@@ -31,6 +31,7 @@ import { v2GetSystemPrice, updateAgentPriceApi } from '@/api/marketing/agent_pri
 import type { V2SystemPriceResponse } from '@/api/marketing/agent_price_types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { BaseButton } from '@/components/Button'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 // 定义类型映射
 const priceTypeMap = {
@@ -175,7 +176,7 @@ const fetchDataApiWrapper = async (params) => {
       total: filteredList.length
     }
   } catch (error) {
-    console.error('获取代理价格列表失败:', error)
+    handleErrorMessage(error, '获取代理价格列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -311,14 +312,11 @@ const handleDataLoaded = ({ data, total, success }) => {
   nextTick(() => {
     isLoaded.value = true
   })
-  if (data?.length === 0 && success) {
-    ElMessage.info('未查询到符合条件的数据')
-  }
 }
 
 // 数据加载错误回调
 const handleLoadError = () => {
-  ElMessage.error('加载数据失败，请稍后重试')
+  ElMessage.error('加载数据失败')
 }
 
 // 操作成功回调

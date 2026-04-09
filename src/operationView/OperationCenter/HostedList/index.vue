@@ -38,6 +38,7 @@ import type {
   V2AgentBotListParams
 } from '@/api/trust_transaction/types'
 import { formatToDateTime } from '@/utils/dateUtil'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const currentRowForDelete = ref<AutoManageAddressItem | null>(null)
@@ -68,8 +69,7 @@ const fetchBotOptions = async () => {
       console.log('[fetchBotOptions] 机器人列表加载成功, 数量:', bots.length)
     }
   } catch (error) {
-    console.error('获取机器人选项失败:', error)
-    ElMessage.error('获取机器人选项失败')
+    handleErrorMessage(error, '获取机器人选项失败')
     botOptions.value = [{ label: '全部', value: '' }]
     isBotOptionsLoaded.value = true
   }
@@ -83,7 +83,8 @@ const columns: TableColumn[] = [
   {
     field: 'bot_id',
     label: '机器人ID',
-    width: 120
+    width: 120,
+    formatter: (row: AutoManageAddressItem) => row.bot_id || '-'
   },
   {
     field: 'bot_name',
@@ -100,13 +101,15 @@ const columns: TableColumn[] = [
   {
     field: 'address',
     label: '托管地址',
-    minWidth: 250
+    minWidth: 250,
+    formatter: (row: AutoManageAddressItem) => row.address || '-'
   },
   {
     field: 'create_time',
     label: '创建时间',
     width: 180,
-    formatter: (row: AutoManageAddressItem) => formatToDateTime(row.create_time)
+    formatter: (row: AutoManageAddressItem) =>
+      row.create_time ? formatToDateTime(row.create_time) : '-'
   },
   {
     field: 'finish_time',
@@ -203,6 +206,10 @@ const fetchAutoManageList = async (params: any) => {
         count: mappedList.length
       })
 
+      // 添加数据为空提示
+      const hasSearchCondition = !!(params.bot_id || params.keyword)
+      handleListMessage(mappedList, hasSearchCondition, '托管地址')
+
       return {
         list: mappedList,
         total: res.data.pager?.total || 0
@@ -211,8 +218,7 @@ const fetchAutoManageList = async (params: any) => {
 
     return { list: [], total: 0 }
   } catch (error) {
-    console.error('获取托管地址列表失败:', error)
-    ElMessage.error('获取托管地址列表失败')
+    handleErrorMessage(error, '获取托管地址列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -225,13 +231,11 @@ const deleteAddressAction = async () => {
         currentRowForDelete.value.address
       )
 
-      // 使用新接口 v2RemoveHosting
       await v2RemoveHosting({ address: currentRowForDelete.value.address })
-      ElMessage.success('取消托管成功')
+      handleSuccessMessage('取消托管成功')
       return true
     } catch (error) {
-      console.error('取消托管失败:', error)
-      ElMessage.error('取消托管失败')
+      handleErrorMessage(error, '取消托管失败')
       return false
     }
   }
@@ -260,8 +264,7 @@ const handleRecycleAndReset = async (row: AutoManageAddressItem) => {
     const res = await v2RecycleOrder({ order_id: row.order_id })
 
     if (res.code === '000000') {
-      ElMessage.success('回收与重置成功')
-      // 刷新列表
+      handleSuccessMessage('回收与重置成功')
       if (searchTableRef.value) {
         searchTableRef.value.reload()
       }
@@ -269,8 +272,7 @@ const handleRecycleAndReset = async (row: AutoManageAddressItem) => {
       ElMessage.error((res as any).msg || '回收与重置失败')
     }
   } catch (error) {
-    console.error('回收与重置失败:', error)
-    ElMessage.error('回收与重置失败')
+    handleErrorMessage(error, '回收与重置失败')
   }
 }
 

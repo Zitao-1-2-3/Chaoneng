@@ -9,6 +9,7 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import { Table, TableColumn } from '@/components/Table'
 import Write from './components/Write.vue'
 import { useTable } from '@/hooks/web/useTable'
+import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const { t } = useI18n()
 
@@ -77,7 +78,7 @@ const { tableRegister, tableMethods, tableState } = useTable({
         total: res.data.pager.total || 0
       }
     } catch (error) {
-      ElMessage.error(t('common.apiError'))
+      handleErrorMessage(error, '获取角色列表失败')
       return { list: [], total: 0 }
     }
   },
@@ -111,7 +112,7 @@ const handleAction = async (row: any, type: 'edit' | 'detail') => {
         writeRef.value?.open()
       })
     } catch (error) {
-      ElMessage.error('获取角色详情失败')
+      handleErrorMessage(error, '获取角色详情失败')
     } finally {
       formLoading.value = false
     }
@@ -140,11 +141,10 @@ const handleDelete = (row: any) => {
       try {
         // 使用新的删除角色接口
         await deleteRoleApiV2(row.id)
-        ElMessage.success(t('common.delSuccess'))
+        handleSuccessMessage('删除成功')
         getList()
-      } catch (e: any) {
-        const errMsg = e?.response?.data?.message || e?.message || t('common.apiError')
-        ElMessage.error(errMsg)
+      } catch (error) {
+        handleErrorMessage(error, '删除失败')
       }
     })
     .catch(() => {})

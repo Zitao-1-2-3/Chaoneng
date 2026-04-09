@@ -48,6 +48,7 @@ import type { ExchangeOrderListItem, V2ExchangeItem } from '@/api/exchange_trans
 import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 // 引用
 const searchTableRef = ref<SearchTableExpose>()
 const orderDetailRef = ref()
@@ -67,56 +68,66 @@ const handleExport = async () => {
     const res = await exportExchangeOrderApi(exportParams)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '闪兑订单列表.xlsx')
-      ElMessage.success('导出成功')
+      handleSuccessMessage('导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    handleErrorMessage(error, '导出失败')
   }
 }
 
 // 表格列配置 (根据截图更新)
 const columns = reactive<TableColumn[]>([
   {
-    field: 'finish_time', // 使用完成时间作为日期
+    field: 'finish_time',
     label: '日期',
     minWidth: 120,
-    formatter: (row) => (row.finish_time ? formatToDate(row.finish_time * 1000) : '-') // 格式化为 YYYY-MM-DD
+    formatter: (row) => (row.finish_time ? formatToDate(row.finish_time * 1000) : '-')
   },
-  { field: 'order_id', label: '订单ID', minWidth: 180 },
-  { field: 'username', label: '代理名称', minWidth: 150 }, // 映射到 username (根据实际情况调整)
-  // {
-  //   field: 'order_type', // 保持字段，但修改 formatter
-  //   label: '交易类型',
-  //   minWidth: 100,
-  //   formatter: () => '闪兑' // 固定显示为"闪兑"
-  // },
+  {
+    field: 'order_id',
+    label: '订单ID',
+    minWidth: 180,
+    formatter: (row) => row.order_id || '-'
+  },
+  {
+    field: 'username',
+    label: '代理名称',
+    minWidth: 150,
+    formatter: (row) => row.username || '-'
+  },
   {
     field: 'order_amount',
     label: '支付金额',
     minWidth: 120,
-    formatter: (row) => `${row.order_amount || ''}${row.pay_unit || ''}`.trim() // 格式如 20USDT
+    formatter: (row) => {
+      const amount = row.order_amount || ''
+      const unit = row.pay_unit || ''
+      return amount || unit ? `${amount}${unit}`.trim() : '-'
+    }
   },
   {
     field: 'trx_price',
     label: '兑换汇率',
     minWidth: 120,
-    formatter: (row) => row.trx_price || '-' // 显示价格，如 0.28114
+    formatter: (row) => row.trx_price || '-'
   },
   {
     field: 'real_price',
     label: '实时汇率',
     minWidth: 100,
-    formatter: (row) => row.real_price || '-' // 显示价格，如 0.255
+    formatter: (row) => row.real_price || '-'
   },
   {
-    field: 'exchange_amount', // 对应截图的 "支出TRX数量"
+    field: 'exchange_amount',
     label: '支出数量',
     minWidth: 150,
-    formatter: (row) => `${row.exchange_amount || ''}${row.exchange_unit || ''}`.trim() // 格式如 71.13957TRX
+    formatter: (row) => {
+      const amount = row.exchange_amount || ''
+      const unit = row.exchange_unit || ''
+      return amount || unit ? `${amount}${unit}`.trim() : '-'
+    }
   },
   {
     field: 'order_type',
@@ -125,8 +136,8 @@ const columns = reactive<TableColumn[]>([
     slots: {
       default: ({ row }: { row: ExchangeOrderListItem }) => {
         const orderTypeMap: Record<number, { label: string; color: string }> = {
-          1: { label: 'USDT  → TRX', color: '#67C23A' }, // 绿色
-          2: { label: 'TRX  → USDT', color: '#409EFF' } // 蓝色
+          1: { label: 'USDT  → TRX', color: '#67C23A' },
+          2: { label: 'TRX  → USDT', color: '#409EFF' }
         }
         const typeInfo = orderTypeMap[row.order_type] || { label: '未知', color: '#909399' }
         return <span style={{ color: typeInfo.color, fontWeight: '500' }}>{typeInfo.label}</span>
@@ -137,14 +148,13 @@ const columns = reactive<TableColumn[]>([
     field: 'plate_profit',
     label: '平台利润',
     minWidth: 120,
-    formatter: (row) => (row.plate_profit ? `${row.plate_profit}TRX`.trim() : '-') // 格式如 3.55698TRX
+    formatter: (row) => (row.plate_profit ? `${row.plate_profit}TRX`.trim() : '-')
   },
-
   {
-    field: 'agent_out_amount', // 对应截图的 "代理扣款"
+    field: 'agent_out_amount',
     label: '代理扣款',
     minWidth: 150,
-    formatter: (row) => (row.agent_out_amount ? `${row.agent_out_amount}TRX`.trim() : '-') // 格式如 74.69655TRX
+    formatter: (row) => (row.agent_out_amount ? `${row.agent_out_amount}TRX`.trim() : '-')
   },
   {
     field: 'status',
@@ -167,7 +177,6 @@ const columns = reactive<TableColumn[]>([
             type = 'warning'
             label = '已取消'
             break
-          // 其他状态值
           case 1:
             type = 'info'
             label = '待支付'
@@ -198,17 +207,17 @@ const columns = reactive<TableColumn[]>([
     }
   },
   {
-    field: 'finish_time', // 重复 finish_time 用于显示完整时间
+    field: 'finish_time',
     label: '完成时间',
     minWidth: 160,
-    formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time * 1000) : '-') // 格式化为 YYYY-MM-DD HH:mm:ss
+    formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time * 1000) : '-')
   },
   {
     field: 'describe',
     label: '描述',
-    width: 160
+    width: 160,
+    formatter: (row) => row.describe || '-'
   }
-  // 移除 describe 列
 ])
 
 // 搜索表单配置 (根据截图更新)
@@ -342,7 +351,7 @@ const fetchExchangeTransactionList = async (params: any) => {
           order_type: orderType, // 订单类型：1-USDT→TRX, 2-TRX→USDT
           order_amount: String(item.amount), // 支付金额
           pay_unit: item.in_coin || item.coin, // 支付单位（输入币种）
-          exchange_amount: String(item.cost), // 兑换数量（使用cost字段）
+          exchange_amount: String(item.out_amount || 0), // 兑换数量（使用out_amount字段）
           agent_out_amount: String(item.amount), // 代理扣款（使用amount字段）
           plate_profit: String(item.plate_profit || 0), // 平台利润
           agent_profit: String(item.agent_profit || 0), // 代理利润
@@ -363,6 +372,10 @@ const fetchExchangeTransactionList = async (params: any) => {
 
       console.log('[fetchExchangeTransactionList] 返回数据:', { total, count: mappedList.length })
 
+      // 添加数据为空提示
+      const hasSearchCondition = !!(params.coin || params.status || params.dateRange)
+      handleListMessage(mappedList, hasSearchCondition, '闪兑订单')
+
       return {
         list: mappedList,
         totalCount: total
@@ -372,8 +385,7 @@ const fetchExchangeTransactionList = async (params: any) => {
       return { list: [], totalCount: 0 }
     }
   } catch (error) {
-    console.error('获取闪兑订单列表出错:', error)
-    ElMessage.error('获取闪兑订单列表失败')
+    handleErrorMessage(error, '获取闪兑订单列表失败')
     totalCount.value = 0
     return { list: [], totalCount: 0 }
   }
@@ -390,14 +402,11 @@ const handleDataLoaded = ({ data, total, success }: any) => {
   nextTick(() => {
     totalCount.value = total || 0
   })
-  if (data?.length === 0 && success) {
-    ElMessage.info('未查询到符合条件的数据')
-  }
 }
 
 // 数据加载错误回调
 const handleLoadError = () => {
-  ElMessage.error('加载数据失败，请稍后重试')
+  ElMessage.error('加载数据失败')
 }
 
 // 页面加载

@@ -117,6 +117,7 @@ import {
   v2ExportAddressModule, // 新接口 - 导出模版
   v2BatchImportAddress // 新接口 - 批量导入
 } from '@/api/marketing/trx_address'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 // Separate imports for clarity
 
@@ -248,9 +249,7 @@ const fetchData = async (params) => {
       totalCount: data.pager?.total || 0
     }
   } catch (error) {
-    console.error('获取地址列表失败:', error)
-    ElMessage.error('获取地址列表失败')
-    // 返回一个符合 useSearchTable 期望的空结构
+    handleErrorMessage(error, '获取地址列表失败')
     return { list: [], totalCount: 0 }
   }
 }
@@ -269,8 +268,7 @@ const getAgentList = async () => {
       agentList.value = []
     }
   } catch (error) {
-    console.error('获取代理列表失败:', error)
-    ElMessage.error('获取代理列表失败')
+    handleErrorMessage(error, '获取代理列表失败')
     agentList.value = []
   }
 }
@@ -366,13 +364,12 @@ const submitBatchImport = async () => {
     formData.append('file', file) // 将文件添加到 FormData
 
     submitting.value = true
-    await v2BatchImportAddress(formData) // 使用新接口 v2BatchImportAddress
-    ElMessage.success('批量导入成功')
+    await v2BatchImportAddress(formData)
+    handleSuccessMessage('批量导入成功')
     batchImportVisible.value = false
-    reloadTable() // 刷新
+    reloadTable()
   } catch (error: any) {
     console.error('批量导入失败:', error)
-    // 后端返回的错误信息可能在 error.response.data.message 或类似路径
     downloadByBase64(error.data, '批量导入失败.xlsx')
   } finally {
     submitting.value = false
@@ -448,12 +445,11 @@ const submitBindAgent = async () => {
     console.log('提交数据:', JSON.stringify(updateData, null, 2))
 
     await v2UpdateAddress(updateData)
-    ElMessage.success('绑定成功')
+    handleSuccessMessage('绑定成功')
     bindDialogVisible.value = false
     reloadTable()
   } catch (error) {
-    console.error('绑定失败:', error)
-    ElMessage.error('绑定失败')
+    handleErrorMessage(error, '绑定失败')
   } finally {
     submitting.value = false
   }
@@ -489,12 +485,11 @@ const handleUnbind = async (row: any) => {
     console.log('提交数据:', JSON.stringify(updateData, null, 2))
 
     await v2UpdateAddress(updateData)
-    ElMessage.success('解绑成功')
+    handleSuccessMessage('解绑成功')
     reloadTable()
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('解绑失败:', error)
-      ElMessage.error('解绑失败')
+      handleErrorMessage(error, '解绑失败')
     }
   } finally {
     submitting.value = false
@@ -516,14 +511,12 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    // 使用新接口 v2DeleteAddress，传递地址数组
     await v2DeleteAddress({ address_list: [row.address] })
-    ElMessage.success('删除成功')
-    reloadTable() // 刷新
+    handleSuccessMessage('删除成功')
+    reloadTable()
   } catch (error) {
     if (error !== 'cancel') {
-      console.error('删除失败:', error)
-      ElMessage.error('删除失败')
+      handleErrorMessage(error, '删除失败')
     }
   }
 }
@@ -568,14 +561,26 @@ const submitAddAddresses = async () => {
     }
 
     submitting.value = true
-    // 使用新接口 v2CreateAddress，传递地址数组
     await v2CreateAddress({ address_list: addressList })
-    ElMessage.success('新增成功')
+    handleSuccessMessage('新增成功')
     addDialogVisible.value = false
     reloadTable()
-  } catch (error) {
-    console.error('新增地址失败:', error)
-    ElMessage.error('新增地址失败')
+  } catch (error: any) {
+    console.log('新增地址错误:', error)
+    // 检查错误码，000007 表示地址重复
+    const errorCode = error?.code
+    const errorMsg = error?.msg || error?.message || ''
+    console.log('错误信息:', errorMsg)
+    console.log('错误码:', errorCode)
+
+    if (errorCode === '000007') {
+      ElMessage.error('地址重复，请检查后重新输入')
+    } else if (errorMsg) {
+      // 如果有具体错误信息，直接显示
+      ElMessage.error(errorMsg)
+    } else {
+      ElMessage.error('新增地址失败')
+    }
   } finally {
     submitting.value = false
   }
@@ -586,20 +591,14 @@ const handleExportTemplate = async () => {
   try {
     const res = await v2ExportAddressModule()
     // 使用下载工具处理 blob 数据
-    // Ensure res.data is a Blob before passing
     if (res.data instanceof Blob) {
       downloadByData(res.data, '地址导入模版.xlsx')
-      ElMessage.success('模版下载成功')
+      handleSuccessMessage('模版下载成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('模版下载失败:', error)
-    // Try to provide a more specific error message
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '模版下载失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '模版下载失败')
   }
 }
 </script>

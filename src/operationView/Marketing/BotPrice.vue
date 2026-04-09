@@ -53,6 +53,7 @@ import { BaseButton } from '@/components/Button'
 import { Dialog } from '@/components/Dialog'
 import { v2GetSystemPrice, v2UpdateSystemPrice } from '@/api/marketing/agent_price'
 import type { V2SystemPriceResponse } from '@/api/marketing/agent_price_types'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const configData = ref<V2SystemPriceResponse | null>(null)
 const dialogVisible = ref(false)
@@ -68,11 +69,10 @@ const fetchData = async () => {
     if (res && res.data) {
       configData.value = res.data
     } else {
-      ElMessage.error('获取配置失败')
+      ElMessage.error('数据格式错误')
     }
   } catch (error) {
-    console.error('获取配置失败:', error)
-    ElMessage.error('获取配置失败，请稍后重试')
+    handleErrorMessage(error, '获取配置失败')
   }
 }
 
@@ -120,12 +120,11 @@ const submitForm = async () => {
     console.log('完整提交参数:', JSON.stringify(updatedPrice, null, 2))
 
     await v2UpdateSystemPrice(updatedPrice)
-    ElMessage.success('更新成功')
+    handleSuccessMessage('更新成功')
     dialogVisible.value = false
     await fetchData()
   } catch (error) {
-    console.error('更新失败:', error)
-    ElMessage.error('更新失败')
+    handleErrorMessage(error, '更新失败')
   } finally {
     submitting.value = false
   }

@@ -64,6 +64,7 @@ import type { V2DepositItem } from '@/api/operation/recharge_order_types'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -110,7 +111,7 @@ const orderDetailSchema = computed(() => {
     { field: 'bot_name', label: '机器人名称' },
     {
       field: 'in_mount',
-      label: '充值金额',
+      label: '金额',
       slots: {
         default: (row: any) => {
           if (!row || !row.in_mount) return h('span', '-')
@@ -118,17 +119,7 @@ const orderDetailSchema = computed(() => {
         }
       }
     },
-    {
-      field: 'pay_mount',
-      label: '支付金额',
-      slots: {
-        default: (row: any) => {
-          if (!row || !row.pay_mount) return h('span', '-')
-          return h('span', `${row.pay_mount} ${row.pay_unit || ''}`)
-        }
-      }
-    },
-    { field: 'describe', label: '备注', span: 24 },
+    { field: 'describe', label: '备注' },
     {
       field: 'create_time',
       label: '创建时间',
@@ -199,12 +190,14 @@ const columns: TableColumn[] = [
   {
     field: 'order_id',
     label: '订单号',
-    minWidth: 180
+    minWidth: 180,
+    formatter: (row) => row.order_id || '-'
   },
   {
     field: 'user_name',
     label: '代理名称',
-    minWidth: 120
+    minWidth: 120,
+    formatter: (row) => row.user_name || '-'
   },
   {
     field: 'tg_name',
@@ -224,7 +217,8 @@ const columns: TableColumn[] = [
   {
     field: 'tg_nickname',
     label: 'TG用户昵称',
-    minWidth: 120
+    minWidth: 120,
+    formatter: (row) => row.tg_nickname || '-'
   },
   {
     field: 'bot_name',
@@ -237,8 +231,8 @@ const columns: TableColumn[] = [
             style={{ color: '#409EFF', cursor: 'pointer' }}
             onClick={() => {
               router.push({
-                path: `/bot_manage/bot_list`,
-                query: { name: row.bot_name }
+                path: `/agent/bot_list`,
+                query: { tg_bot_id: row.bot_id }
               })
             }}
           >
@@ -256,16 +250,10 @@ const columns: TableColumn[] = [
   },
   {
     field: 'in_mount',
-    label: '充值金额',
+    label: '金额',
+    sortable: 'custom',
     minWidth: 120,
     formatter: (row) => (row.in_mount ? `${row.in_mount} ${row.in_unit || 'TRX'}` : '-')
-  },
-  {
-    field: 'pay_mount',
-    label: '支付金额',
-    minWidth: 120,
-    formatter: (row) =>
-      row.pay_mount && row.pay_mount !== '0' ? `${row.pay_mount} ${row.pay_unit || ''}` : '-'
   },
   {
     field: 'status',
@@ -283,19 +271,22 @@ const columns: TableColumn[] = [
     field: 'receive_address',
     label: '收款地址',
     minWidth: 200,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
+    formatter: (row) => row.receive_address || '-'
   },
   {
     field: 'pay_address',
     label: '支付地址',
     minWidth: 200,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
+    formatter: (row) => row.pay_address || '-'
   },
   {
     field: 'describe',
     label: '备注',
     minWidth: 150,
-    showOverflowTooltip: true
+    showOverflowTooltip: true,
+    formatter: (row) => row.describe || '-'
   },
   {
     field: 'create_time',
@@ -312,7 +303,7 @@ const columns: TableColumn[] = [
   {
     field: 'action',
     label: '操作',
-    width: 100,
+    width: 120,
     fixed: 'right',
     slots: {
       default: ({ row }) => {
@@ -510,12 +501,23 @@ const fetchRechargeOrderList = async (params: any) => {
       finish_time: item.paid_at // 完成时间（使用 paid_at 字段）
     }))
 
+    // 添加数据为空提示
+    const hasSearchCondition = !!(
+      params.order_id ||
+      params.status ||
+      params.query ||
+      params.order_type ||
+      params.receive_address ||
+      params.pay_address
+    )
+    handleListMessage(list, hasSearchCondition, '充值订单')
+
     return {
       list: list,
       total: data.pager?.total || 0
     }
   } catch (error) {
-    console.error('获取充值订单列表失败:', error)
+    handleErrorMessage(error, '获取充值订单列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -539,10 +541,10 @@ const handleViewDetail = async (row: any) => {
       statusText: getStatusText(detail.status), // 订单状态文本
       order_type: detail.coin === 'TRX' ? 1 : 2, // 订单类型: TRX=1, USDT=2
       tg_id: detail.user_id?.toString() || '', // TG用户ID
-      tg_name: detail.tg_user_name, // TG用户名
-      tg_nickname: detail.tg_first_name, // TG用户昵称
-      bot_id: detail.bot_id, // 机器人ID
-      bot_name: detail.bot_name, // 机器人名称
+      tg_name: detail.tg_user_name || row.tg_name || '', // TG用户名，优先使用详情接口返回的，否则使用列表中的
+      tg_nickname: detail.tg_first_name || row.tg_nickname || '-', // TG用户昵称，优先使用详情接口返回的，否则使用列表中的
+      bot_id: detail.bot_id || row.bot_id, // 机器人ID
+      bot_name: detail.bot_name || row.bot_name || '', // 机器人名称，优先使用详情接口返回的，否则使用列表中的
       in_mount: detail.amount, // 充值金额
       in_unit: detail.coin, // 充值单位
       pay_mount: detail.amount, // 支付金额（新接口没有单独的支付金额字段）
@@ -572,8 +574,7 @@ const handleViewDetail = async (row: any) => {
     dialogVisible.value = true
     activeTab.value = 'order'
   } catch (error) {
-    console.error('获取订单详情失败:', error)
-    ElMessage.error('获取订单详情失败')
+    handleErrorMessage(error, '获取充值详情失败')
   }
 }
 
@@ -584,16 +585,12 @@ const handleExport = async () => {
     const res = await exportRechargeOrderApi(params as any)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '充值订单列表.xlsx')
-      ElMessage.success('订单导出成功')
+      handleSuccessMessage('订单导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('订单导出失败:', error)
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '订单导出失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '订单导出失败')
   }
 }
 

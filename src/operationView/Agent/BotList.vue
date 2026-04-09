@@ -41,6 +41,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import { useRoute, useRouter } from 'vue-router'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,13 +70,16 @@ const getAgentBotList = async (params?: any): Promise<{ list: AgentBotItem[]; to
       order_count: item.order_count || 0 // 交易订单数
     }))
 
+    // 添加数据为空提示
+    const hasSearchCondition = !!(params?.keyword || params?.status)
+    handleListMessage(mappedList, hasSearchCondition, '机器人')
+
     return {
       list: mappedList,
       total: res.data.pager?.total || 0
     }
   } catch (error) {
-    console.error('获取机器人列表失败:', error)
-    ElMessage.error('获取机器人列表失败')
+    handleErrorMessage(error, '获取机器人列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -85,12 +89,10 @@ const updateBotStatus = async (id: number | string, status: number) => {
   try {
     const payload: UpdateAgentBotStatusPayload = { id, status }
     await updateAgentBotStatusApi(payload)
-    ElMessage.success(status === 1 ? '启用成功' : '禁用成功')
-    // 刷新列表
+    handleSuccessMessage(status === 1 ? '启用成功' : '禁用成功')
     searchTableRef.value?.reload()
   } catch (error) {
-    console.error('更新机器人状态失败:', error)
-    ElMessage.error('更新机器人状态失败')
+    handleErrorMessage(error, '更新机器人状态失败')
   }
 }
 
@@ -269,14 +271,12 @@ const handleExport = async () => {
     const res = await exportAgentBotListApi(params)
     if (res.data instanceof Blob) {
       downloadByData(res.data, '机器人列表.xlsx')
-      ElMessage.success('导出已开始，请稍候')
+      handleSuccessMessage('导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    handleErrorMessage(error, '导出失败')
   }
 }
 

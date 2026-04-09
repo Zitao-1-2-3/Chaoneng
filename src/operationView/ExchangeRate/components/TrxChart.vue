@@ -90,6 +90,7 @@ import * as echarts from 'echarts/core'
 import { DataZoomComponent } from 'echarts/components'
 import axios from 'axios'
 import { formatToDate } from '@/utils/dateUtil'
+import { handleErrorMessage } from '@/utils/messageHelper'
 
 // 注册DataZoom组件
 echarts.use([DataZoomComponent])
@@ -444,7 +445,7 @@ const fetchAllData = async () => {
       allChartData.value = []
     }
   } catch (error) {
-    console.error('获取TRX历史数据失败:', error)
+    handleErrorMessage(error, '获取TRX历史数据失败')
     allChartData.value = []
   } finally {
     localLoading.value = false
@@ -465,7 +466,7 @@ const loadAllData = async () => {
       chartInstance.value.setOption(chartOptions.value)
     }
   } catch (error) {
-    console.error('加载图表数据失败:', error)
+    handleErrorMessage(error, '加载图表数据失败')
   } finally {
     localLoading.value = false
   }
@@ -516,6 +517,7 @@ const fetchCurrentPrice = async () => {
       flashPrice()
     }
   } catch (error) {
+    // 静默处理错误，不显示提示
     console.error('获取当前TRX价格失败:', error)
   } finally {
     isRefreshingPrice.value = false

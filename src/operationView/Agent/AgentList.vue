@@ -51,6 +51,7 @@ import { BaseButton } from '@/components/Button'
 import RechargeDialog from './components/RechargeDialog.vue'
 import AgentForm from './components/AgentForm.vue'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 // 状态管理
 const searchTableRef = ref<InstanceType<typeof SearchTable>>()
@@ -75,14 +76,12 @@ const handleExport = async () => {
 
     if (res.data instanceof Blob) {
       downloadByData(res.data, '代理列表.xlsx')
-      ElMessage.success('导出成功')
+      handleSuccessMessage('导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    handleErrorMessage(error, '导出失败')
   }
 }
 
@@ -116,13 +115,16 @@ const getAgentList = async (params?: any) => {
     const list = data.list || data.items || []
     const total = data.totalCount || data.total || 0
 
+    // 添加数据为空提示
+    const hasSearchCondition = !!(params?.keyword || params?.status || params?.dateRange)
+    handleListMessage(list, hasSearchCondition, '代理')
+
     return {
       list: list,
       total: total
     }
   } catch (error) {
-    console.error('获取代理列表失败:', error)
-    ElMessage.error('获取代理列表失败')
+    handleErrorMessage(error, '获取代理列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -137,11 +139,10 @@ const updateAgentStatus = async (id: number | string, status: number, row: Agent
       status
     }
     await updateAgentApi(payload)
-    ElMessage.success(status === 1 ? '启用成功' : '禁用成功')
+    handleSuccessMessage(status === 1 ? '启用成功' : '禁用成功')
     searchTableRef.value?.reload()
   } catch (error) {
-    console.error('更新代理状态失败:', error)
-    ElMessage.error('更新代理状态失败')
+    handleErrorMessage(error, '更新代理状态失败')
   }
 }
 
@@ -185,8 +186,16 @@ const searchSchema = ref<FormSchema[]>([
 
 // 表格列配置
 const columns = ref<TableColumn[]>([
-  { field: 'email', label: '联系方式' },
-  { field: 'username', label: '代理名称' },
+  {
+    field: 'email',
+    label: '联系方式',
+    formatter: (row: AgentItem) => row.email || '-'
+  },
+  {
+    field: 'username',
+    label: '代理名称',
+    formatter: (row: AgentItem) => row.username || '-'
+  },
   {
     field: 'bot_count',
     label: '机器人数量',
@@ -202,8 +211,9 @@ const columns = ref<TableColumn[]>([
     label: 'TRX余额',
     sortable: true,
     sortMethod: (a: any, b: any) => {
-      return parseFloat(a.trx_balance) - parseFloat(b.trx_balance)
-    }
+      return parseFloat(a.trx_balance || 0) - parseFloat(b.trx_balance || 0)
+    },
+    formatter: (row: AgentItem) => row.trx_balance || '-'
   },
   {
     field: 'trx_income',

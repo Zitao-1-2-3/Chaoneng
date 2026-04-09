@@ -34,6 +34,7 @@ import {
   TrxAddressBookQueryParams
 } from '@/api/marketing/trx_address_book'
 import { ContentWrap } from '@/components/ContentWrap'
+import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const searchTableRef = ref()
 
@@ -46,8 +47,7 @@ const getTrxAddressBookList = async (params?: any): Promise<{ list: any[]; total
       total: res.data.totalCount || 0
     }
   } catch (error) {
-    console.error('获取收款地址簿列表失败:', error)
-    ElMessage.error('获取收款地址簿列表失败')
+    handleErrorMessage(error, '获取收款地址簿列表失败')
     return {
       list: [],
       total: 0
@@ -58,11 +58,10 @@ const getTrxAddressBookList = async (params?: any): Promise<{ list: any[]; total
 // 导出数据API
 const exportTrxAddressBook = async (params: TrxAddressBookQueryParams) => {
   try {
-    ElMessage.success('导出已开始，请稍候')
     await exportTrxAddressBookApi(params)
+    handleSuccessMessage('导出成功')
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    handleErrorMessage(error, '导出失败')
   }
 }
 
@@ -125,8 +124,7 @@ const handleExport = async () => {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
     await exportTrxAddressBook(params as TrxAddressBookQueryParams)
   } catch (error) {
-    console.error('导出失败:', error)
-    ElMessage.error('导出失败')
+    handleErrorMessage(error, '导出失败')
   }
 }
 

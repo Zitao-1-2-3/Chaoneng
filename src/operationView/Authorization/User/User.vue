@@ -20,6 +20,7 @@ import Write from './components/Write.vue'
 import Detail from './components/Detail.vue'
 import { BaseButton } from '@/components/Button'
 import { UnixTime } from '@/components/UnixTime' // 使用UnixTime组件
+import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const { t } = useI18n()
 
@@ -32,7 +33,7 @@ const fetchRoleList = async () => {
     const res = await getRoleListApi()
     roleList.value = res.data.list || []
   } catch (error) {
-    console.error('获取角色列表失败:', error)
+    handleErrorMessage(error, '获取角色列表失败')
     roleList.value = []
   }
 }
@@ -101,7 +102,7 @@ const { tableRegister, tableMethods, tableState } = useTable({
         total: res.data.pager?.total || 0
       }
     } catch (error) {
-      console.error('User.vue: getManageUserListApiV2 error:', error)
+      handleErrorMessage(error, '获取用户列表失败')
       return { list: [], total: 0 }
     }
   },
@@ -141,11 +142,10 @@ const delData = async (row?: DepartmentUserItem) => {
         id: Number(row.id) // 将 string 转换为 number
       }
       await deleteManageUserApiV2(payload)
-      ElMessage.success('删除成功')
+      handleSuccessMessage('删除成功')
       getList()
     } catch (error) {
-      console.error('删除失败:', error)
-      ElMessage.error('删除失败')
+      handleErrorMessage(error, '删除失败')
     } finally {
       delLoading.value = false
     }
@@ -195,12 +195,12 @@ const save = async () => {
         }
         res = await addManageUserApiV2(payload)
       }
-      ElMessage.success(actionType.value === 'edit' ? '编辑成功' : '添加成功')
+      handleSuccessMessage(actionType.value === 'edit' ? '编辑成功' : '添加成功')
       if (res.code == '000000') {
         // getList() // Remove this call
       }
     } catch (error) {
-      console.log(error)
+      handleErrorMessage(error, actionType.value === 'edit' ? '编辑失败' : '添加失败')
     } finally {
       saveLoading.value = false
       writeRef.value?.close()

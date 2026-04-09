@@ -21,6 +21,7 @@ import { reactive } from 'vue'
 import { useTable } from '@/hooks/web/useTable'
 import { Table, TableColumn } from '@/components/Table'
 import axios from 'axios'
+import { handleErrorMessage } from '@/utils/messageHelper'
 
 // 定义数据结构
 interface TrxPriceData {
@@ -74,7 +75,7 @@ const getTrxPriceData = async () => {
       total: 0
     }
   } catch (error) {
-    console.error('获取TRX价格数据失败:', error)
+    handleErrorMessage(error, '获取TRX价格数据失败')
     return {
       list: [],
       total: 0

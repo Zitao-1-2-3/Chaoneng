@@ -35,6 +35,7 @@ import { v2GetUserList, v2ExportUserList } from '@/api/agent/user_list'
 import { getAgentBotListApi } from '@/api/agent/bot'
 import { useRoute, useRouter } from 'vue-router'
 import { downloadByData } from '@/utils/download'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const route = useRoute()
 const router = useRouter()
@@ -69,7 +70,7 @@ const fetchBotList = async () => {
 
     console.log('[fetchBotList] 机器人列表加载成功, 数量:', bots.length)
   } catch (error) {
-    console.error('获取机器人列表失败:', error)
+    handleErrorMessage(error, '获取机器人列表失败')
     isBotListLoaded.value = true
   }
 }
@@ -226,6 +227,10 @@ const fetchAccountList = async (params: any) => {
       count: list.length
     })
 
+    // 添加数据为空提示
+    const hasSearchCondition = !!(params?.query || params?.bot_id || params?.dateRange)
+    handleListMessage(list, hasSearchCondition, '用户')
+
     return {
       list,
       total: response.data?.pager?.total || 0
@@ -278,16 +283,12 @@ const handleExport = async () => {
 
     if (res.data instanceof Blob) {
       downloadByData(res.data, '机器人用户列表.xlsx')
-      ElMessage.success('用户列表导出成功')
+      handleSuccessMessage('用户列表导出成功')
     } else {
-      console.error('Export failed: Response data is not a Blob', res.data)
-      ElMessage.error('导出失败: 文件数据格式错误')
+      ElMessage.error('文件数据格式错误')
     }
   } catch (error) {
-    console.error('用户列表导出失败:', error)
-    const errorMsg =
-      (error as any)?.response?.data?.message || (error as Error)?.message || '用户列表导出失败'
-    ElMessage.error(errorMsg)
+    handleErrorMessage(error, '用户列表导出失败')
   }
 }
 
