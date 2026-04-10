@@ -490,7 +490,12 @@ const signIn = async () => {
               addRoute(route as RouteRecordRaw)
             })
             permissionStore.setIsAddRouters(true)
-            push({ path: redirect.value || permissionStore.addRouters[0].path })
+            // 使用 replace 而不是 push，避免在历史记录中留下登录页
+            // 获取目标路径，优先使用 redirect，其次使用第一个路由，最后使用根路径
+            const targetPath = redirect.value || permissionStore.addRouters[0]?.path || '/'
+            // 使用 nextTick 确保路由已经完全添加
+            await new Promise((resolve) => setTimeout(resolve, 0))
+            replace({ path: targetPath })
           }
 
           ElMessage.success('登录成功')
@@ -535,7 +540,12 @@ const getRole = async () => {
       addRoute(route as RouteRecordRaw) // 动态添加可访问路由表
     })
     permissionStore.setIsAddRouters(true)
-    push({ path: redirect.value || permissionStore.addRouters[0].path })
+    // 使用 replace 而不是 push，避免在历史记录中留下登录页
+    // 获取目标路径，优先使用 redirect，其次使用第一个路由，最后使用根路径
+    const targetPath = redirect.value || permissionStore.addRouters[0]?.path || '/'
+    // 使用 nextTick 确保路由已经完全添加
+    await new Promise((resolve) => setTimeout(resolve, 0))
+    replace({ path: targetPath })
   }
 }
 

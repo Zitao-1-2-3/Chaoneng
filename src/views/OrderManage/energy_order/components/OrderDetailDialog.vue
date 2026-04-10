@@ -61,6 +61,34 @@ const handleClose = () => {
   emit('update:modelValue', false)
 }
 
+// 根据订单类型（kind）格式化能量有效期
+const formatExpirationTime = (orderType?: number): string => {
+  // 根据订单类型返回对应的有效期
+  switch (orderType) {
+    case 4: // KindTimeEnergy - 时间能量（闪租能量，1小时有效）
+      return '1小时'
+
+    case 5: // KindStrokeEnergy - 笔数能量（长期有效，每天不用额外扣一笔，一次发放两笔，用完再扣）
+      return '一天'
+
+    case 6: // KindWealEnergy - 福利能量（打折的时间能量，有购买限制）
+      return '1小时'
+
+    case 7: // KindFlashEnergy - 快速能量（快速租用，1小时有效，用了会提前回收）
+      return '1小时'
+
+    case 8: // KindHosting - 自动托管（一次发放两笔）
+      return '一天'
+
+    case 9: // KindBatchEnergy - 批量能量（带自动激活）
+      return '1小时'
+
+    default:
+      // 其他订单类型不显示有效期
+      return '-'
+  }
+}
+
 // --- Helper Functions (Keep only those used by the main schema) ---
 
 const getStatusText = (status: number): string => {
@@ -230,7 +258,11 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       field: 'energy_rent_text',
       label: '有效时长',
       slots: {
-        default: (data: any) => h('span', {}, data.energy_rent_text || '-')
+        default: (data: any) => {
+          // 使用 order_type 计算有效时长，与列表保持一致
+          const calculatedTime = formatExpirationTime(data.order_type)
+          return h('span', {}, calculatedTime)
+        }
       }
     },
     {
