@@ -30,11 +30,11 @@ const timeEnergySchema = reactive<FormSchema[]>([
     field: 'flash_price',
     component: 'InputNumber' as const,
     label: {
-      text: '【1小时】能量闪租价格（TRX ）（1笔6.5W能量）',
+      text: '闪租能量',
       tips: '最多支持保留一位小数，注意：此为1笔65000能量价格，不要设置0.1结尾的价格，避免和笔数价格冲突'
     },
     componentProps: {
-      placeholder: '请输入时间能量价格',
+      placeholder: '请输入闪租能量价格',
       min: 0,
       precision: 1,
       remark: () => {
@@ -44,7 +44,7 @@ const timeEnergySchema = reactive<FormSchema[]>([
       }
     },
     formItemProps: {
-      rules: [{ required: true, message: '时间能量价格是必填项' }]
+      rules: [{ required: true, message: '闪租能量价格是必填项' }]
     },
     colProps: {
       span: 12
@@ -55,7 +55,7 @@ const timeEnergySchema = reactive<FormSchema[]>([
   {
     field: 'flash_addr_price',
     component: 'InputNumber' as const,
-    label: '闪租地址转账价格',
+    label: '1小时租赁',
     componentProps: {
       placeholder: '请输入闪租地址转账价格',
       min: 0,

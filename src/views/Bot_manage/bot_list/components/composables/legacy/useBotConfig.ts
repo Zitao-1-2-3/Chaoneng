@@ -214,15 +214,19 @@ export function useBotConfig() {
               }
 
               // 根据 kind 类型提取不同的地址
-              const timeEnergyAddress = addressList.find((item) => Number(item.kind) === 4)
-              const userDepositAddress = addressList.find((item) => Number(item.kind) === 2)
-              const strokeEnergyAddress = addressList.find((item) => Number(item.kind) === 5)
+              const timeEnergyAddress = addressList.find((item) => Number(item.kind) === 4) // 1小时能量闪租
+              const userDepositAddress = addressList.find((item) => Number(item.kind) === 2) // 余额充值
+              const strokeEnergyAddress = addressList.find((item) => Number(item.kind) === 5) // 按笔数购买
+              const exchangeAddress = addressList.find((item) => Number(item.kind) === 3) // 闪兑TRX/USDT
+              const welfareAddress = addressList.find((item) => Number(item.kind) === 6) // 福利
 
               const formValues = {
                 username: currentBot.value.user_name || '',
                 energy_address: timeEnergyAddress?.address || '',
                 receive_address: userDepositAddress?.address || '',
                 energy_usdt_address: strokeEnergyAddress?.address || '',
+                transfer_address: exchangeAddress?.address || '',
+                weal_address: welfareAddress?.address || '',
                 notice_order_tg_admin: 2
               }
 
@@ -539,6 +543,88 @@ export function useBotConfig() {
             console.error('加载福利价格配置失败:', error)
             return false
           }
+        },
+
+        // 价格配置加载策略（整合所有价格）
+        priceConfig: async () => {
+          try {
+            // 使用缓存的系统成本价和机器人价格配置
+            const systemPrice = await getSystemPrice()
+            const botPriceData = await getBotPriceConfig(id)
+
+            if (!systemPrice || !botPriceData) {
+              handleErrorMessage(null, '获取配置失败')
+              return false
+            }
+
+            // 映射成本价字段
+            if (!priceConfig.agent_price) {
+              priceConfig.agent_price = {}
+            }
+            Object.assign(priceConfig.agent_price, {
+              flash_rent_price: parseFloat(systemPrice.flash),
+              day_1_price: parseFloat(systemPrice.time_1d),
+              day_3_price: parseFloat(systemPrice.time_3d),
+              day_7_price: parseFloat(systemPrice.time_7d),
+              day_15_price: parseFloat(systemPrice.time_15d),
+              day_30_price: parseFloat(systemPrice.time_30d),
+              count_price: parseFloat(systemPrice.stroke),
+              manage_price_65000: parseFloat(systemPrice.hosting_65k),
+              manage_price_13100: parseFloat(systemPrice.hosting_131k),
+              profit_usdt_to_trx: parseFloat(systemPrice.usdt_2_trx),
+              profit_trx_to_usdt: parseFloat(systemPrice.trx_2_usdt),
+              batch_energy_price: parseFloat(systemPrice.batch_flash),
+              batch_active_price: parseFloat(systemPrice.active),
+              weal_price_trx: parseFloat(systemPrice.weal_time_1h)
+            })
+
+            // 从 agent_price 中提取所有价格字段
+            const agentPrice = botPriceData.agent_price || {}
+
+            const priceConfigValues = {
+              // 闪兑配置
+              min_trx_balance: botPriceData.min_trx_balance || 0,
+              profit_usdt_to_trx: (agentPrice.usdt_2_trx || 0) * 100,
+              max_usdt_to_trx: botPriceData.max_usdt_2_trx || 0,
+              profit_trx_to_usdt: (agentPrice.trx_2_usdt || 0) * 100,
+              max_trx_to_usdt: botPriceData.max_trx_2_usdt || 0,
+
+              // 闪租能量
+              flash_price: agentPrice.flash || 0,
+              flash_addr_price: agentPrice.flash || 0,
+
+              // 时间能量
+              day_1_price: agentPrice.time_1d || 0,
+              day_3_price: agentPrice.time_3d || 0,
+              day_7_price: agentPrice.time_7d || 0,
+              day_15_price: agentPrice.time_15d || 0,
+              day_30_price: agentPrice.time_30d || 0,
+
+              // 笔数能量
+              count_price_trx: agentPrice.stroke || 0,
+              count_price_usdt: agentPrice.stroke_usdt || 0,
+
+              // 智能托管
+              price_trx_65000: agentPrice.hosting_65k || 0,
+              price_trx_131000: agentPrice.hosting_131k || 0,
+
+              // 批量下单
+              batch_energy_price: agentPrice.batch_flash || 0,
+              batch_active_price: agentPrice.active || 0,
+
+              // 福利板块
+              weal_price_trx: agentPrice.weal_time_1h || 0,
+              hour_limit_count: botPriceData.weal_hour_limit || 0,
+              total_limit_count: botPriceData.weal_total_limit || 0
+            }
+
+            formMethods.priceConfig.setValues(priceConfigValues)
+
+            return true
+          } catch (error) {
+            console.error('加载价格配置失败:', error)
+            return false
+          }
         }
       }
 
@@ -658,6 +744,28 @@ export function useBotConfig() {
                   address: paymentData.energy_usdt_address.trim(),
                   bot_id: id,
                   kind: 5
+                })
+              )
+            }
+
+            // 绑定【闪兑TRX/USDT】收款钱包地址 (kind=3: 兑换)
+            if (paymentData.transfer_address && paymentData.transfer_address.trim()) {
+              bindPromises.push(
+                v1BindAddress({
+                  address: paymentData.transfer_address.trim(),
+                  bot_id: id,
+                  kind: 3
+                })
+              )
+            }
+
+            // 绑定【福利】收款钱包地址 (kind=6: 福利能量)
+            if (paymentData.weal_address && paymentData.weal_address.trim()) {
+              bindPromises.push(
+                v1BindAddress({
+                  address: paymentData.weal_address.trim(),
+                  bot_id: id,
+                  kind: 6
                 })
               )
             }
@@ -1010,6 +1118,138 @@ export function useBotConfig() {
             return true
           } catch (error) {
             console.error('保存福利价格配置失败:', error)
+            return false
+          }
+        },
+
+        // 价格配置提交策略（整合所有价格）
+        priceConfig: async () => {
+          if (!formMethods.priceConfig) return false
+          try {
+            const priceConfigData = await formMethods.priceConfig.getFormData()
+
+            // 验证价格不能低于成本价
+            const costPrices = priceConfig.agent_price || {}
+
+            // 闪租能量验证
+            if (priceConfigData.flash_price < costPrices.flash_rent_price) {
+              handleErrorMessage(
+                null,
+                `闪租能量价格不能低于成本价 ${costPrices.flash_rent_price} TRX`
+              )
+              return false
+            }
+
+            // 时间能量验证
+            const timeEnergyChecks = [
+              { field: 'time_1h', cost: costPrices.flash_rent_price, label: '1小时租赁' },
+              { field: 'day_1_price', cost: costPrices.day_1_price, label: '1天租赁' },
+              { field: 'day_3_price', cost: costPrices.day_3_price, label: '3天租赁' },
+              { field: 'day_7_price', cost: costPrices.day_7_price, label: '7天租赁' },
+              { field: 'day_15_price', cost: costPrices.day_15_price, label: '15天租赁' },
+              { field: 'day_30_price', cost: costPrices.day_30_price, label: '30天租赁' }
+            ]
+
+            for (const check of timeEnergyChecks) {
+              if (priceConfigData[check.field] < check.cost) {
+                handleErrorMessage(null, `${check.label}价格不能低于成本价 ${check.cost} TRX`)
+                return false
+              }
+            }
+
+            // 笔数能量验证
+            if (priceConfigData.count_price_trx < costPrices.count_price) {
+              handleErrorMessage(null, `能量TRX价格不能低于成本价 ${costPrices.count_price} TRX`)
+              return false
+            }
+
+            // 智能托管验证
+            if (priceConfigData.price_trx_65000 < costPrices.manage_price_65000) {
+              handleErrorMessage(
+                null,
+                `65000能量价格不能低于成本价 ${costPrices.manage_price_65000} TRX`
+              )
+              return false
+            }
+            if (priceConfigData.price_trx_131000 < costPrices.manage_price_13100) {
+              handleErrorMessage(
+                null,
+                `131000能量价格不能低于成本价 ${costPrices.manage_price_13100} TRX`
+              )
+              return false
+            }
+
+            // 批量下单验证
+            if (priceConfigData.batch_energy_price < costPrices.batch_energy_price) {
+              handleErrorMessage(
+                null,
+                `能量单价不能低于成本价 ${costPrices.batch_energy_price} TRX`
+              )
+              return false
+            }
+            if (priceConfigData.batch_active_price < costPrices.batch_active_price) {
+              handleErrorMessage(
+                null,
+                `激活地址单价不能低于成本价 ${costPrices.batch_active_price} TRX`
+              )
+              return false
+            }
+
+            // 福利板块验证
+            if (priceConfigData.weal_price_trx < costPrices.flash_rent_price) {
+              handleErrorMessage(
+                null,
+                `福利能量价格不能低于成本价 ${costPrices.flash_rent_price} TRX`
+              )
+              return false
+            }
+
+            // 先获取当前配置
+            const currentConfigRes = await v1GetBotPriceConfig(id)
+            const currentConfig = currentConfigRes.data || {}
+
+            // 使用新接口 v1UpdateBotPrice，更新所有价格配置
+            await v1UpdateBotPrice({
+              bot_id: id,
+              agent_price: {
+                // 闪兑配置
+                usdt_2_trx: priceConfigData.profit_usdt_to_trx / 100,
+                trx_2_usdt: priceConfigData.profit_trx_to_usdt / 100,
+                // 闪租能量
+                flash: priceConfigData.flash_price,
+                // 时间能量
+                time_1h: priceConfigData.time_1h,
+                time_1d: priceConfigData.day_1_price,
+                time_3d: priceConfigData.day_3_price,
+                time_7d: priceConfigData.day_7_price,
+                time_15d: priceConfigData.day_15_price,
+                time_30d: priceConfigData.day_30_price,
+                // 笔数能量
+                stroke: priceConfigData.count_price_trx,
+                stroke_usdt: priceConfigData.count_price_usdt,
+                // 智能托管
+                hosting_65k: priceConfigData.price_trx_65000,
+                hosting_131k: priceConfigData.price_trx_131000,
+                // 批量下单
+                batch_flash: priceConfigData.batch_energy_price,
+                active: priceConfigData.batch_active_price,
+                // 福利板块
+                weal_time_1h: priceConfigData.weal_price_trx
+              },
+              // 更新其他配置字段
+              min_trx_balance: priceConfigData.min_trx_balance,
+              max_usdt_2_trx: priceConfigData.max_usdt_to_trx,
+              max_trx_2_usdt: priceConfigData.max_trx_to_usdt,
+              weal_hour_limit: priceConfigData.hour_limit_count,
+              weal_total_limit: priceConfigData.total_limit_count,
+              // 保留其他配置字段的原值
+              allow_pledge: currentConfig.allow_pledge,
+              notice_status: currentConfig.notice_status
+            })
+
+            return true
+          } catch (error) {
+            console.error('保存价格配置失败:', error)
             return false
           }
         }

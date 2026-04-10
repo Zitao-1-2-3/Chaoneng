@@ -12,12 +12,10 @@
 </template>
 
 <script setup lang="tsx">
-import { reactive, ref, defineExpose } from 'vue'
-import { ElRow, ElCol, ElTag } from 'element-plus'
+import { reactive } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
-import { useFormValidation } from '../composables'
-import { Icon } from '@/components/Icon'
+import { useValidator } from '@/hooks/web/useValidator'
 
 const props = defineProps({
   tgStatus: {
@@ -34,7 +32,7 @@ const emit = defineEmits(['sync-tg-status'])
 
 // 表单相关
 const { formRegister, formMethods } = useForm()
-const { required } = useFormValidation({})
+const { required } = useValidator()
 
 // 机器人信息表单
 const botInfoSchema = reactive<FormSchema[]>([
@@ -150,11 +148,6 @@ const botInfoSchema = reactive<FormSchema[]>([
   //   }
   // }
 ])
-
-// TG状态同步
-const syncTgStatus = () => {
-  emit('sync-tg-status')
-}
 
 // 暴露表单方法
 defineExpose({

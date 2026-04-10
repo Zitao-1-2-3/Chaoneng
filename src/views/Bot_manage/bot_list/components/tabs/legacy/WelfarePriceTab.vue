@@ -1,7 +1,7 @@
 <template>
   <div>
     <Form :isCol="true" labelPosition="top" :schema="welfarePriceSchema" @register="formRegister" />
-    <div style=" margin: 20px 0 10px;font-size: 16px; font-weight: bold">购买设置</div>
+    <div style="margin: 20px 0 10px; font-size: 16px; font-weight: bold">购买设置</div>
     <Form
       :isCol="true"
       labelPosition="top"

@@ -5,39 +5,15 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue'
+import { reactive } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 
 // 表单相关
 const { formRegister, formMethods } = useForm()
 
-// 存储用户名
-const username = ref('')
-
-// 初始化时获取表单数据
-onMounted(async () => {
-  const formData = await formMethods.getFormData()
-  username.value = formData.username || ''
-})
-
 // 收款配置表单
 const paymentSchema = reactive<FormSchema[]>([
-  {
-    field: 'username',
-    component: 'Input' as const,
-    label: '用户名：',
-    componentProps: {
-      placeholder: username.value,
-      disabled: true
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '用户名是必填项' }],
-      style: {
-        width: '50%'
-      }
-    }
-  },
   {
     field: 'energy_address',
     component: 'Input' as const,
@@ -99,6 +75,58 @@ const paymentSchema = reactive<FormSchema[]>([
           trigger: 'blur'
         }
       ]
+    }
+  },
+  {
+    field: 'transfer_address',
+    component: 'Input' as const,
+    label: {
+      text: '【闪兑TRX/USDT】收款钱包地址',
+      tips: '请区分其他收款地址，不能相同'
+    },
+    componentProps: {
+      placeholder: '请输入闪兑收款钱包地址'
+    },
+    formItemProps: {
+      rules: [
+        {
+          validator: (_: any, value: string, callback: (error?: Error) => void) => {
+            // 当前值为空时不验证
+            if (!value) {
+              callback()
+              return
+            }
+            // 使用setTimeout来确保能获取到最新的表单数据
+            setTimeout(async () => {
+              try {
+                const formData = await formMethods.getFormData()
+                // 验证不能与其他地址相同
+                if (formData.energy_address && value === formData.energy_address) {
+                  callback(new Error('闪兑收款地址不能与闪租收款地址相同'))
+                } else if (formData.energy_usdt_address && value === formData.energy_usdt_address) {
+                  callback(new Error('闪兑收款地址不能与按笔数购买收款地址相同'))
+                } else {
+                  callback()
+                }
+              } catch (error) {
+                callback()
+              }
+            }, 0)
+          },
+          trigger: 'blur'
+        }
+      ]
+    }
+  },
+  {
+    field: 'weal_address',
+    component: 'Input' as const,
+    label: '【福利】收款钱包地址',
+    componentProps: {
+      placeholder: '请输入福利收款钱包地址'
+    },
+    formItemProps: {
+      rules: []
     }
   },
   {
