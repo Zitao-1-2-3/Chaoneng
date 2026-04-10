@@ -58,7 +58,7 @@ export interface RemoveHostingParamsV2 {
  * 回收与重置请求参数 - 新接口 v2
  */
 export interface RecycleOrderParamsV2 {
-  order_id: string // 订单号（必填）
+  address: string // 地址（必填）
 }
 
 // ========== 旧接口类型定义 ==========

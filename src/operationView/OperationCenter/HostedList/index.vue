@@ -252,16 +252,16 @@ const handleDeleteConfirmation = (row: AutoManageAddressItem) => {
 }
 
 const handleRecycleAndReset = async (row: AutoManageAddressItem) => {
-  if (!row.order_id) {
-    ElMessage.warning('订单号不存在，无法执行回收与重置操作')
+  if (!row.address) {
+    ElMessage.warning('托管地址不存在，无法执行回收与重置操作')
     return
   }
 
   try {
-    console.log('[handleRecycleAndReset] 调用新接口 v2RecycleOrder, 订单号:', row.order_id)
+    console.log('[handleRecycleAndReset] 调用新接口 v2RecycleOrder, 托管地址:', row.address)
 
     // 使用新接口 v2RecycleOrder
-    const res = await v2RecycleOrder({ order_id: row.order_id })
+    const res = await v2RecycleOrder({ address: row.address })
 
     if (res.code === '000000') {
       handleSuccessMessage('回收与重置成功')

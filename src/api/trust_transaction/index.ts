@@ -8,7 +8,6 @@ import type {
   RecycleOrderParamsV2,
   V2AgentBotListParams,
   V2AgentBotListResponse,
-  TrustTransactionQueryParams,
   TrustTransactionDetailResponse,
   RetrieveAssetParams,
   RetrieveAssetResponse,
@@ -66,11 +65,11 @@ export const v2GetAgentBotList = (
 
 /**
  * 回收与重置 - 新接口 v2
- * POST /v2/order/recycle
+ * POST /v2/manage/hosting/reset
  */
 export const v2RecycleOrder = (data: RecycleOrderParamsV2): Promise<IResponse> => {
   return request.post({
-    url: '/v2/order/recycle',
+    url: `${BASE_URL}reset`,
     data
   })
 }
