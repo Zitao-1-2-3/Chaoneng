@@ -24,6 +24,7 @@ import {
   getUserInfoApi
 } from '@/api/login'
 import { ElMessage } from 'element-plus'
+import { routePreloader } from '@/utils/preloadRoutes' // 导入预加载工具
 
 const { required, email, phone, noChinese } = useValidator()
 
@@ -148,6 +149,16 @@ const fetchCaptcha = async () => {
   }
 }
 
+// 🚀 监听表单输入，开始预加载（需要在 schema 之前声明）
+const hasStartedPreload = ref(false)
+const startPreloadOnInput = () => {
+  if (!isManagement && !hasStartedPreload.value) {
+    console.log('[预加载] 检测到用户输入，开始预加载代理端路由')
+    routePreloader.startPreload()
+    hasStartedPreload.value = true
+  }
+}
+
 // 账号密码登录表单
 const accountSchema = reactive<FormSchema[]>([
   {
@@ -175,7 +186,8 @@ const accountSchema = reactive<FormSchema[]>([
     component: 'Input',
     colProps: { span: 24 },
     componentProps: {
-      placeholder: '支持用户名/邮箱登录'
+      placeholder: '支持用户名/邮箱登录',
+      onInput: startPreloadOnInput // 监听输入，触发预加载
     }
   },
   {
@@ -185,7 +197,8 @@ const accountSchema = reactive<FormSchema[]>([
     colProps: { span: 24 },
     componentProps: {
       style: { width: '100%' },
-      placeholder: '请输入密码'
+      placeholder: '请输入密码',
+      onInput: startPreloadOnInput // 监听输入，触发预加载
     }
   },
   {
@@ -297,7 +310,8 @@ const phoneSchema = reactive<FormSchema[]>([
     component: 'Input',
     colProps: { span: 24 },
     componentProps: {
-      placeholder: t('login.inputPhoneNumber')
+      placeholder: t('login.inputPhoneNumber'),
+      onInput: startPreloadOnInput // 监听输入，触发预加载
     }
   },
   {
@@ -391,6 +405,7 @@ const initLoginInfo = () => {
     setValues({ username, password })
   }
 }
+
 onMounted(() => {
   initLoginInfo()
   fetchCaptcha()
@@ -423,6 +438,7 @@ const signIn = async () => {
   await formRef?.validate(async (isValid) => {
     if (isValid) {
       loading.value = true
+
       const formData = await getFormData()
 
       try {
@@ -446,6 +462,12 @@ const signIn = async () => {
         }
 
         if (res && res.code === '000000') {
+          // ✅ 登录成功，恢复预加载（如果之前暂停了）
+          if (!isManagement && hasStartedPreload.value) {
+            console.log('[登录] 登录成功，确保预加载继续')
+            routePreloader.resumePreload()
+          }
+
           // 是否记住我
           if (unref(remember)) {
             userStore.setLoginInfo({
@@ -501,12 +523,24 @@ const signIn = async () => {
 
           ElMessage.success('登录成功')
         } else {
+          // ❌ 登录失败，暂停预加载
+          if (!isManagement && hasStartedPreload.value) {
+            console.log('[登录] 登录失败，暂停预加载')
+            routePreloader.pausePreload()
+          }
+
           // 登录失败，显示错误信息并刷新验证码
           const errorMsg = res?.msg || '登录失败'
           ElMessage.error(errorMsg)
           fetchCaptcha() // 只要失败就刷新验证码
         }
       } catch (error: any) {
+        // ❌ 登录异常，暂停预加载
+        if (!isManagement && hasStartedPreload.value) {
+          console.log('[登录] 登录异常，暂停预加载')
+          routePreloader.pausePreload()
+        }
+
         // Keep type any for easier access in generic error message
         console.error('登录失败:', error)
         // API 调用本身失败 (网络等)，显示通用错误信息，也刷新验证码以防万一
