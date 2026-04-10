@@ -320,7 +320,7 @@ const importFormSchema = reactive<FormSchema[]>([
     component: 'Upload',
     componentProps: {
       limit: 1,
-      accept: '.xlsx,.xls,.csv',
+      accept: '.xlsx,.xls',
       autoUpload: false,
       multiple: false,
       // 添加 onExceed 处理
@@ -331,7 +331,10 @@ const importFormSchema = reactive<FormSchema[]>([
       slots: {
         default: () => <BaseButton type="primary">选择文件</BaseButton>,
         tip: () => (
-          <div class="el-upload__tip text-red">请上传 .xlsx, .xls 或 .csv 格式的文件。</div>
+          <div class="el-upload__tip text-red">
+            只支持 .xlsx 或 .xls 格式的文件，不支持 .csv
+            格式。请先下载模板，按照模板格式填写后上传。
+          </div>
         )
       }
     },
@@ -360,6 +363,14 @@ const submitBatchImport = async () => {
       return
     }
 
+    // 验证文件格式
+    const fileName = file.name
+    const fileExtension = fileName.substring(fileName.lastIndexOf('.')).toLowerCase()
+    if (!['.xlsx', '.xls'].includes(fileExtension)) {
+      ElMessage.error('只支持 .xlsx 或 .xls 格式的文件，不支持 .csv 格式')
+      return
+    }
+
     const formData = new FormData()
     formData.append('file', file) // 将文件添加到 FormData
 
@@ -370,7 +381,13 @@ const submitBatchImport = async () => {
     reloadTable()
   } catch (error: any) {
     console.error('批量导入失败:', error)
-    downloadByBase64(error.data, '批量导入失败.xlsx')
+    // 检查是否有返回的错误文件
+    if (error?.data instanceof Blob) {
+      downloadByBase64(error.data, '批量导入失败.xlsx')
+      ElMessage.error('批量导入失败，请查看下载的错误文件')
+    } else {
+      handleErrorMessage(error, '批量导入失败')
+    }
   } finally {
     submitting.value = false
   }

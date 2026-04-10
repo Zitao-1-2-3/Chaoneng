@@ -399,9 +399,9 @@ const fetchEnergyOrderList = async (params: any) => {
     if (params.receive_address) adaptedParams.receive_address = params.receive_address // 收款钱包地址
     if (params.energy_address) adaptedParams.energy_address = params.energy_address // 能量接收地址
 
-    // 分页参数（支持两种命名方式）
-    adaptedParams.current_page = params.current_page || params.currentPage || 1
-    adaptedParams.page_size = params.page_size || params.pageSize || 10
+    // 分页参数
+    adaptedParams.current_page = params.current_page || 1
+    adaptedParams.page_size = params.page_size || 10
 
     // 处理时间范围（转换为秒级Unix时间戳字符串）
     if (params.dateRange && params.dateRange.length === 2) {

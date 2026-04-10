@@ -71,21 +71,21 @@ export function useBotConfigV1() {
       // 保存机器人信息
       currentBot.value = botDetailRes.data
 
-      // 保存成本价数据
+      // 保存成本价数据 - 福利能量和批量下单能量单价使用闪租能量字段
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
-        flash_rent_price: parseFloat(systemPrice.flash),
-        day_1_price: parseFloat(systemPrice.time_1d),
-        day_3_price: parseFloat(systemPrice.time_3d),
-        day_7_price: parseFloat(systemPrice.time_7d),
-        day_15_price: parseFloat(systemPrice.time_15d),
-        day_30_price: parseFloat(systemPrice.time_30d),
-        count_price: parseFloat(systemPrice.stroke),
-        manage_price_65000: parseFloat(systemPrice.hosting_65k),
-        manage_price_13100: parseFloat(systemPrice.hosting_131k),
-        batch_energy_price: parseFloat(systemPrice.batch_flash),
-        batch_active_price: parseFloat(systemPrice.active),
-        weal_price_trx: parseFloat(systemPrice.weal_time_1h)
+        flash_rent_price: parseFloat(systemPrice.flash) || 0,
+        day_1_price: parseFloat(systemPrice.time_1d) || 0,
+        day_3_price: parseFloat(systemPrice.time_3d) || 0,
+        day_7_price: parseFloat(systemPrice.time_7d) || 0,
+        day_15_price: parseFloat(systemPrice.time_15d) || 0,
+        day_30_price: parseFloat(systemPrice.time_30d) || 0,
+        count_price: parseFloat(systemPrice.stroke) || 0,
+        manage_price_65000: parseFloat(systemPrice.hosting_65k) || 0,
+        manage_price_13100: parseFloat(systemPrice.hosting_131k) || 0,
+        batch_energy_price: parseFloat(systemPrice.flash) || 0, // 使用闪租能量
+        batch_active_price: parseFloat(systemPrice.active) || 0,
+        weal_price_trx: parseFloat(systemPrice.flash) || 0 // 使用闪租能量
       })
 
       // 设置TG同步状态
@@ -179,21 +179,21 @@ export function useBotConfigV1() {
         return false
       }
 
-      // 保存成本价数据
+      // 保存成本价数据 - 福利能量和批量下单能量单价使用闪租能量字段
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
-        flash_rent_price: parseFloat(systemPrice.flash),
-        day_1_price: parseFloat(systemPrice.time_1d),
-        day_3_price: parseFloat(systemPrice.time_3d),
-        day_7_price: parseFloat(systemPrice.time_7d),
-        day_15_price: parseFloat(systemPrice.time_15d),
-        day_30_price: parseFloat(systemPrice.time_30d),
-        count_price: parseFloat(systemPrice.stroke),
-        manage_price_65000: parseFloat(systemPrice.hosting_65k),
-        manage_price_13100: parseFloat(systemPrice.hosting_131k),
-        batch_energy_price: parseFloat(systemPrice.batch_flash),
-        batch_active_price: parseFloat(systemPrice.active),
-        weal_price_trx: parseFloat(systemPrice.weal_time_1h)
+        flash_rent_price: parseFloat(systemPrice.flash) || 0,
+        day_1_price: parseFloat(systemPrice.time_1d) || 0,
+        day_3_price: parseFloat(systemPrice.time_3d) || 0,
+        day_7_price: parseFloat(systemPrice.time_7d) || 0,
+        day_15_price: parseFloat(systemPrice.time_15d) || 0,
+        day_30_price: parseFloat(systemPrice.time_30d) || 0,
+        count_price: parseFloat(systemPrice.stroke) || 0,
+        manage_price_65000: parseFloat(systemPrice.hosting_65k) || 0,
+        manage_price_13100: parseFloat(systemPrice.hosting_131k) || 0,
+        batch_energy_price: parseFloat(systemPrice.flash) || 0, // 使用闪租能量
+        batch_active_price: parseFloat(systemPrice.active) || 0,
+        weal_price_trx: parseFloat(systemPrice.flash) || 0 // 使用闪租能量
       })
 
       // 保存当前价格配置

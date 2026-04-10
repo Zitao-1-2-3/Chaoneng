@@ -59,7 +59,27 @@ onMounted(() => {
 // 获取机器人列表API封装
 const getAgentBotList = async (params?: any): Promise<{ list: AgentBotItem[]; total?: number }> => {
   try {
-    const res = await getAgentBotListApi(params)
+    const apiParams: any = { ...params }
+
+    // 处理排序参数 - 字段名映射
+    if (params?.order) {
+      const fieldMapping: Record<string, string> = {
+        account_num: 'user_count',
+        order_count: 'order_count',
+        created_at: 'created_at',
+        updated_at: 'updated_at'
+      }
+
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        apiParams.order = `${mappedField} ${direction}`
+      }
+    }
+
+    const res = await getAgentBotListApi(apiParams)
     // 适配新的分页格式：从 pager 对象中获取 total
     // 字段映射：将后端返回的字段名映射到前端使用的字段名
     const mappedList = (res.data.list || []).map((item: any) => ({
@@ -205,6 +225,7 @@ const columns = ref<TableColumn[]>([
     field: 'created_at', // 新接口字段：created_at (原来是create_time)
     label: '创建时间',
     minWidth: 160,
+    sortable: 'custom',
     showOverflowTooltip: false,
     formatter: (row: AgentBotItem) =>
       row.created_at ? formatToDateTime(row.created_at * 1000) : '-'
@@ -213,6 +234,7 @@ const columns = ref<TableColumn[]>([
     field: 'updated_at', // 新接口字段：updated_at (原来是update_time)
     label: '最后活动时间',
     minWidth: 160,
+    sortable: 'custom',
     showOverflowTooltip: false,
     formatter: (row: AgentBotItem) =>
       row.updated_at ? formatToDateTime(row.updated_at * 1000) : '-'

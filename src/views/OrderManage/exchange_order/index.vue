@@ -335,7 +335,11 @@ const columns: TableColumn[] = [
     label: '支付金额',
     width: 120,
     showOverflowTooltip: false,
-    formatter: (row) => (row.order_amount ? `${row.order_amount} ${row.pay_unit || ''}` : '-')
+    formatter: (row) => {
+      if (!row.order_amount) return '-'
+      const unit = row.pay_unit || 'TRX' // 如果没有单位，默认显示 TRX
+      return `${row.order_amount} ${unit}`
+    }
   },
   {
     field: 'exchange_amount',
@@ -513,9 +517,9 @@ const fetchExchangeOrderList = async (params: any) => {
     if (params.status) adaptedParams.status = params.status
     if (params.query) adaptedParams.keyword = params.query // query → keyword
 
-    // 分页参数（支持两种命名方式）
-    adaptedParams.current_page = params.current_page || params.currentPage || 1
-    adaptedParams.page_size = params.page_size || params.pageSize || 10
+    // 分页参数
+    adaptedParams.current_page = params.current_page || 1
+    adaptedParams.page_size = params.page_size || 10
 
     // 处理时间范围
     if (params.dateRange && params.dateRange.length === 2) {
@@ -533,9 +537,9 @@ const fetchExchangeOrderList = async (params: any) => {
       tg_bot_id: item.bot_id, // bot_id → tg_bot_id
       bot_name: item.bot_name,
       order_amount: item.amount, // amount → order_amount
-      pay_unit: item.in_coin, // in_coin → pay_unit（支付币种）
+      pay_unit: item.in_coin || '', // in_coin → pay_unit（支付币种），确保有默认值
       exchange_amount: item.out_amount, // out_amount → exchange_amount（兑换得到的数量）
-      exchange_unit: item.out_coin, // out_coin → exchange_unit（兑换得到的币种）
+      exchange_unit: item.out_coin || '', // out_coin → exchange_unit（兑换得到的币种），确保有默认值
       trx_price: item.actual_rate, // actual_rate → trx_price（实际成交汇率）
       order_type: item.in_coin === 'USDT' ? 1 : 2, // USDT→TRX=1, TRX→USDT=2
       status: item.status,

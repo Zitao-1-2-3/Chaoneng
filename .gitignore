@@ -9,4 +9,3 @@ stats.html
 .idea
 .env.base
 deploy.sh
-netlify.toml

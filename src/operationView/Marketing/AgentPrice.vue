@@ -117,7 +117,7 @@ const fetchDataApiWrapper = async (params) => {
         tableIndex: 3,
         price_type: 3, // 闪兑
         type: '闪兑',
-        priceInfo: `${data.usdt_2_trx}%(U兑换T) | ${data.trx_2_usdt}%(T兑换U)`,
+        priceInfo: `${parseFloat(data.usdt_2_trx) * 100}%(U兑换T) | ${parseFloat(data.trx_2_usdt) * 100}%(T兑换U)`,
         status: 1,
         create_time: createdTime,
         update_time: updatedTime,

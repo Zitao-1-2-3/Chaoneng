@@ -429,8 +429,8 @@ const fetchRechargeOrderList = async (params: any) => {
 
     // 转换参数格式以适配新接口
     const adaptedParams: any = {
-      current_page: params.current_page || params.currentPage || 1,
-      page_size: params.page_size || params.pageSize || 10
+      current_page: params.current_page || 1,
+      page_size: params.page_size || 10
     }
 
     // 关键字搜索
@@ -462,6 +462,19 @@ const fetchRechargeOrderList = async (params: any) => {
     // 支付地址
     if (params.pay_address) {
       adaptedParams.pay_address = params.pay_address
+    }
+
+    // 处理排序参数 - 需要映射字段名
+    if (params.order) {
+      // 字段名映射：前端 → 后端
+      const fieldMap: Record<string, string> = {
+        in_mount: 'amount' // 金额
+      }
+
+      // 解析排序参数，格式：'field_name ASC' 或 'field_name DESC'
+      const [field, direction] = params.order.split(' ')
+      const mappedField = fieldMap[field] || field
+      adaptedParams.order = `${mappedField} ${direction}`
     }
 
     // 时间范围（新接口使用字符串格式）

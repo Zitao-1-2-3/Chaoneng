@@ -31,7 +31,7 @@ const createCostPriceValidator = (costPriceKey: string, fieldName: string) => {
         callback()
       }
     },
-    trigger: 'blur'
+    trigger: ['blur', 'change'] // 添加 change 触发器，实现实时验证
   }
 }
 
@@ -513,8 +513,8 @@ const priceSchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [
-        { required: true, message: '福利能量是必填项' },
-        createCostPriceValidator('weal_price_trx', '福利能量价格')
+        { required: true, message: '福利能量是必填项' }
+        // 移除成本价验证，允许低于成本价
       ],
       slots: {
         label: () => {

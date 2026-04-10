@@ -147,11 +147,13 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
       pageSize: pageSize
     }
 
-    // 处理排序参数
+    // 处理排序参数 - 转换为后端需要的格式
     const finalSortedParams: Recordable = { ...finalParams }
     if (finalParams['sort'] && finalParams['order']) {
-      finalSortedParams['sort_by'] = finalParams['sort']
-      finalSortedParams['order'] = finalParams['order'] === 'ascending' ? 'asc' : 'desc'
+      // 转换排序方向：ascending -> ASC, descending -> DESC
+      const direction = finalParams['order'] === 'ascending' ? 'ASC' : 'DESC'
+      // 合并为单个 order 参数，格式：'column ASC' 或 'column DESC'
+      finalSortedParams['order'] = `${finalParams['sort']} ${direction}`
       delete finalSortedParams['sort']
     }
 

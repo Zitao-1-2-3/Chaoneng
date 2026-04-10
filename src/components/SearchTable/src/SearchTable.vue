@@ -259,8 +259,17 @@ defineExpose({
 
 const handleSortChange = (data: { column: any; prop: string; order: string }) => {
   // 将排序信息保存到搜索参数中
-  searchParams.value.sort = data.prop
-  searchParams.value.order = data.order
+  // Element Plus 的 order 值：'ascending' | 'descending' | null
+
+  if (data.order && data.prop) {
+    // 保存排序字段和方向
+    searchParams.value.sort = data.prop
+    searchParams.value.order = data.order
+  } else {
+    // 清除排序
+    delete searchParams.value.sort
+    delete searchParams.value.order
+  }
 
   // 重新加载数据
   tableMethods.getList()

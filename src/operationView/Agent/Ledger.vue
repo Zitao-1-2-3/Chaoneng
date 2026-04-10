@@ -61,8 +61,8 @@ const getAgentLedgerList = async (params?: any): Promise<{ list: any[]; total?: 
   try {
     // 映射参数字段
     const adaptedParams: any = {
-      current_page: params?.current_page || params?.currentPage || 1,
-      page_size: params?.page_size || params?.pageSize || 10
+      current_page: params?.current_page || 1,
+      page_size: params?.page_size || 10
     }
 
     if (params?.query) adaptedParams.keyword = params.query // query → keyword

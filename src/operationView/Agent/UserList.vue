@@ -181,12 +181,28 @@ const fetchAccountList = async (params: any) => {
   try {
     // 映射参数字段
     const adaptedParams: any = {
-      current_page: params?.current_page || params?.currentPage || 1,
-      page_size: params?.page_size || params?.pageSize || 10
+      current_page: params?.current_page || 1,
+      page_size: params?.page_size || 10
     }
 
     if (params?.query) adaptedParams.keyword = params.query // query → keyword
     if (params?.bot_id) adaptedParams.bot_id = Number(params.bot_id)
+
+    // 处理排序参数 - 需要映射字段名
+    if (params?.order) {
+      // 字段名映射：前端 → 后端
+      const fieldMap: Record<string, string> = {
+        trx_mount: 'trx_balance', // TRX余额
+        usdt_mount: 'usdt_balance', // USDT余额
+        create_time: 'created_at', // 创建时间
+        update_time: 'updated_at' // 更新时间
+      }
+
+      // 解析排序参数，格式：'field_name ASC' 或 'field_name DESC'
+      const [field, direction] = params.order.split(' ')
+      const mappedField = fieldMap[field] || field
+      adaptedParams.order = `${mappedField} ${direction}`
+    }
 
     // 处理时间范围 - 转换为 Unix 时间戳（秒级）
     if (params?.dateRange && params.dateRange.length === 2) {

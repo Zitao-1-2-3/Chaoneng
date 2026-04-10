@@ -45,7 +45,17 @@ const defaultResponseInterceptors = (response: AxiosResponse) => {
     // 检查是否跳过错误处理
     const skipErrorHandler = (response.config as any)?.skipErrorHandler
     if (!skipErrorHandler) {
-      ElMessage.error(response?.data?.msg || '网络错误，稍后重试')
+      const errorMsg = response?.data?.msg || '网络错误，稍后重试'
+      // 检查是否是重复错误，显示中文提示
+      if (
+        errorMsg.includes('Duplicate entry') ||
+        errorMsg.includes('duplicate') ||
+        errorMsg.includes('1062')
+      ) {
+        ElMessage.error('该数据已存在，请勿重复添加')
+      } else {
+        ElMessage.error(errorMsg)
+      }
     }
     if (response?.data?.code == 400002) {
       const userStore = useUserStoreWithOut()

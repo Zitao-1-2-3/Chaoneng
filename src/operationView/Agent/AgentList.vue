@@ -109,6 +109,22 @@ const getAgentList = async (params?: any) => {
       delete apiParams.dateRange // 删除前端的 dateRange 字段
     }
 
+    // 处理排序参数 - 字段名映射
+    if (params?.order) {
+      const fieldMapping: Record<string, string> = {
+        trx_balance: 'trx_balance',
+        created_at: 'created_at'
+      }
+
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        apiParams.order = `${mappedField} ${direction}`
+      }
+    }
+
     console.log('请求参数:', apiParams)
     const res = await getAgentListApi(apiParams)
     const data = (res?.data as any) || {}
@@ -209,10 +225,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'trx_balance',
     label: 'TRX余额',
-    sortable: true,
-    sortMethod: (a: any, b: any) => {
-      return parseFloat(a.trx_balance || 0) - parseFloat(b.trx_balance || 0)
-    },
+    sortable: 'custom',
     formatter: (row: AgentItem) => row.trx_balance || '-'
   },
   {
@@ -244,10 +257,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'created_at',
     label: '创建时间',
-    sortable: true,
-    sortMethod: (a: any, b: any) => {
-      return (a.created_at || 0) - (b.created_at || 0)
-    },
+    sortable: 'custom',
     formatter: (row: AgentItem) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
   },
   {

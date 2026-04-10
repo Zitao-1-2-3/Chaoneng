@@ -59,7 +59,7 @@ import { v1GetDepositList, v1GetDepositDetail, exportRechargeOrderApi } from '@/
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
 import { downloadByData } from '@/utils/download'
-import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -441,8 +441,25 @@ const fetchRechargeOrderList = async (params: any) => {
     }
     if (params.receive_address) adaptedParams.receive_address = params.receive_address
     if (params.pay_address) adaptedParams.pay_address = params.pay_address
-    if (params.currentPage) adaptedParams.current_page = params.currentPage
-    if (params.pageSize) adaptedParams.page_size = params.pageSize
+
+    // 分页参数 - 使用后端格式
+    if (params.current_page) adaptedParams.current_page = params.current_page
+    if (params.page_size) adaptedParams.page_size = params.page_size
+
+    // 处理排序参数 - 需要映射字段名
+    if (params.order) {
+      // 字段名映射：前端 → 后端
+      const fieldMap: Record<string, string> = {
+        in_mount: 'amount', // 金额
+        create_time: 'created_at', // 创建时间
+        finish_time: 'paid_at' // 完成时间
+      }
+
+      // 解析排序参数，格式：'field_name ASC' 或 'field_name DESC'
+      const [field, direction] = params.order.split(' ')
+      const mappedField = fieldMap[field] || field
+      adaptedParams.order = `${mappedField} ${direction}`
+    }
 
     // 处理时间范围（转换为秒数）
     if (params.dateRange && params.dateRange.length === 2) {
@@ -535,7 +552,7 @@ const handleViewDetail = async (row: any) => {
     console.log('orderDetail.value:', orderDetail.value)
     console.log('row data:', row)
 
-    dialogVisible.value = 'order'
+    dialogVisible.value = true
     activeTab.value = 'order'
   } catch (error) {
     handleErrorMessage(error, '获取充值详情失败')

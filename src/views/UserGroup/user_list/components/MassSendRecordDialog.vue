@@ -220,8 +220,8 @@ const currentRecord = ref<Record<string, any>>({})
 const fetchMassSendRecords = async (params: any) => {
   try {
     const queryParams: MassSendListParamsV1 = {
-      current_page: Number(params.currentPage) || 1,
-      page_size: Number(params.pageSize) || 10
+      current_page: Number(params.current_page) || 1,
+      page_size: Number(params.page_size) || 10
     }
 
     // 只有当 bot_id 有值时才添加参数

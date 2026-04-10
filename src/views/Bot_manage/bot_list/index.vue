@@ -432,10 +432,30 @@ const handleSubmit = async () => {
         dialogVisible.value = false
         searchTableRef.value?.reload()
       } else {
-        handleErrorMessage(res, '操作失败')
+        // 检查是否是重复错误
+        const errorMsg = res?.msg || res?.message || ''
+        if (
+          errorMsg.includes('Duplicate entry') ||
+          errorMsg.includes('duplicate') ||
+          errorMsg.includes('1062')
+        ) {
+          ElMessage.error('该机器人已存在，请勿重复添加')
+        } else {
+          handleErrorMessage(res, '操作失败')
+        }
       }
-    } catch (error) {
-      handleErrorMessage(error, '创建机器人失败')
+    } catch (error: any) {
+      // 处理重复机器人的错误
+      const errorMsg = error?.message || error?.msg || String(error)
+      if (
+        errorMsg.includes('Duplicate entry') ||
+        errorMsg.includes('duplicate') ||
+        errorMsg.includes('1062')
+      ) {
+        ElMessage.error('该机器人已存在，请勿重复添加')
+      } else {
+        handleErrorMessage(error, '创建机器人失败')
+      }
     }
   })
 }

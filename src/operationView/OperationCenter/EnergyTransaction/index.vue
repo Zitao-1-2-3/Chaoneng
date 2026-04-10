@@ -550,8 +550,8 @@ const fetchDataWrapper = async (params: any = {}) => {
 
     // 构建新接口参数
     const apiParams: any = {
-      current_page: params.currentPage || params.current_page || 1,
-      page_size: params.pageSize || params.page_size || 10
+      current_page: params.current_page || 1,
+      page_size: params.page_size || 10
     }
 
     // 处理时间范围（毫秒转秒）
