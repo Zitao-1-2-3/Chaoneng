@@ -1,8 +1,6 @@
 import { useI18n } from '@/hooks/web/useI18n'
 import { FormItemRule } from 'element-plus'
 
-const { t } = useI18n()
-
 interface LengthRange {
   min: number
   max: number
@@ -10,10 +8,18 @@ interface LengthRange {
 }
 
 export const useValidator = () => {
+  const { t } = useI18n()
+
   const required = (message?: string): FormItemRule => {
     return {
       required: true,
-      message: message || t('common.required')
+      validator: (_, value, callback) => {
+        if (!value && value !== 0) {
+          callback(new Error(message || t('common.required')))
+        } else {
+          callback()
+        }
+      }
     }
   }
 
@@ -23,7 +29,13 @@ export const useValidator = () => {
     return {
       min,
       max,
-      message: message || t('common.lengthRange', { min, max })
+      validator: (_, value, callback) => {
+        if (value && (value.length < min || value.length > max)) {
+          callback(new Error(message || t('common.lengthRange', { min, max })))
+        } else {
+          callback()
+        }
+      }
     }
   }
 
@@ -44,6 +56,19 @@ export const useValidator = () => {
       validator: (_, val, callback) => {
         if (/[`~!@#$%^&*()_+<>?:"{},.\/;'[\]]/gi.test(val)) {
           callback(new Error(message || t('common.notSpecialCharacters')))
+        } else {
+          callback()
+        }
+      }
+    }
+  }
+
+  const noChinese = (message?: string): FormItemRule => {
+    return {
+      validator: (_, val, callback) => {
+        if (!val) return callback()
+        if (/[\u4e00-\u9fa5]/.test(val)) {
+          callback(new Error(message || '不能包含中文字符'))
         } else {
           callback()
         }
@@ -79,8 +104,13 @@ export const useValidator = () => {
 
   const maxlength = (max: number): FormItemRule => {
     return {
-      max,
-      message: '长度不能超过' + max + '个字符'
+      validator: (_, value, callback) => {
+        if (value && value.length > max) {
+          callback(new Error('长度不能超过' + max + '个字符'))
+        } else {
+          callback()
+        }
+      }
     }
   }
 
@@ -101,6 +131,7 @@ export const useValidator = () => {
     lengthRange,
     notSpace,
     notSpecialCharacters,
+    noChinese,
     phone,
     email,
     maxlength,

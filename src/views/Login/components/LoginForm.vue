@@ -25,7 +25,7 @@ import {
 } from '@/api/login'
 import { ElMessage } from 'element-plus'
 
-const { required, email, phone } = useValidator()
+const { required, email, phone, noChinese } = useValidator()
 
 const emit = defineEmits(['to-register'])
 
@@ -48,11 +48,12 @@ const rules = computed(() => {
   return loginType.value === 'account'
     ? {
         username: [required()],
-        password: [required()]
+        password: [required(), noChinese()],
+        verify_code: [required(), noChinese()]
       }
     : {
         phone: [required(), phone()],
-        code: [required()]
+        code: [required(), noChinese()]
       }
 })
 

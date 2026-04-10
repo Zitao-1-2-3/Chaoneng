@@ -389,7 +389,11 @@ const handleExport = async () => {
 
 // SearchTable ready事件处理
 function onSearchTableReady(instance) {
-  instance.reload()
+  // 只在没有 query 参数时才自动加载
+  const query = route.query
+  if (!query.bot_id && !query.tg_id) {
+    instance.reload()
+  }
 }
 
 onMounted(async () => {

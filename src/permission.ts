@@ -42,6 +42,14 @@ router.beforeEach(async (to, from, next) => {
 
       // 批量添加路由，减少循环次数
       const addRouters = permissionStore.getAddRouters
+
+      // 确保路由列表不为空
+      if (addRouters.length === 0) {
+        console.error('路由生成失败：addRouters 为空')
+        next('/login')
+        return
+      }
+
       addRouters.forEach((route) => {
         router.addRoute(route as unknown as RouteRecordRaw)
       })
@@ -50,7 +58,6 @@ router.beforeEach(async (to, from, next) => {
       const redirectPath = from.query.redirect || to.path
       const redirect = decodeURIComponent(redirectPath as string)
       const nextData = to.path === redirect ? { ...to, replace: true } : { path: redirect }
-      // 使用 nextTick 确保路由已经添加完成
       next(nextData)
     }
   } else {
