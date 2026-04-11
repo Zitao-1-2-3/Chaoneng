@@ -88,11 +88,7 @@ import { Descriptions } from '@/components/Descriptions'
 // import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import {
-  v1GetExchangeOrderList,
-  v1GetExchangeOrderDetail,
-  exportExchangeOrderApi
-} from '@/api/exchange_order'
+import { v1GetExchangeOrderList, v1GetExchangeOrderDetail } from '@/api/exchange_order'
 import { Icon } from '@/components/Icon'
 import { downloadByData } from '@/utils/download'
 import { ExchangeOrderListItem } from '@/api/exchange_transaction'
@@ -110,6 +106,9 @@ const orderDetail = ref<any>({})
 const transactionDialogVisible = ref(false)
 const transactionDetail = ref<any>({})
 const activeTransactionTab = ref('in')
+
+// 保存当前搜索参数
+const currentSearchParams = ref<any>({})
 
 // 兑换详情Schema
 const exchangeDetailSchema = computed(() => {
@@ -510,6 +509,9 @@ const navigateToBotList = (botId: string) => {
 // API 封装
 const fetchExchangeOrderList = async (params: any) => {
   try {
+    // 保存当前搜索参数（用于导出）
+    currentSearchParams.value = params
+
     // 映射参数字段
     const adaptedParams: any = {}
 
@@ -655,15 +657,62 @@ const handleTransactionDetail = async (row: any) => {
 // 导出订单
 const handleExport = async () => {
   try {
-    const params = await searchTableRef.value?.searchMethods.getFormData()
-    const res = await exportExchangeOrderApi(params)
+    // 尝试获取当前搜索条件，如果失败则使用保存的参数
+    let params
+    try {
+      params = await searchTableRef.value?.searchMethods?.getFormData()
+    } catch (e) {
+      // 如果 getFormData 不可用，使用保存的搜索参数
+      params = currentSearchParams.value
+    }
 
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '闪兑订单列表.xlsx')
+    // 映射参数字段
+    const adaptedParams: any = {}
 
+    if (params?.order_id) adaptedParams.order_id = params.order_id
+    if (params?.status) adaptedParams.status = params.status
+    if (params?.query) adaptedParams.keyword = params.query
+
+    // 处理时间范围
+    if (params?.dateRange && params.dateRange.length === 2) {
+      adaptedParams.start_time = new Date(params.dateRange[0]).toISOString()
+      adaptedParams.end_time = new Date(params.dateRange[1]).toISOString()
+    }
+
+    console.log('导出参数:', adaptedParams)
+
+    // 使用获取列表的接口，传入搜索条件
+    const res = await v1GetExchangeOrderList(adaptedParams)
+
+    if (res.code === '000000' && res.data && res.data.list) {
+      // 将数据转换为 CSV 格式
+      const list = res.data.list.map((item: any) => ({
+        订单号: item.id,
+        机器人名称: item.bot_name,
+        机器人ID: item.bot_id,
+        订单类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
+        支付金额: `${item.amount} ${item.in_coin}`,
+        兑换金额: `${item.out_amount} ${item.out_coin}`,
+        兑换汇率: item.actual_rate || '-',
+        订单状态: getStatusText(item.status),
+        备注: item.describe || '-',
+        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
+        完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
+      }))
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, '闪兑订单列表.csv')
       handleSuccessMessage('订单导出成功')
     } else {
-      ElMessage.error('文件数据格式错误')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '订单导出失败')
@@ -671,6 +720,7 @@ const handleExport = async () => {
 }
 
 const onSearch = (params: any) => {
+  // onSearch 事件会在用户点击搜索时触发，但参数已经在 fetchExchangeOrderList 中保存了
   console.log('搜索参数:', params)
 }
 

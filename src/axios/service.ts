@@ -27,6 +27,20 @@ axiosInstance.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const controller = new AbortController()
   const originalUrl = config.url || ''
 
+  // --- 处理 keyboards 参数：确保只传递 ID 数组 ---
+  if (config.data && config.data.keyboards && Array.isArray(config.data.keyboards)) {
+    config.data.keyboards = config.data.keyboards
+      .map((item: any) => {
+        // 如果是对象，提取 id 属性
+        if (typeof item === 'object' && item !== null) {
+          return Number(item.id || item)
+        }
+        // 如果是数字或字符串，直接转换
+        return Number(item)
+      })
+      .filter((id: number) => !isNaN(id) && id > 0)
+  }
+
   // --- Mock 逻辑判断 ---
   const MOCK_LIST = (import.meta.env.VITE_MOCK_LIST || '').split(',')
   const useMock = import.meta.env.VITE_USE_MOCK === 'true'

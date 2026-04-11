@@ -65,7 +65,7 @@ import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import type { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
-import { v1GetUserList, exportTgUserListApi } from '@/api/tgUser'
+import { v1GetUserList } from '@/api/tgUser'
 import type { UserListParamsV1 } from '@/api/tgUser/types'
 import { v1GetBotList } from '@/api/botlist'
 import MessageDialog from './components/MessageDialog.vue'
@@ -374,13 +374,51 @@ const handleMessageSent = () => {
 // 处理导出
 const handleExport = async () => {
   try {
+    // 获取当前搜索条件
     const params = await searchTableRef.value?.searchMethods.getFormData()
-    const res = await exportTgUserListApi(params)
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, 'TG用户列表.xlsx')
+
+    // 构建查询参数
+    const queryParams: any = {}
+    if (params?.bot_id !== undefined && params.bot_id !== '') {
+      queryParams.bot_id = Number(params.bot_id)
+    }
+    if (params?.query && params.query.trim()) {
+      queryParams.keyword = params.query.trim()
+    }
+
+    // 使用获取列表的接口，传入搜索条件
+    const res = await v1GetUserList(queryParams)
+
+    if (res.code === '000000' && res.data && res.data.list) {
+      // 将数据转换为 CSV 或 Excel 格式
+      const list = res.data.list.map((item: any) => {
+        const botInfo = botInfoMap.value.get(item.bot_id)
+        return {
+          TG用户ID: item.tg_user_id,
+          TG用户昵称: item.tg_first_name,
+          TG用户名: item.tg_user_name,
+          机器人ID: item.bot_id,
+          机器人用户名: botInfo ? botInfo.user_name : '',
+          TRX余额: item.trx_balance,
+          USDT余额: item.usdt_balance,
+          创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
+          更新时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
+        }
+      })
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, 'TG用户列表.csv')
       handleSuccessMessage('用户列表导出成功')
     } else {
-      ElMessage.error('文件数据格式错误')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '用户列表导出失败')

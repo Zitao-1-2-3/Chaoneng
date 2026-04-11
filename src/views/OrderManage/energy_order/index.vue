@@ -36,17 +36,13 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import type { TableColumn } from '@/components/Table'
-import {
-  v1GetEnergyOrderList,
-  v1GetEnergyOrderDetail,
-  exportEnergyOrderApi
-} from '@/api/energy_order'
+import { v1GetEnergyOrderList, v1GetEnergyOrderDetail } from '@/api/energy_order'
 import OrderDetailDialog from './components/OrderDetailDialog.vue'
 import formatEnergyNum from '../helpers/formatEnergyNum'
 import isEmpty from 'lodash-es/isEmpty'
 import { Icon } from '@/components/Icon'
 import { downloadByData } from '@/utils/download'
-import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -552,14 +548,78 @@ const handleViewDetail = async (row: any) => {
 // 导出订单
 const handleExport = async () => {
   try {
-    const params = await searchTableRef.value?.searchMethods.getFormData()
-    const res = await exportEnergyOrderApi(params)
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '能量订单列表.xlsx')
+    // 尝试获取当前搜索条件，如果失败则使用保存的参数
+    let params
+    try {
+      params = await searchTableRef.value?.searchMethods?.getFormData()
+    } catch (e) {
+      // 如果 getFormData 不可用，使用保存的搜索参数
+      params = currentSearchParams.value
+    }
 
+    // 映射当前搜索条件参数
+    const adaptedParams: any = {}
+
+    if (params?.order_num) adaptedParams.order_id = params.order_num
+    if (params?.status) adaptedParams.status = params.status
+    if (params?.query) adaptedParams.keyword = params.query
+    if (params?.order_type) adaptedParams.kind = params.order_type
+    if (params?.receive_address) adaptedParams.receive_address = params.receive_address
+    if (params?.energy_address) adaptedParams.energy_address = params.energy_address
+
+    // 处理时间范围
+    if (params?.dateRange && params.dateRange.length === 2) {
+      adaptedParams.start_time = Math.floor(params.dateRange[0] / 1000).toString()
+      adaptedParams.end_time = Math.floor(params.dateRange[1] / 1000).toString()
+    }
+
+    console.log('导出参数:', adaptedParams)
+
+    // 使用获取列表的接口，传入搜索条件
+    const res = await v1GetEnergyOrderList(adaptedParams)
+
+    if (res.code === '000000' && res.data && res.data.list) {
+      // 订单类型映射
+      const typeTextMap: Record<number, string> = {
+        4: '按时间',
+        5: '按笔数',
+        6: '福利',
+        7: '闪租',
+        8: '托管',
+        9: '批量下单',
+        10: '激活'
+      }
+
+      // 将数据转换为 CSV 格式
+      const list = res.data.list.map((item: any) => ({
+        订单号: item.id,
+        TG用户名: item.tg_user_name,
+        TG用户昵称: item.tg_first_name,
+        TG用户ID: item.user_id,
+        机器人名称: item.bot_name,
+        机器人ID: item.bot_id,
+        订单类型: typeTextMap[item.kind] || '-',
+        能量数量: formatEnergyNum(item.energy_amount),
+        订单状态: getStatusTextForTable(item.status),
+        收款地址: item.receive_address || '-',
+        备注: item.describe || '-',
+        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
+        完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
+      }))
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, '能量订单列表.csv')
       handleSuccessMessage('订单导出成功')
     } else {
-      ElMessage.error('文件数据格式错误')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '订单导出失败')

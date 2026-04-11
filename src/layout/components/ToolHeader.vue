@@ -10,9 +10,10 @@ import { useAppStore } from '@/store/modules/app'
 import { useDesign } from '@/hooks/web/useDesign'
 import { Icon } from '@/components/Icon'
 import WebhookFormModal from './WebhookFormModal.vue'
-import { getCustomerServiceListApi } from '@/api/customer_service'
+import { getCustomerServiceListApi, getUserCustomerServiceListApi } from '@/api/customer_service'
 import { ElMessage } from 'element-plus'
 import { BaseButton } from '@/components/Button'
+import { isManagementSystem } from '@/utils/system'
 
 const { getPrefixCls, variables } = useDesign()
 
@@ -61,8 +62,20 @@ export default defineComponent({
     // 联系客服功能
     const handleContactCustomerService = async () => {
       try {
+        // 根据系统类型调用不同的 API
+        // Management = 代理端，使用 v1 接口
+        // Operation = 运营端，使用 v2 接口
+        const isManagement = isManagementSystem()
+        const apiCall = isManagement ? getUserCustomerServiceListApi : getCustomerServiceListApi
+
+        console.log(
+          '[联系客服] 系统类型:',
+          isManagement ? '代理端(Management)' : '运营端(Operation)'
+        )
+        console.log('[联系客服] 使用接口:', isManagement ? 'v1/user' : 'v2/manage')
+
         // 调用客服列表 API 获取第一个客服
-        const res = await getCustomerServiceListApi({
+        const res = await apiCall({
           current_page: 1,
           page_size: 1,
           status: 1 // 只获取启用状态的客服

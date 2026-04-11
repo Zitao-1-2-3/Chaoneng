@@ -22,12 +22,27 @@ export type {
   AddCustomerServiceParams
 } from './type'
 
-// ==================== 新接口（v2） ====================
+// ==================== 代理端接口（v1） ====================
+
+const USER_CUSTOMER_SERVICE_BASE = '/v1/user/customer/'
+
+/**
+ * 获取客服列表（代理端接口 v1）
+ * 接口路径：GET /v1/user/customer/list
+ * @param params 查询参数
+ */
+export const getUserCustomerServiceListApi = (
+  params: CustomerServiceQueryParams
+): Promise<IResponse<CustomerServiceListResponse>> => {
+  return request.get({ url: `${USER_CUSTOMER_SERVICE_BASE}list`, params })
+}
+
+// ==================== 运营端接口（v2） ====================
 
 const CUSTOMER_SERVICE_BASE = '/v2/manage/customer/'
 
 /**
- * 获取客服列表（新接口 v2）
+ * 获取客服列表（运营端接口 v2）
  * 接口路径：GET /v2/manage/customer/list
  * @param params 查询参数
  */

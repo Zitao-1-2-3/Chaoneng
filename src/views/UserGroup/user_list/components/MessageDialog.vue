@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, reactive, watch, defineProps, defineEmits, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import {
   ElButton,
   ElMessage,
@@ -33,7 +33,7 @@ import {
   ElUpload,
   ElImageViewer
 } from 'element-plus'
-import type { UploadUserFile, UploadRequestOptions } from 'element-plus'
+import type { UploadUserFile } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Descriptions } from '@/components/Descriptions'
 import type { DescriptionsSchema } from '@/components/Descriptions'
@@ -41,7 +41,7 @@ import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { v1SendGroupMessage, v1SendMessage, v1GetInlineButtonList } from '@/api/tgUser'
-import { upload as uploadAPI } from '@/api/utils/upload'
+import { uploadImage as uploadAPI } from '@/api/utils/upload'
 import type { MenuItem } from '@/api/menu_list/types'
 import { useRouter } from 'vue-router'
 import { BaseButton } from '@/components/Button'
@@ -109,7 +109,7 @@ const handlePreview = (uploadFile: UploadUserFile) => {
 }
 
 // 文件选择变化
-const handleFileChange = (file: UploadUserFile, fileList: UploadUserFile[]) => {
+const handleFileChange = (_file: UploadUserFile, fileList: UploadUserFile[]) => {
   if (fileList.length > 1) {
     ElMessage.warning('只能上传一张图片')
     fileListRef.value = [fileList[fileList.length - 1]]
@@ -221,6 +221,9 @@ const formSchema = computed<FormSchema[]>(() => {
       component: 'CheckboxGroup',
       label: '内联按钮',
       colProps: { span: 24 },
+      componentProps: {
+        // 不使用 options，而是使用自定义 slot
+      },
       formItemProps: {
         slots: {
           default: () => {
@@ -232,6 +235,8 @@ const formSchema = computed<FormSchema[]>(() => {
                 {menuList.value.length > 0 ? (
                   <ElCheckboxGroup v-model={checkList.value} class="flex flex-wrap gap-2">
                     {menuList.value.map((menu) => (
+                      // 关键：在 ElCheckboxGroup 中，label 属性是选中时的值
+                      // 不要同时设置 value 属性，只设置 label
                       <ElCheckbox key={menu.id} label={menu.id}>
                         {menu.menu_name}
                       </ElCheckbox>
@@ -307,7 +312,7 @@ const formSchema = computed<FormSchema[]>(() => {
           rules: [
             {
               required: true,
-              validator: (rule, value, callback) => {
+              validator: (_rule, value, callback) => {
                 if (currentFilterType.value === 'user_custom' && !value) {
                   callback(new Error('自定义用户时，TG用户id列表不能为空'))
                 } else {
@@ -394,8 +399,20 @@ const handleSubmit = async () => {
       }
     }
 
-    // 将 checkList (内联按钮ID) 转换为数字数组
-    const keyboards = checkList.value.map((id) => Number(id)).filter((id) => !isNaN(id))
+    // 从 checkList 中提取纯数字 ID
+    const keyboards = checkList.value
+      .map((item: any) => {
+        // 如果是对象，提取 id 属性
+        if (typeof item === 'object' && item !== null && 'id' in item) {
+          return Number(item.id)
+        }
+        // 如果是数字或字符串，直接转换
+        return typeof item === 'number' ? item : Number(item)
+      })
+      .filter((id: number) => !isNaN(id))
+
+    console.log('checkList.value:', checkList.value)
+    console.log('keyboards (纯数字数组):', keyboards)
 
     try {
       if (props.type === 'single') {
