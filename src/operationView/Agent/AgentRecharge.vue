@@ -168,7 +168,7 @@ const columns = ref<TableColumn[]>([
     label: '订单状态',
     minWidth: 100,
     formatter: (row) => {
-      let type = getStatusType(row.status)
+      const type = getStatusType(row.status)
       return <ElTag type={type}>{getStatusText(row.status) || '未知'}</ElTag>
     }
   },
