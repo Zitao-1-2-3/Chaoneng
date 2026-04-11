@@ -30,7 +30,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onActivated } from 'vue'
 import { ElButton, ElMessageBox, ElMessage, ElSelect, ElOption } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Icon } from '@/components/Icon'
@@ -431,6 +431,12 @@ const handleEditThreshold = async (row) => {
     }
   }
 }
+
+// 当页面被激活时（从缓存中恢复或首次进入），重新加载数据
+onActivated(() => {
+  console.log('[ResourcePool] 页面激活，重新加载数据')
+  reloadTable()
+})
 </script>
 
 <style scoped>

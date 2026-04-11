@@ -37,7 +37,8 @@ const formSchema = reactive<FormSchema[]>([
       placeholder: '请输入旧密码'
     },
     formItemProps: {
-      required: true
+      required: true,
+      rules: [{ required: true, message: '请输入旧密码', trigger: 'blur' }]
     },
     colProps: {
       span: 24
@@ -73,7 +74,8 @@ const formSchema = reactive<FormSchema[]>([
       placeholder: '请再次输入新密码'
     },
     formItemProps: {
-      required: true
+      required: true,
+      rules: [{ required: true, message: '请输入确认密码', trigger: 'blur' }]
     },
     colProps: {
       span: 24
