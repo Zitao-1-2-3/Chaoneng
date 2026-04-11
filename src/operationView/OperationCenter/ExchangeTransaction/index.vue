@@ -234,7 +234,12 @@ const columns = reactive<TableColumn[]>([
     field: 'agent_out_amount',
     label: '代理扣款',
     minWidth: 150,
-    formatter: (row) => (row.agent_out_amount ? `${row.agent_out_amount}TRX`.trim() : '-')
+    formatter: (row) => {
+      if (!row.agent_out_amount) return '-'
+      // 去掉负号，因为"代理扣款"本身就表示支出
+      const amount = Math.abs(Number(row.agent_out_amount))
+      return `${amount}TRX`
+    }
   },
   {
     field: 'status',
@@ -453,7 +458,7 @@ const fetchExchangeTransactionList = async (params: any) => {
           order_type: orderType, // 订单类型：1-USDT→TRX, 2-TRX→USDT
           pay_unit: item.in_coin || item.coin, // 支付单位（输入币种）
           exchange_amount: String(item.out_amount || 0), // 支出数量（使用out_amount字段）
-          agent_out_amount: String(item.amount), // 代理扣款（使用amount字段）
+          agent_out_amount: String(item.agent_cost || 0), // 代理扣款（使用agent_cost字段）
           plate_profit: String(item.plate_profit || 0), // 平台利润
           agent_profit: String(item.agent_profit || 0), // 代理利润
           exchange_unit: item.out_coin || (item.coin === 'TRX' ? 'USDT' : 'TRX'), // 兑换单位（输出币种）

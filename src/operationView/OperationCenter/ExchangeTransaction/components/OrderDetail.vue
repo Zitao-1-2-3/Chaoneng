@@ -288,7 +288,7 @@ const open = async (orderIdValue: number | string) => {
         trx_price: exchange.actual_rate, // 对话汇率
         real_price: exchange.real_rate, // 实时汇率
         plate_profit: exchange.plate_profit,
-        agent_out_amount: responseData.amount, // 代理扣款
+        agent_out_amount: responseData.agent_cost || 0, // 代理扣款（使用agent_cost字段）
         receive_address: responseData.receive_address,
         status: responseData.status,
         finish_time: responseData.paid_at || exchange.out_at || 0,

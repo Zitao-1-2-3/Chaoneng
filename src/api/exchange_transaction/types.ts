@@ -46,6 +46,7 @@ export interface V2ExchangeItem {
   actual_rate?: string // 实际汇率
   agent_profit?: string // 代理利润
   plate_profit?: string // 平台利润
+  agent_cost?: string // 代理扣款
   completed_at?: number | null // 完成时间（Unix时间戳-秒）
 }
 
@@ -106,6 +107,7 @@ export interface V2ExchangeDetail {
   bot_first_name: string // 机器人昵称
   tg_user_name: string // TG用户名
   tg_first_name: string // TG昵称
+  agent_cost?: string // 代理扣款
   exchange: V2ExchangeInfo // 兑换信息
   pay_transaction: V2TransactionInfo // 支付交易信息
   deliver_transaction: V2TransactionInfo // 发放交易信息
