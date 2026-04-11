@@ -440,7 +440,7 @@ const handleSubmit = async () => {
         searchTableRef.value?.reload()
       } else {
         // 检查是否是重复错误
-        const errorMsg = res?.msg || res?.message || ''
+        const errorMsg = (res as any)?.msg || (res as any)?.message || ''
         if (
           errorMsg.includes('Duplicate entry') ||
           errorMsg.includes('duplicate') ||
@@ -473,7 +473,7 @@ const fetchBotList = async (params) => {
   console.log('fetchBotList 调用参数:', params)
   try {
     // 构建新接口参数
-    const apiParams = {
+    const apiParams: any = {
       current_page: params.page || 1,
       page_size: params.limit || 10,
       keyword: params.keyword || undefined,
@@ -607,13 +607,14 @@ const getBotPrice = async () => {
 // 手动触发加载
 onMounted(async () => {
   await getBotPrice()
-  const query = useRoute().query
+  const route = useRoute()
+  const query = route.query
   console.log('query', query)
   // 确保组件挂载后可以访问表格实例
   setTimeout(() => {
     if (searchTableRef.value) {
       searchTableRef.value.setSearchParams({
-        keyword: query.tg_bot_id || query.name || undefined
+        keyword: (query.tg_bot_id as string) || (query.name as string) || undefined
       })
       console.log('手动触发数据刷新')
       searchTableRef.value.reload()
