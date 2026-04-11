@@ -170,12 +170,14 @@ const columns: TableColumn[] = [
   {
     field: 'create_time',
     label: '创建时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row: ReplyItem) => formatToDateTime(row.create_time)
   },
   {
     field: 'update_time',
     label: '更新时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row: ReplyItem) => formatToDateTime(row.update_time)
   }
@@ -244,6 +246,21 @@ const fetchReplyList = async (params: any) => {
     // 只有当 status 有值时才添加参数
     if (params.status !== undefined && params.status !== '') {
       queryParams.status = params.status
+    }
+
+    // 处理排序参数
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        create_time: 'created_at',
+        update_time: 'updated_at'
+      }
+
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        queryParams.order = `${mappedField} ${direction}`
+      }
     }
 
     // 使用新接口 v1GetReplyList

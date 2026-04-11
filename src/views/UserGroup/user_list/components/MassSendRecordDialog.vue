@@ -185,6 +185,7 @@ const tableColumns: TableColumn[] = [
   {
     field: 'create_time',
     label: '创建时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
   },
@@ -227,6 +228,20 @@ const fetchMassSendRecords = async (params: any) => {
     // 只有当 bot_id 有值时才添加参数
     if (params.bot_id !== undefined && params.bot_id !== '') {
       queryParams.bot_id = Number(params.bot_id)
+    }
+
+    // 处理排序参数
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        create_time: 'created_at'
+      }
+
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        queryParams.order = `${mappedField} ${direction}`
+      }
     }
 
     // 使用新接口 v1GetMassSendList

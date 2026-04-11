@@ -86,12 +86,14 @@ const columns: TableColumn[] = [
   {
     field: 'create_time',
     label: '创建时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row: AutoManageAddressItem) => formatToDateTime(row.create_time)
   },
   {
     field: 'finish_time',
     label: '更新时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row: AutoManageAddressItem) =>
       row.finish_time ? formatToDateTime(row.finish_time) : '-'
@@ -151,6 +153,22 @@ const fetchAutoManageList = async (params: any) => {
     // 只有当 keyword 有值时才添加参数
     if (params.keyword && params.keyword.trim()) {
       queryParams.keyword = params.keyword.trim()
+    }
+
+    // 处理排序参数 - 字段名映射
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        create_time: 'created_at',
+        finish_time: 'updated_at'
+      }
+
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        queryParams.order = `${mappedField} ${direction}`
+      }
     }
 
     // 使用新接口 v1GetHostingList

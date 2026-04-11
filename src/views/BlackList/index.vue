@@ -91,6 +91,7 @@ const columns: TableColumn[] = [
   {
     field: 'created_at',
     label: '创建时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row: BlackListItemV1) => formatToDateTime(row.created_at)
   }
@@ -127,12 +128,27 @@ const fetchBlackListData = async (params: {
   current_page?: number
   page_size?: number
   address?: string
+  order?: string
 }) => {
   try {
     const queryParams: BlackListParamsV1 = {
       current_page: Number(params.current_page) || 1,
       page_size: Number(params.page_size) || 10,
       address: params.address || undefined
+    }
+
+    // 处理排序参数
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        created_at: 'created_at'
+      }
+
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        queryParams.order = `${mappedField} ${direction}`
+      }
     }
 
     // 使用新接口 v1GetBlackList

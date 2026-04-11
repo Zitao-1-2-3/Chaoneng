@@ -189,11 +189,13 @@ const columns = [
   {
     field: 'created_at',
     label: '创建时间',
+    sortable: 'custom',
     formatter: (row) => formatToDateTime(row.created_at)
   },
   {
     field: 'expired_at',
     label: '到期时间',
+    sortable: 'custom',
     formatter: (row) => formatToDateTime(row.expired_at),
     slots: {
       header: () => {
@@ -472,6 +474,21 @@ const fetchBotList = async (params) => {
       keyword: params.keyword || undefined,
       agent_name: params.agent_name || undefined,
       status: params.status || undefined
+    }
+
+    // 处理排序参数
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        created_at: 'created_at',
+        expired_at: 'expired_at'
+      }
+
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        apiParams.order = `${mappedField} ${direction}`
+      }
     }
 
     const response = await v1GetBotList(apiParams)

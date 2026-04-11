@@ -400,6 +400,7 @@ const columns: TableColumn[] = [
   {
     field: 'create_time',
     label: '创建时间',
+    sortable: 'custom',
     width: 180,
     showOverflowTooltip: false,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
@@ -407,6 +408,7 @@ const columns: TableColumn[] = [
   {
     field: 'pay_time',
     label: '支付时间',
+    sortable: 'custom',
     width: 180,
     showOverflowTooltip: false,
     formatter: (row) => (row.pay_time ? formatToDateTime(row.pay_time) : '-')
@@ -522,6 +524,22 @@ const fetchExchangeOrderList = async (params: any) => {
     // 分页参数
     adaptedParams.current_page = params.current_page || 1
     adaptedParams.page_size = params.page_size || 10
+
+    // 处理排序参数 - 字段名映射
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        create_time: 'created_at',
+        pay_time: 'paid_at'
+      }
+
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        adaptedParams.order = `${mappedField} ${direction}`
+      }
+    }
 
     // 处理时间范围
     if (params.dateRange && params.dateRange.length === 2) {

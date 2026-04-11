@@ -180,12 +180,14 @@ const columns: TableColumn[] = [
   {
     field: 'create_time',
     label: '创建时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
   },
   {
     field: 'update_time',
     label: '更新时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row) => (row.update_time ? formatToDateTime(row.update_time * 1000) : '-')
   },
@@ -254,6 +256,22 @@ const fetchAccountList = async (params: any) => {
     const queryParams: UserListParamsV1 = {
       current_page: Number(params.current_page) || 1,
       page_size: Number(params.page_size) || 10
+    }
+
+    // 处理排序参数 - 字段名映射
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        create_time: 'created_at',
+        update_time: 'updated_at'
+      }
+
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        queryParams.order = `${mappedField} ${direction}`
+      }
     }
 
     // 只有当 bot_id 有值时才添加参数

@@ -386,12 +386,14 @@ const columns: TableColumn[] = [
   {
     field: 'create_time',
     label: '创建时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   },
   {
     field: 'finish_time',
     label: '完成时间',
+    sortable: 'custom',
     width: 180,
     formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
   }
@@ -494,7 +496,24 @@ const navigateToBotList = (tgUserId: string) => {
 // API 封装
 const fetchHostedOrderList = async (params: any) => {
   try {
-    const response = await getHostedOrderListApi(params)
+    // 处理排序参数 - 字段名映射
+    const processedParams = { ...params }
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        create_time: 'created_at',
+        finish_time: 'paid_at'
+      }
+
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        processedParams.order = `${mappedField} ${direction}`
+      }
+    }
+
+    const response = await getHostedOrderListApi(processedParams)
     const list = response.data?.list || []
     const hasSearchCondition = !!(
       params.query ||

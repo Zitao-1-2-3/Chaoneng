@@ -348,6 +348,7 @@ const columns: TableColumn[] = [
   {
     field: 'created_at',
     label: '创建时间',
+    sortable: 'custom',
     formatter: (row: any) => {
       return formatToDateTime(row.created_at)
     }
@@ -355,6 +356,7 @@ const columns: TableColumn[] = [
   {
     field: 'updated_at',
     label: '更新时间',
+    sortable: 'custom',
     formatter: (row: any) => {
       return formatToDateTime(row.updated_at)
     }
@@ -417,6 +419,16 @@ const fetchMenuList = async (params: any) => {
       keyword: params.menu_name || undefined,
       menu_type: params.menu_type || undefined,
       status: params.status || undefined
+    }
+
+    // 处理排序参数
+    if (params.order) {
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        queryParams.order = `${field} ${direction}`
+      }
     }
 
     const response = await v1GetMenuList(queryParams)
