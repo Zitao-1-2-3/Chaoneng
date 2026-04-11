@@ -294,8 +294,8 @@ const open = async (orderIdValue: number | string) => {
         finish_time: responseData.paid_at || exchange.out_at || 0,
         describe: responseData.describe,
         // 地址信息
-        out_from_address: exchange.out_address, // 系统转出地址
-        in_from_address: payTx.from, // 用户支付地址
+        out_from_address: deliverTx?.from || exchange.out_address, // 系统转出地址（发送方）
+        in_from_address: deliverTx?.to || exchange.out_address, // 用户接收地址（接收方）
         in_to_address: payTx.to, // 代理收款地址
         // 交易hash
         out_txid: exchange.out_txid || deliverTx.id, // 系统发放hash
