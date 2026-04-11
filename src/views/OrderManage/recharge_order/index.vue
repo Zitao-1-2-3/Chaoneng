@@ -58,7 +58,7 @@ import type { DescriptionsSchema } from '@/components/Descriptions'
 import { v1GetDepositList, v1GetDepositDetail } from '@/api/recharge_order'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
-import { downloadByData } from '@/utils/download'
+import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
@@ -584,14 +584,12 @@ const handleExport = async () => {
     const res = await v1GetDepositList(adaptedParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为 CSV 格式
+      // 将数据转换为 Excel 格式，列名与列表显示一致
       const list = res.data.list.map((item: any) => ({
         订单号: item.id,
         TG用户名: item.tg_user_name,
         TG用户昵称: item.tg_first_name,
-        TG用户ID: item.user_id,
         机器人名称: item.bot_name,
-        机器人ID: item.bot_id,
         订单类型: item.coin === 'TRX' ? '充值TRX' : '充值USDT',
         金额: `${item.amount} ${item.coin}`,
         订单状态: getStatusText(item.status),
@@ -602,16 +600,8 @@ const handleExport = async () => {
         完成时间: item.paid_at ? formatToDateTime(item.paid_at) : '-'
       }))
 
-      // 转换为 CSV
-      const headers = Object.keys(list[0] || {})
-      const csvContent = [
-        headers.join(','),
-        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
-      ].join('\n')
-
-      // 创建 Blob 并下载
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      downloadByData(blob, '充值订单列表.csv')
+      // 导出为 Excel
+      simpleExportToExcel(list, '充值订单列表')
       handleSuccessMessage('订单导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')

@@ -74,7 +74,7 @@ import { useRoute, useRouter } from 'vue-router'
 import RechargeDialog from './components/RechargeDialog.vue'
 import BalanceRecordDialog from './components/BalanceRecordDialog.vue'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
-import { downloadByData } from '@/utils/download'
+import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const route = useRoute()
@@ -408,7 +408,7 @@ const handleExport = async () => {
     const res = await v1GetUserList(queryParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为 CSV 或 Excel 格式
+      // 将数据转换为 Excel 格式，字段与列表显示完全一致
       const list = res.data.list.map((item: any) => {
         const botInfo = botInfoMap.value.get(item.bot_id)
         return {
@@ -417,23 +417,15 @@ const handleExport = async () => {
           TG用户名: item.tg_user_name,
           机器人ID: item.bot_id,
           机器人用户名: botInfo ? botInfo.user_name : '',
-          TRX余额: item.trx_balance,
-          USDT余额: item.usdt_balance,
+          TRX余额: `${item.trx_balance || 0} TRX`,
+          USDT余额: `${item.usdt_balance || 0} USDT`,
           创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
           更新时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
         }
       })
 
-      // 转换为 CSV
-      const headers = Object.keys(list[0] || {})
-      const csvContent = [
-        headers.join(','),
-        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
-      ].join('\n')
-
-      // 创建 Blob 并下载
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      downloadByData(blob, 'TG用户列表.csv')
+      // 导出为 Excel
+      simpleExportToExcel(list, 'TG用户列表')
       handleSuccessMessage('用户列表导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')

@@ -41,7 +41,7 @@ import OrderDetailDialog from './components/OrderDetailDialog.vue'
 import formatEnergyNum from '../helpers/formatEnergyNum'
 import isEmpty from 'lodash-es/isEmpty'
 import { Icon } from '@/components/Icon'
-import { downloadByData } from '@/utils/download'
+import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const router = useRouter()
@@ -608,33 +608,26 @@ const handleExport = async () => {
         10: '激活'
       }
 
-      // 将数据转换为 CSV 格式
+      // 将数据转换为 Excel 格式，列名与列表显示一致
       const list = res.data.list.map((item: any) => ({
         订单号: item.id,
         TG用户名: item.tg_user_name,
         TG用户昵称: item.tg_first_name,
-        TG用户ID: item.user_id,
         机器人名称: item.bot_name,
-        机器人ID: item.bot_id,
         订单类型: typeTextMap[item.kind] || '-',
+        支付金额: item.amount && item.amount != 0 ? `${item.amount} ${item.coin || ''}` : '-',
         能量数量: formatEnergyNum(item.energy_amount),
+        能量有效期: item.energy_rent_text || '-',
+        收款钱包地址: item.receive_address || '-',
+        能量接收地址: item.energy_address || '-',
+        笔数: item.stroke_num || '-',
         订单状态: getStatusTextForTable(item.status),
-        收款地址: item.receive_address || '-',
-        备注: item.describe || '-',
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
         完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
       }))
 
-      // 转换为 CSV
-      const headers = Object.keys(list[0] || {})
-      const csvContent = [
-        headers.join(','),
-        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
-      ].join('\n')
-
-      // 创建 Blob 并下载
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      downloadByData(blob, '能量订单列表.csv')
+      // 导出为 Excel
+      simpleExportToExcel(list, '能量订单列表')
       handleSuccessMessage('订单导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')

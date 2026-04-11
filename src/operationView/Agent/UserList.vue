@@ -34,7 +34,7 @@ import type { TableColumn } from '@/components/Table'
 import { v2GetUserList, v2ExportUserList } from '@/api/agent/user_list'
 import { getAgentBotListApi } from '@/api/agent/bot'
 import { useRoute, useRouter } from 'vue-router'
-import { downloadByData } from '@/utils/download'
+import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const route = useRoute()
@@ -311,16 +311,8 @@ const handleExport = async () => {
         }
       })
 
-      // 转换为 CSV
-      const headers = Object.keys(list[0] || {})
-      const csvContent = [
-        headers.join(','),
-        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
-      ].join('\n')
-
-      // 创建 Blob 并下载
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      downloadByData(blob, '机器人用户列表.csv')
+      // 导出为 Excel
+      simpleExportToExcel(list, '机器人用户列表')
       handleSuccessMessage('用户列表导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')

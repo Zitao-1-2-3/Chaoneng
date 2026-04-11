@@ -76,7 +76,7 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute } from 'vue-router'
 import { formatToWan } from '@/utils'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
-import { downloadByData } from '@/utils/download'
+import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const { t } = useI18n()
@@ -163,16 +163,8 @@ const handleExport = async () => {
         回收时间: item.recycled_at ? formatToDateTime(new Date(item.recycled_at).getTime()) : '-'
       }))
 
-      // 转换为 CSV
-      const headers = Object.keys(list[0] || {})
-      const csvContent = [
-        headers.join(','),
-        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
-      ].join('\n')
-
-      // 创建 Blob 并下载
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      downloadByData(blob, '能量订单列表.csv')
+      // 导出为 Excel
+      simpleExportToExcel(list, '能量订单列表')
       handleSuccessMessage('订单导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')

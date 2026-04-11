@@ -50,7 +50,7 @@ import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import RechargeDialog from './components/RechargeDialog.vue'
 import AgentForm from './components/AgentForm.vue'
-import { downloadByData } from '@/utils/download'
+import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 // 状态管理
@@ -96,16 +96,8 @@ const handleExport = async () => {
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-'
       }))
 
-      // 转换为 CSV
-      const headers = Object.keys(list[0] || {})
-      const csvContent = [
-        headers.join(','),
-        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
-      ].join('\n')
-
-      // 创建 Blob 并下载
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      downloadByData(blob, '代理列表.csv')
+      // 导出为 Excel
+      simpleExportToExcel(list, '代理列表')
       handleSuccessMessage('导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')

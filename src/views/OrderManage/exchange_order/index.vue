@@ -90,7 +90,7 @@ import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { v1GetExchangeOrderList, v1GetExchangeOrderDetail } from '@/api/exchange_order'
 import { Icon } from '@/components/Icon'
-import { downloadByData } from '@/utils/download'
+import { simpleExportToExcel } from '@/utils/excel'
 import { ExchangeOrderListItem } from '@/api/exchange_transaction'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
@@ -703,11 +703,10 @@ const handleExport = async () => {
     const res = await v1GetExchangeOrderList(adaptedParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为 CSV 格式
+      // 将数据转换为 Excel 格式，列名与列表显示一致
       const list = res.data.list.map((item: any) => ({
         订单号: item.id,
         机器人名称: item.bot_name,
-        机器人ID: item.bot_id,
         订单类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
         支付金额: `${item.amount} ${item.in_coin}`,
         兑换金额: `${item.out_amount} ${item.out_coin}`,
@@ -715,19 +714,11 @@ const handleExport = async () => {
         订单状态: getStatusText(item.status),
         备注: item.describe || '-',
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
-        完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
+        支付时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
       }))
 
-      // 转换为 CSV
-      const headers = Object.keys(list[0] || {})
-      const csvContent = [
-        headers.join(','),
-        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
-      ].join('\n')
-
-      // 创建 Blob 并下载
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      downloadByData(blob, '闪兑订单列表.csv')
+      // 导出为 Excel
+      simpleExportToExcel(list, '闪兑订单列表')
       handleSuccessMessage('订单导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')

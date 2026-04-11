@@ -48,7 +48,7 @@ import { v2GetExchangeList } from '@/api/exchange_transaction'
 import type { ExchangeOrderListItem, V2ExchangeItem } from '@/api/exchange_transaction/types'
 import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
-import { downloadByData } from '@/utils/download'
+import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 // 引用
 const searchTableRef = ref<SearchTableExpose>()
@@ -95,41 +95,59 @@ const handleExport = async () => {
     const res = await v2GetExchangeList(apiParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为 CSV 格式
-      const list = res.data.list.map((item: any) => ({
-        日期: item.paid_at ? formatToDate(item.paid_at * 1000) : '-',
-        订单号: item.id,
-        代理名称: item.agent_name || '-',
-        订单类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
-        支付金额: `${item.amount} ${item.in_coin}`,
-        兑换金额: `${item.out_amount} ${item.out_coin}`,
-        兑换汇率: item.actual_rate || '-',
-        实时汇率: item.real_rate || '-',
-        平台利润: item.plate_profit ? `${item.plate_profit}TRX` : '-',
-        代理扣款: item.amount ? `${item.amount}TRX` : '-',
-        订单状态:
-          item.status === 1
-            ? '待支付'
-            : item.status === 5
-              ? '已完成'
-              : item.status === 6
-                ? '失败订单'
-                : '-',
-        备注: item.describe || '-',
-        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
-        完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
-      }))
+      // 将数据转换为导出格式，字段顺序与表格列一致
+      const list = res.data.list.map((item: any) => {
+        // 状态映射
+        let statusText = '未知'
+        switch (item.status) {
+          case 1:
+            statusText = '待支付'
+            break
+          case 2:
+            statusText = '支付中'
+            break
+          case 3:
+            statusText = '处理中'
+            break
+          case 4:
+            statusText = '待确认'
+            break
+          case 5:
+            statusText = '已完成'
+            break
+          case 6:
+            statusText = '失败订单'
+            break
+          case 7:
+            statusText = '退款中'
+            break
+          case 8:
+            statusText = '已取消'
+            break
+          case 9:
+            statusText = '已过期'
+            break
+        }
 
-      // 转换为 CSV
-      const headers = Object.keys(list[0] || {})
-      const csvContent = [
-        headers.join(','),
-        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
-      ].join('\n')
+        return {
+          日期: item.paid_at ? formatToDate(item.paid_at * 1000) : '-',
+          订单ID: item.id,
+          代理名称: item.agent_name || '-',
+          支付金额: `${item.amount} ${item.in_coin}`,
+          兑换汇率: item.actual_rate || '-',
+          实时汇率: item.real_rate || '-',
+          支出数量: `${item.out_amount} ${item.out_coin}`,
+          交易类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
+          平台利润: item.plate_profit ? `${item.plate_profit}TRX` : '-',
+          代理扣款: item.amount ? `${item.amount}TRX` : '-',
+          交易状态: statusText,
+          完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-',
+          描述: item.describe || '-'
+        }
+      })
 
-      // 创建 Blob 并下载
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      downloadByData(blob, '闪兑订单列表.csv')
+      // 导出为 Excel
+      simpleExportToExcel(list, '闪兑订单列表')
       handleSuccessMessage('导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')
@@ -428,17 +446,17 @@ const fetchExchangeTransactionList = async (params: any) => {
           id: item.id, // 订单ID（保持字符串类型）
           order_id: item.id, // 订单号
           username: item.agent_name || '', // 代理名称
+          order_amount: String(item.amount), // 支付金额
+          trx_price: String(item.actual_rate || 0), // 对话汇率（实际成交汇率）
+          real_price: String(item.real_rate || 0), // 实时汇率
           user_id: item.user_id,
           order_type: orderType, // 订单类型：1-USDT→TRX, 2-TRX→USDT
-          order_amount: String(item.amount), // 支付金额
           pay_unit: item.in_coin || item.coin, // 支付单位（输入币种）
-          exchange_amount: String(item.out_amount || 0), // 兑换数量（使用out_amount字段）
+          exchange_amount: String(item.out_amount || 0), // 支出数量（使用out_amount字段）
           agent_out_amount: String(item.amount), // 代理扣款（使用amount字段）
           plate_profit: String(item.plate_profit || 0), // 平台利润
           agent_profit: String(item.agent_profit || 0), // 代理利润
           exchange_unit: item.out_coin || (item.coin === 'TRX' ? 'USDT' : 'TRX'), // 兑换单位（输出币种）
-          trx_price: String(item.actual_rate || 0), // 对话汇率（实际成交汇率）
-          real_price: String(item.real_rate || 0), // 实时汇率
           receive_address: item.receive_address, // 接收地址
           status: item.status, // 状态
           create_time: item.created_at, // 创建时间（Unix时间戳-秒）

@@ -40,7 +40,7 @@ import {
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
 import { useRoute, useRouter } from 'vue-router'
-import { downloadByData } from '@/utils/download'
+import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
 const route = useRoute()
@@ -317,16 +317,8 @@ const handleExport = async () => {
         最后活动时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
       }))
 
-      // 转换为 CSV
-      const headers = Object.keys(list[0] || {})
-      const csvContent = [
-        headers.join(','),
-        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
-      ].join('\n')
-
-      // 创建 Blob 并下载
-      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
-      downloadByData(blob, '机器人列表.csv')
+      // 导出为 Excel
+      simpleExportToExcel(list, '机器人列表')
       handleSuccessMessage('导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')
