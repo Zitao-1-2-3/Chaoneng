@@ -15,6 +15,7 @@
         :show-add-button="false"
         @loaded="handleDataLoaded"
         @error="handleLoadError"
+        @search="onSearch"
         :search-props="{
           layout: 'inline',
           buttonPosition: 'center'
@@ -43,7 +44,7 @@ import type { TableColumn } from '@/components/Table/src/types'
 import { FormSchema } from '@/components/Form'
 import { formatToDateTime, formatToDate } from '@/utils/dateUtil'
 import OrderDetail from './components/OrderDetail.vue'
-import { exportExchangeOrderApi, v2GetExchangeList } from '@/api/exchange_transaction' // 新增导入
+import { v2GetExchangeList } from '@/api/exchange_transaction'
 import type { ExchangeOrderListItem, V2ExchangeItem } from '@/api/exchange_transaction/types'
 import { BaseButton } from '@/components/Button'
 import { ContentWrap } from '@/components/ContentWrap'
@@ -54,23 +55,84 @@ const searchTableRef = ref<SearchTableExpose>()
 const orderDetailRef = ref()
 const totalCount = ref(0)
 
+// 保存当前搜索参数
+const currentSearchParams = ref<any>({})
+
 // 导出
 const handleExport = async () => {
   try {
-    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    // 处理时间范围 - 转换为秒级时间戳
-    const exportParams = { ...params } as any
-    if (params.dateRange && params.dateRange.length === 2) {
-      exportParams.start_time = Math.floor(params.dateRange[0] / 1000)
-      exportParams.end_time = Math.floor(params.dateRange[1] / 1000)
-      delete exportParams.dateRange
+    // 尝试获取当前搜索条件，如果失败则使用保存的参数
+    let params
+    try {
+      params = await searchTableRef.value?.searchMethods?.getFormData()
+    } catch (e) {
+      // 如果 getFormData 不可用，使用保存的搜索参数
+      params = currentSearchParams.value
     }
-    const res = await exportExchangeOrderApi(exportParams)
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '闪兑订单列表.xlsx')
+
+    // 构建新接口参数
+    const apiParams: any = {}
+
+    // 处理时间范围 - 转换为秒级时间戳
+    if (params?.dateRange && params.dateRange.length === 2) {
+      apiParams.start_time = String(Math.floor(params.dateRange[0] / 1000))
+      apiParams.end_time = String(Math.floor(params.dateRange[1] / 1000))
+    }
+
+    // 处理交易类型查询
+    if (params?.coin) {
+      apiParams.keyword = params.coin
+    }
+
+    // 处理状态
+    if (params?.status) {
+      apiParams.status = params.status
+    }
+
+    console.log('导出参数:', apiParams)
+
+    // 使用获取列表的接口，传入搜索条件
+    const res = await v2GetExchangeList(apiParams)
+
+    if (res.code === '000000' && res.data && res.data.list) {
+      // 将数据转换为 CSV 格式
+      const list = res.data.list.map((item: any) => ({
+        日期: item.paid_at ? formatToDate(item.paid_at * 1000) : '-',
+        订单号: item.id,
+        代理名称: item.agent_name || '-',
+        订单类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
+        支付金额: `${item.amount} ${item.in_coin}`,
+        兑换金额: `${item.out_amount} ${item.out_coin}`,
+        兑换汇率: item.actual_rate || '-',
+        实时汇率: item.real_rate || '-',
+        平台利润: item.plate_profit ? `${item.plate_profit}TRX` : '-',
+        代理扣款: item.amount ? `${item.amount}TRX` : '-',
+        订单状态:
+          item.status === 1
+            ? '待支付'
+            : item.status === 5
+              ? '已完成'
+              : item.status === 6
+                ? '失败订单'
+                : '-',
+        备注: item.describe || '-',
+        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
+        完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
+      }))
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, '闪兑订单列表.csv')
       handleSuccessMessage('导出成功')
     } else {
-      ElMessage.error('文件数据格式错误')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '导出失败')
@@ -298,6 +360,9 @@ const handleDetail = (row: ExchangeOrderListItem) => {
 // 请求闪兑明细列表数据
 const fetchExchangeTransactionList = async (params: any) => {
   try {
+    // 保存当前搜索参数（用于导出）
+    currentSearchParams.value = params
+
     console.log('[fetchExchangeTransactionList] 原始查询参数:', params)
 
     // 构建新接口参数
@@ -413,6 +478,12 @@ const handleLoadError = () => {
 onMounted(() => {
   console.log('闪兑订单页面已加载')
 })
+
+// 搜索事件处理
+const onSearch = (params: any) => {
+  // onSearch 事件会在用户点击搜索时触发，但参数已经在 fetchExchangeTransactionList 中保存了
+  console.log('搜索参数:', params)
+}
 </script>
 
 <style scoped>

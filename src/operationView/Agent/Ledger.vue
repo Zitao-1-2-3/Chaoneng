@@ -285,11 +285,8 @@ const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
 
-    // 映射导出参数
-    const exportParams: any = {
-      current_page: params?.current_page || 1,
-      page_size: params?.page_size || 10
-    }
+    // 构建导出参数，只包含搜索条件，不包含分页信息
+    const exportParams: any = {}
 
     if (params?.query) exportParams.keyword = params.query
     if (params?.order_type) exportParams.kinds = [Number(params.order_type)]
@@ -300,17 +297,37 @@ const handleExport = async () => {
       exportParams.end_time = Math.floor(new Date(params.dateRange[1]).getTime() / 1000)
     }
 
-    console.log('[handleExport] 调用新接口 v2ExportAgentBill, 参数:', exportParams)
+    console.log('导出参数:', exportParams)
 
-    // 使用新接口 v2ExportAgentBill
-    const res = await v2ExportAgentBill(exportParams)
+    // 使用获取列表的接口进行导出
+    const res = await v2GetAgentBillList(exportParams)
 
-    // 使用下载工具处理 blob 数据
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '代理账单.xlsx')
+    if (res.code === '000000' && res.data) {
+      const list = (res.data.list || []).map((item: any) => ({
+        关联订单ID: item.order_id || '-',
+        代理邮箱: item.agent_email || item.agent_name || '-',
+        代理名称: item.agent_name || '-',
+        机器人名称: item.bot_name || '-',
+        交易类型: item.describe || '-',
+        金额变动: `${parseFloat(item.amount) < 0 ? '-' : '+'}${Math.abs(parseFloat(item.amount))} ${item.coin || ''}`,
+        交易后TRX余额: item.balance || '-',
+        扣款状态: '已完成',
+        扣款时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-'
+      }))
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, '代理账单.csv')
       handleSuccessMessage('导出成功')
     } else {
-      handleErrorMessage('文件数据格式错误', '导出失败')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '导出失败')

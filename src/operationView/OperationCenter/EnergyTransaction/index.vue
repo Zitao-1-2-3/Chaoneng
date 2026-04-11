@@ -18,6 +18,7 @@
         @add="handleAdd"
         @loaded="handleDataLoaded"
         @error="handleLoadError"
+        @search="onSearch"
         :search-props="{
           layout: 'inline',
           buttonPosition: 'center'
@@ -67,7 +68,6 @@ import { BaseButton } from '@/components/Button'
 import OrderDetail from './components/OrderDetail.vue'
 import {
   updateEnergyTransactionStatusApi,
-  exportEnergyTransactionApi, // 新增导入
   v2GetEnergyList,
   v2RecycleOrder
 } from '@/api/energy_transaction'
@@ -86,21 +86,96 @@ const orderDetailRef = ref()
 // 导出
 const handleExport = async () => {
   try {
-    const params = await searchTableRef.value?.searchMethods.getFormData()
-    // 处理时间范围
-    const exportParams = { ...params }
-    if (params.dateRange && params.dateRange.length === 2) {
-      exportParams.start_time = params.dateRange[0]
-      exportParams.end_time = params.dateRange[1]
-      delete exportParams.dateRange
+    // 尝试获取当前搜索条件，如果失败则使用保存的参数
+    let params
+    try {
+      params = await searchTableRef.value?.searchMethods?.getFormData()
+    } catch (e) {
+      // 如果 getFormData 不可用，使用保存的搜索参数
+      params = currentSearchParams.value
     }
-    const res = await exportEnergyTransactionApi(exportParams)
 
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '能量订单列表.xlsx')
+    // 构建新接口参数
+    const apiParams: any = {}
+
+    // 处理时间范围（毫秒转秒）
+    if (params?.dateRange && params.dateRange.length === 2) {
+      apiParams.start_time = String(Math.floor(params.dateRange[0] / 1000))
+      apiParams.end_time = String(Math.floor(params.dateRange[1] / 1000))
+    }
+
+    // 处理关键字查询
+    if (params?.query) {
+      apiParams.keyword = params.query
+    }
+
+    // 处理订单类型
+    if (params?.order_type) {
+      apiParams.kind = params.order_type
+    }
+
+    // 处理收款钱包地址
+    if (params?.bot_address) {
+      apiParams.receive_address = params.bot_address
+    }
+
+    // 处理能量接收地址
+    if (params?.receive_address) {
+      apiParams.energy_address = params.receive_address
+    }
+
+    // 处理状态
+    if (params?.status) {
+      apiParams.status = params.status
+    }
+
+    console.log('导出参数:', apiParams)
+
+    // 使用获取列表的接口，传入搜索条件
+    const res = await v2GetEnergyList(apiParams)
+
+    if (res.code === '000000' && res.data && res.data.list) {
+      // 订单类型映射
+      const typeTextMap: Record<number, string> = {
+        4: '按时间',
+        5: '按笔数',
+        6: '福利',
+        7: '闪租',
+        8: '托管',
+        9: '批量下单',
+        10: '激活'
+      }
+
+      // 将数据转换为 CSV 格式
+      const list = res.data.list.map((item: any) => ({
+        订单号: item.id,
+        代理名称: item.agent_name || '-',
+        订单类型: typeTextMap[item.kind] || '-',
+        交易金额: `${item.amount} ${item.coin}`,
+        应发放能量: formatToWan(item.energy_amount),
+        实际发放能量: formatToWan(item.energy_actual_amount),
+        收款钱包地址: item.receive_address || '-',
+        能量接收地址: item.energy_address || '-',
+        笔数: item.energy_count || '-',
+        订单状态: orderStatusMap[item.status] || '-',
+        备注: item.describe || '-',
+        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
+        回收时间: item.recycled_at ? formatToDateTime(new Date(item.recycled_at).getTime()) : '-'
+      }))
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, '能量订单列表.csv')
       handleSuccessMessage('订单导出成功')
     } else {
-      ElMessage.error('文件数据格式错误')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '订单导出失败')
@@ -543,9 +618,15 @@ const handleSubmit = async () => {
 }
 
 const totalCount = ref(0)
+
+// 保存当前搜索参数
+const currentSearchParams = ref<any>({})
 // 获取能量交易列表
 const fetchDataWrapper = async (params: any = {}) => {
   try {
+    // 保存当前搜索参数（用于导出）
+    currentSearchParams.value = params
+
     console.log('[fetchDataWrapper] 原始查询参数:', params)
 
     // 构建新接口参数
@@ -759,5 +840,11 @@ function onSearchTableReady(instance) {
   const query = route.query
   instance.setSearchParams({ query: query.query })
   instance.reload()
+}
+
+// 搜索事件处理
+const onSearch = (params: any) => {
+  // onSearch 事件会在用户点击搜索时触发，但参数已经在 fetchDataWrapper 中保存了
+  console.log('搜索参数:', params)
 }
 </script>

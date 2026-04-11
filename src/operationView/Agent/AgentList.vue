@@ -63,22 +63,52 @@ const currentAccount = ref<AgentItem>()
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    const exportParams: any = { ...params }
+
+    // 构建导出参数，只包含搜索条件，不包含分页信息
+    const exportParams: any = {}
+
+    // 搜索条件
+    if (params.keyword) exportParams.keyword = params.keyword
+    if (params.status) exportParams.status = params.status
 
     // 处理时间范围 - 转换为 Unix 时间戳（秒级，字符串格式）
     if (params.dateRange && params.dateRange.length === 2) {
       exportParams.start_time = String(Math.floor(new Date(params.dateRange[0]).getTime() / 1000))
       exportParams.end_time = String(Math.floor(new Date(params.dateRange[1]).getTime() / 1000))
-      delete exportParams.dateRange // 删除前端的 dateRange 字段
     }
 
-    const res = await exportAgentListApi(exportParams as AgentQueryParams)
+    console.log('导出参数:', exportParams)
 
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '代理列表.xlsx')
+    // 使用获取列表的接口进行导出
+    const res = await getAgentListApi(exportParams)
+
+    if (res.code === '000000' && res.data) {
+      const list = (res.data.list || []).map((item: any) => ({
+        联系方式: item.email || '-',
+        代理名称: item.username || '-',
+        机器人数量: item.bot_count ?? 0,
+        总用户数: item.user_count ?? 0,
+        TRX余额: item.trx_balance || '-',
+        TRX收入: item.trx_income ?? '0',
+        USDT收入: item.usdt_income ?? '0',
+        是否赠送带宽: item.gift_bandwidth ? '赠送' : '不赠送',
+        状态: item.status === 1 ? '启用' : item.status === 2 ? '禁用' : '未知',
+        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-'
+      }))
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, '代理列表.csv')
       handleSuccessMessage('导出成功')
     } else {
-      ElMessage.error('文件数据格式错误')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '导出失败')

@@ -55,11 +55,7 @@ import { Icon } from '@/components/Icon'
 import { Descriptions } from '@/components/Descriptions'
 import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
-import {
-  v2GetDepositList,
-  v2GetDepositDetail,
-  exportRechargeOrderApi
-} from '@/api/operation/recharge_order'
+import { v2GetDepositList, v2GetDepositDetail } from '@/api/operation/recharge_order'
 import type { V2DepositItem } from '@/api/operation/recharge_order_types'
 import { ElLink } from 'element-plus'
 import { useRouter, useRoute } from 'vue-router'
@@ -68,6 +64,9 @@ import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/u
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
+
+// 保存当前搜索参数
+const currentSearchParams = ref<any>({})
 
 // 订单详情相关
 const dialogVisible = ref(false)
@@ -424,6 +423,9 @@ const getStatusText = (status: number): string => {
 // API 封装 - 使用新接口 v2
 const fetchRechargeOrderList = async (params: any) => {
   try {
+    // 保存当前搜索参数（用于导出）
+    currentSearchParams.value = params
+
     console.log('=== 充值订单列表 - 请求参数 ===')
     console.log('原始参数:', JSON.stringify(params, null, 2))
 
@@ -594,13 +596,89 @@ const handleViewDetail = async (row: any) => {
 // 导出订单
 const handleExport = async () => {
   try {
-    const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    const res = await exportRechargeOrderApi(params as any)
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '充值订单列表.xlsx')
+    // 尝试获取当前搜索条件，如果失败则使用保存的参数
+    let params
+    try {
+      params = await searchTableRef.value?.searchMethods?.getFormData()
+    } catch (e) {
+      // 如果 getFormData 不可用，使用保存的搜索参数
+      params = currentSearchParams.value
+    }
+
+    // 转换参数格式以适配新接口
+    const adaptedParams: any = {}
+
+    // 关键字搜索
+    if (params?.query) {
+      adaptedParams.keyword = params.query
+    }
+
+    // 订单号
+    if (params?.order_id) {
+      adaptedParams.order_id = params.order_id
+    }
+
+    // 订单状态
+    if (params?.status) {
+      adaptedParams.status = params.status
+    }
+
+    // 收款地址
+    if (params?.receive_address) {
+      adaptedParams.receive_address = params.receive_address
+    }
+
+    // 支付地址
+    if (params?.pay_address) {
+      adaptedParams.pay_address = params.pay_address
+    }
+
+    // 时间范围
+    if (params?.start_time) {
+      adaptedParams.start_time = params.start_time.toString()
+    }
+    if (params?.end_time) {
+      adaptedParams.end_time = params.end_time.toString()
+    }
+
+    console.log('导出参数:', adaptedParams)
+
+    // 使用获取列表的接口，传入搜索条件
+    const res = await v2GetDepositList(adaptedParams)
+
+    if (res.code === '000000' && res.data && res.data.list) {
+      // 将数据转换为 CSV 格式
+      const list = res.data.list.map((item: any) => ({
+        订单号: item.id,
+        代理名称: item.agent_name || '-',
+        TG用户名: item.tg_user_name,
+        TG用户昵称: item.tg_first_name,
+        TG用户ID: item.user_id,
+        机器人名称: item.bot_name,
+        机器人ID: item.bot_id,
+        订单类型: item.coin === 'TRX' ? '充值TRX' : '充值USDT',
+        金额: `${item.amount} ${item.coin}`,
+        订单状态: getStatusText(item.status),
+        收款地址: item.receive_address || '-',
+        支付地址: item.pay_address || '-',
+        备注: item.describe || '-',
+        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
+        完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
+      }))
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, '充值订单列表.csv')
       handleSuccessMessage('订单导出成功')
     } else {
-      ElMessage.error('文件数据格式错误')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '订单导出失败')
@@ -608,6 +686,7 @@ const handleExport = async () => {
 }
 
 const onSearch = (params: any) => {
+  // onSearch 事件会在用户点击搜索时触发，但参数已经在 fetchRechargeOrderList 中保存了
   console.log('搜索参数:', params)
 }
 

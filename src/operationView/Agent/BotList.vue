@@ -290,12 +290,46 @@ const handleUpdateStatus = (id: number | string, status: number, actionText: str
 const handleExport = async () => {
   try {
     const params = (await searchTableRef.value?.searchMethods.getFormData()) || {}
-    const res = await exportAgentBotListApi(params)
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '机器人列表.xlsx')
+
+    // 构建导出参数，只包含搜索条件，不包含分页信息
+    const exportParams: any = {}
+
+    if (params?.keyword) exportParams.keyword = params.keyword
+    if (params?.status) exportParams.status = params.status
+
+    console.log('导出参数:', exportParams)
+
+    // 使用获取列表的接口进行导出
+    const res = await getAgentBotListApi(exportParams)
+
+    if (res.code === '000000' && res.data) {
+      const list = (res.data.list || []).map((item: any) => ({
+        机器人ID: item.id,
+        机器人用户名: item.user_name,
+        代理名称: item.agent_name,
+        机器人昵称: item.first_name,
+        管理员TG号: item.tg_admin || '-',
+        API密钥: item.token,
+        用户数量: item.user_count || 0,
+        交易订单数: item.order_count || 0,
+        机器人状态: item.status === 1 ? '启用' : item.status === 2 ? '禁用' : '未知',
+        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
+        最后活动时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
+      }))
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, '机器人列表.csv')
       handleSuccessMessage('导出成功')
     } else {
-      ElMessage.error('文件数据格式错误')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '导出失败')

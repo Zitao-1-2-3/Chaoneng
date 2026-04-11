@@ -277,11 +277,8 @@ const handleExport = async () => {
   try {
     const params = await searchTableRef.value?.searchMethods.getFormData()
 
-    // 映射导出参数
-    const exportParams: any = {
-      current_page: params?.current_page || 1,
-      page_size: params?.page_size || 10
-    }
+    // 构建导出参数，只包含搜索条件，不包含分页信息
+    const exportParams: any = {}
 
     if (params?.query) exportParams.keyword = params.query
     if (params?.bot_id) exportParams.bot_id = Number(params.bot_id)
@@ -292,16 +289,41 @@ const handleExport = async () => {
       exportParams.end_time = Math.floor(new Date(params.dateRange[1]).getTime() / 1000)
     }
 
-    console.log('[handleExport] 调用新接口 v2ExportUserList, 参数:', exportParams)
+    console.log('导出参数:', exportParams)
 
-    // 使用新接口 v2ExportUserList
-    const res = await v2ExportUserList(exportParams)
+    // 使用获取列表的接口进行导出
+    const res = await v2GetUserList(exportParams)
 
-    if (res.data instanceof Blob) {
-      downloadByData(res.data, '机器人用户列表.xlsx')
+    if (res.code === '000000' && res.data) {
+      const list = (res.data.list || []).map((item: any) => {
+        const botInfo = botMap.value.get(item.bot_id)
+        return {
+          TG用户ID: item.tg_user_id,
+          TG用户昵称: item.tg_first_name,
+          TG用户名: item.tg_user_name,
+          机器人ID: item.bot_id,
+          机器人用户名: botInfo?.user_name || '',
+          代理名称: botInfo?.agent_name || '',
+          TRX余额: `${item.trx_balance || 0} TRX`,
+          USDT余额: `${item.usdt_balance || 0} USDT`,
+          创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
+          更新时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
+        }
+      })
+
+      // 转换为 CSV
+      const headers = Object.keys(list[0] || {})
+      const csvContent = [
+        headers.join(','),
+        ...list.map((row: any) => headers.map((header) => `"${row[header] || ''}"`).join(','))
+      ].join('\n')
+
+      // 创建 Blob 并下载
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+      downloadByData(blob, '机器人用户列表.csv')
       handleSuccessMessage('用户列表导出成功')
     } else {
-      ElMessage.error('文件数据格式错误')
+      ElMessage.error('导出失败：数据格式错误')
     }
   } catch (error) {
     handleErrorMessage(error, '用户列表导出失败')
