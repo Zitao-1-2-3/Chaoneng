@@ -11,8 +11,7 @@
         @loaded="handleDataLoaded"
         @error="handleLoadError"
         :show-add-button="false"
-      >
-      </SearchTable>
+      />
 
       <!-- 表单弹窗 -->
       <PriceForm ref="formRef" @success="handleSuccess" />
@@ -22,16 +21,14 @@
 
 <script setup lang="tsx">
 import { ref, reactive, nextTick } from 'vue'
-import { ElButton, ElMessageBox, ElMessage, ElTag } from 'element-plus'
+import { ElMessage, ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
-import { Icon } from '@/components/Icon'
 import PriceForm from './components/PriceForm.vue'
-import { v2GetSystemPrice, updateAgentPriceApi } from '@/api/marketing/agent_price'
+import { v2GetSystemPrice } from '@/api/marketing/agent_price'
 import type { V2SystemPriceResponse } from '@/api/marketing/agent_price_types'
-import { formatToDateTime } from '@/utils/dateUtil'
 import { BaseButton } from '@/components/Button'
-import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { handleErrorMessage } from '@/utils/messageHelper'
 
 // 定义类型映射
 const priceTypeMap = {
@@ -117,7 +114,7 @@ const fetchDataApiWrapper = async (params) => {
         tableIndex: 3,
         price_type: 3, // 闪兑
         type: '闪兑',
-        priceInfo: `${parseFloat(data.usdt_2_trx) * 100}%(U兑换T) | ${parseFloat(data.trx_2_usdt) * 100}%(T兑换U)`,
+        priceInfo: `${parseFloat(String(data.usdt_2_trx)) * 100}%(U兑换T) | ${parseFloat(String(data.trx_2_usdt)) * 100}%(T兑换U)`,
         status: 1,
         create_time: createdTime,
         update_time: updatedTime,
@@ -204,7 +201,7 @@ const columns = reactive<any[]>([
     field: 'status',
     label: '状态',
     width: '100px',
-    formatter: (row) => {
+    formatter: () => {
       return <ElTag type="success">启用</ElTag>
     }
   },
