@@ -39,10 +39,14 @@ import type { TableColumn } from '@/components/Table'
 import { v1GetEnergyOrderList, v1GetEnergyOrderDetail } from '@/api/energy_order'
 import OrderDetailDialog from './components/OrderDetailDialog.vue'
 import formatEnergyNum from '../helpers/formatEnergyNum'
-import isEmpty from 'lodash-es/isEmpty'
 import { Icon } from '@/components/Icon'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+
+// 辅助函数：检查值是否为空
+const isEmpty = (value: any): boolean => {
+  return value === null || value === undefined || value === ''
+}
 
 const router = useRouter()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -642,7 +646,8 @@ const onSearch = (params: any) => {
 }
 
 onMounted(() => {
-  const query = useRoute().query
+  const route = useRoute()
+  const query = route?.query || {}
   setTimeout(() => {
     if (searchTableRef.value) {
       searchTableRef.value.setSearchParams({

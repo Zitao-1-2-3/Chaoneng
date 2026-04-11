@@ -12,7 +12,7 @@
         ref="searchTableRef"
         @search="onSearch"
       />
-      <div v-else> 机器人列表加载中... </div>
+      <div v-else v-loading="true" style="min-height: 400px"></div>
     </ContentWrap>
   </div>
 </template>

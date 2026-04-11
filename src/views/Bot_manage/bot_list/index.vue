@@ -608,7 +608,7 @@ const getBotPrice = async () => {
 onMounted(async () => {
   await getBotPrice()
   const route = useRoute()
-  const query = route.query
+  const query = route?.query || {}
   console.log('query', query)
   // 确保组件挂载后可以访问表格实例
   setTimeout(() => {
