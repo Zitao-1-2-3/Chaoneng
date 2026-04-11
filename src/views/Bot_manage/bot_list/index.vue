@@ -76,7 +76,7 @@ import { v1GetBotList, v1CreateBot, updateBotApi, getBotRenewPriceApi } from '@/
 import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
-import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
+import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 interface SearchTableInstance {
   reload: () => Promise<void>
   reset: () => Promise<any>
@@ -108,10 +108,15 @@ const columns = [
     label: '机器人用户名',
     slots: {
       default: (data: any) => {
+        const username = data.row.user_name
         return (
           <>
-            <ElLink type="primary" href={`https://t.me/${data.row.user_name}`} target="_blank">
-              {data.row.user_name}
+            <ElLink
+              type="primary"
+              onClick={() => window.open(`https://t.me/${username}`, '_blank')}
+              style="cursor: pointer"
+            >
+              {username}
             </ElLink>
           </>
         )
