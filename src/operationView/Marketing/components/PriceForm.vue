@@ -377,7 +377,7 @@ const submitLogic = async (formData: FormData) => {
       const priceType = Number(formData.price_type)
       switch (priceType) {
         case 1: // 首次激活
-          updatedPrice.flash = formData.price_trx
+          updatedPrice.active = formData.price_trx
           break
         case 2: // 按天数/小时
           updatedPrice.time_1d = formData.price_day_1
@@ -398,7 +398,7 @@ const submitLogic = async (formData: FormData) => {
           updatedPrice.hosting_131k = formData.price_trx_131000
           break
         case 6: // 闪租
-          updatedPrice.stroke = formData.price_trx
+          updatedPrice.flash = formData.price_trx
           break
       }
 
