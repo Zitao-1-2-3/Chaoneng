@@ -92,7 +92,7 @@ const fetchDataApiWrapper = async (params) => {
         tableIndex: 1,
         price_type: 1, // 首次激活
         type: '首次激活',
-        priceInfo: `激活地址单价: ${data.flash} TRX`,
+        priceInfo: `激活地址单价: ${data.active} TRX`,
         status: 1,
         create_time: createdTime,
         update_time: updatedTime,
@@ -147,7 +147,7 @@ const fetchDataApiWrapper = async (params) => {
         tableIndex: 6,
         price_type: 6, // 闪租
         type: '闪租',
-        priceInfo: `${data.stroke} TRX/笔`,
+        priceInfo: `${data.flash} TRX/笔`,
         status: 1,
         create_time: createdTime,
         update_time: updatedTime,
@@ -266,7 +266,7 @@ const handleEdit = (row: any) => {
   // 根据类型填充对应的字段
   switch (row.price_type) {
     case 1: // 首次激活
-      formData.price_trx = data.flash
+      formData.price_trx = data.active
       break
     case 2: // 按天数/小时
       formData.price_day_1 = data.time_1d
@@ -287,7 +287,7 @@ const handleEdit = (row: any) => {
       formData.price_trx_131000 = data.hosting_131k
       break
     case 6: // 闪租
-      formData.price_trx = data.stroke
+      formData.price_trx = data.flash
       break
   }
 
