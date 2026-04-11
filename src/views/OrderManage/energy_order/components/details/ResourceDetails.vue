@@ -47,12 +47,12 @@ const resourceTableSchema = computed((): TableColumn[] => [
       default: ({ row }) => {
         const typeMap: Record<number, string> = {
           1: '能量',
-          2: '带宽'
+          0: '带宽'
         }
         const typeColorMap: Record<number, 'success' | 'warning' | 'info' | 'danger' | 'primary'> =
           {
             1: 'primary',
-            2: 'success'
+            0: 'success'
           }
         const type = Number(row.code)
         const text = typeMap[type] || '未知'
