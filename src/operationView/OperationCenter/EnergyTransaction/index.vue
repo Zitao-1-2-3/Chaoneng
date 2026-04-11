@@ -804,7 +804,7 @@ const fetchEnergyTransactionDelete = async () => {
 }
 
 // 数据加载完成回调
-const handleDataLoaded = ({ data, total, success }) => {
+const handleDataLoaded = ({ success }) => {
   if (!success) {
     ElMessage.error('加载数据失败')
   }
@@ -822,17 +822,6 @@ const handleStop = async (row) => {
     searchTableRef.value?.reload()
   } catch (error) {
     handleErrorMessage(error, '停止代理失败')
-  }
-}
-
-const handleStart = async (row) => {
-  try {
-    await v2RecycleOrder(row.order_num)
-    ElMessage.success('启动代理成功')
-    searchTableRef.value?.reload()
-  } catch (error) {
-    console.error('启动代理失败:', error)
-    ElMessage.error('启动代理失败')
   }
 }
 

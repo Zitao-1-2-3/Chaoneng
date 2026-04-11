@@ -41,6 +41,7 @@ export interface V2ExchangeItem {
   tg_first_name?: string // TG昵称
   in_coin?: string // 输入币种
   out_coin?: string // 输出币种
+  out_amount?: string // 输出金额
   real_rate?: string // 实时汇率
   actual_rate?: string // 实际汇率
   agent_profit?: string // 代理利润

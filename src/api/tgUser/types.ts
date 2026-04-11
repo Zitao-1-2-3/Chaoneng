@@ -23,6 +23,7 @@ export interface UserListParamsV1 {
   page_size?: number // 每页大小
   start_time?: string // 开始时间
   status?: number // 状态
+  order?: string // 排序参数，格式：字段名 ASC/DESC
 }
 
 /**

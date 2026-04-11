@@ -27,7 +27,7 @@ export interface ExportExcelOptions {
 function calculateColumnWidths(data: any[], headers: string[]): ColumnWidth[] {
   const widths: ColumnWidth[] = []
 
-  headers.forEach((header, index) => {
+  headers.forEach((header) => {
     // 计算表头宽度
     let maxWidth = header.length
 
