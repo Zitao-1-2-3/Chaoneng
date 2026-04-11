@@ -324,6 +324,7 @@ const columns = [
   {
     field: 'recycle_time',
     label: '回收时间',
+    sortable: 'custom',
     width: 160,
     formatter: (row) => (row.recycle_time ? formatToDateTime(row.recycle_time * 1000) : '-')
   },
@@ -338,6 +339,7 @@ const columns = [
   {
     field: 'create_time',
     label: '创建时间',
+    sortable: 'custom',
     width: 160,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
   },
@@ -664,6 +666,22 @@ const fetchDataWrapper = async (params: any = {}) => {
     // 处理发放状态 (delegate_status → status)
     if (params.status) {
       apiParams.status = params.status
+    }
+
+    // 处理排序参数 - 字段名映射
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        create_time: 'created_at',
+        recycle_time: 'recycled_at'
+      }
+
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        apiParams.order = `${mappedField} ${direction}`
+      }
     }
 
     console.log('[fetchDataWrapper] 调用新接口参数:', apiParams)

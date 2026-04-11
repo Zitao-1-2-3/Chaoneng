@@ -176,12 +176,14 @@ const columns = ref<TableColumn[]>([
   {
     field: 'created_at',
     label: '创建时间',
+    sortable: 'custom',
     width: '180px',
     formatter: (row) => formatToDateTime(row.created_at * 1000) // Unix时间戳转换
   },
   {
     field: 'updated_at',
     label: '修改时间',
+    sortable: 'custom',
     width: '180px',
     formatter: (row) => formatToDateTime(row.updated_at * 1000) // Unix时间戳转换
   },
@@ -236,6 +238,21 @@ const fetchData = async (params) => {
     if (processedParams.keyword) {
       // 删除括号及后面的内容，例如 "代理名称 (邮箱)" -> "代理名称"
       processedParams.keyword = processedParams.keyword.replace(/\s*[\(（].*$/g, '').trim()
+    }
+
+    // 处理排序参数
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        created_at: 'created_at',
+        updated_at: 'updated_at'
+      }
+
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        processedParams.order = `${mappedField} ${direction}`
+      }
     }
 
     // 使用新接口 v2GetAddressList，指定 kind: 1

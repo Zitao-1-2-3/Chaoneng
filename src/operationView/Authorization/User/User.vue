@@ -67,11 +67,13 @@ const columns = [
   {
     field: 'created_at',
     label: t('tableDemo.displayTime'),
+    sortable: true,
     formatter: (row: any) => (row.created_at ? h(UnixTime, { timestamp: row.created_at }) : '-')
   },
   {
     field: 'updated_at',
     label: '更新时间',
+    sortable: true,
     formatter: (row: any) => (row.updated_at ? h(UnixTime, { timestamp: row.updated_at }) : '-')
   },
   {

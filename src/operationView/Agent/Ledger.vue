@@ -68,6 +68,21 @@ const getAgentLedgerList = async (params?: any): Promise<{ list: any[]; total?: 
     if (params?.query) adaptedParams.keyword = params.query // query → keyword
     if (params?.order_type) adaptedParams.kinds = [Number(params.order_type)] // order_type → kinds数组
 
+    // 处理排序参数 - 字段名映射
+    if (params?.order) {
+      const fieldMapping: Record<string, string> = {
+        create_time: 'created_at'
+      }
+
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        adaptedParams.order = `${mappedField} ${direction}`
+      }
+    }
+
     // 处理时间范围 - 转换为 Unix 时间戳（秒级）
     if (params?.dateRange && params.dateRange.length === 2) {
       adaptedParams.start_time = Math.floor(new Date(params.dateRange[0]).getTime() / 1000)
@@ -271,6 +286,7 @@ const columns = ref<TableColumn[]>([
   {
     field: 'create_time',
     label: '扣款时间',
+    sortable: 'custom',
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   }
 ])

@@ -271,6 +271,7 @@ const columns = reactive<TableColumn[]>([
   {
     field: 'finish_time',
     label: '完成时间',
+    sortable: 'custom',
     minWidth: 160,
     formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time * 1000) : '-')
   },
@@ -385,6 +386,21 @@ const fetchExchangeTransactionList = async (params: any) => {
     // 处理状态
     if (params.status) {
       apiParams.status = params.status
+    }
+
+    // 处理排序参数 - 字段名映射
+    if (params.order) {
+      const fieldMapping: Record<string, string> = {
+        finish_time: 'paid_at'
+      }
+
+      // 解析排序参数，格式：column ASC 或 column DESC
+      const orderParts = params.order.split(' ')
+      if (orderParts.length === 2) {
+        const [field, direction] = orderParts
+        const mappedField = fieldMapping[field] || field
+        apiParams.order = `${mappedField} ${direction}`
+      }
     }
 
     console.log('[fetchExchangeTransactionList] 调用新接口参数:', apiParams)

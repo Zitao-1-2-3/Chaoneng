@@ -37,6 +37,7 @@ const columns: TableColumn[] = [
   {
     field: 'created_at',
     label: t('tableDemo.displayTime'),
+    sortable: true,
     formatter: (row: any) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
   },
   {

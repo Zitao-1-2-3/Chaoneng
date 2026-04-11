@@ -290,12 +290,14 @@ const columns: TableColumn[] = [
   {
     field: 'create_time',
     label: '创建时间',
+    sortable: 'custom',
     minWidth: 160,
     formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
   },
   {
     field: 'finish_time',
     label: '完成时间',
+    sortable: 'custom',
     minWidth: 160,
     formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
   },
@@ -470,7 +472,9 @@ const fetchRechargeOrderList = async (params: any) => {
     if (params.order) {
       // 字段名映射：前端 → 后端
       const fieldMap: Record<string, string> = {
-        in_mount: 'amount' // 金额
+        in_mount: 'amount', // 金额
+        create_time: 'created_at', // 创建时间
+        finish_time: 'paid_at' // 完成时间
       }
 
       // 解析排序参数，格式：'field_name ASC' 或 'field_name DESC'
