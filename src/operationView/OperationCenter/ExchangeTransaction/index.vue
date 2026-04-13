@@ -136,18 +136,25 @@ const handleExport = async () => {
           支付金额: `${item.amount} ${item.in_coin}`,
           兑换汇率: item.actual_rate || '-',
           实时汇率: item.real_rate || '-',
-          支出数量: `${item.out_amount} ${item.out_coin}`,
+          支出金额: `${item.out_amount} ${item.out_coin}`,
           交易类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
           平台利润: item.plate_profit ? `${item.plate_profit}TRX` : '-',
           代理扣款: item.amount ? `${item.amount}TRX` : '-',
           交易状态: statusText,
           完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-',
-          描述: item.describe || '-'
+          描述: item.describe || '-',
+          _timestamp: item.paid_at || 0 // 用于排序的时间戳
         }
       })
 
+      // 按时间倒序排序（最新的在前）
+      list.sort((a, b) => b._timestamp - a._timestamp)
+
+      // 移除排序用的时间戳字段
+      const exportList = list.map(({ _timestamp, ...rest }) => rest)
+
       // 导出为 Excel
-      simpleExportToExcel(list, '闪兑订单列表')
+      simpleExportToExcel(exportList, '闪兑订单列表')
       handleSuccessMessage('导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')

@@ -228,7 +228,7 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
   // },
   {
     field: 'order_amount',
-    label: '数量',
+    label: '金额',
     slots: {
       default: (row: any) => {
         if (!row || !row.order_amount) return h('span', '-')
@@ -274,7 +274,7 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
   { field: 'out_from_address', label: '发送人', span: 24 },
   {
     field: 'user_get_amount',
-    label: '数量',
+    label: '金额',
     slots: {
       default: (row: any) => {
         if (!row || !row.user_get_amount) return h('span', '-')
@@ -577,14 +577,14 @@ const fetchExchangeOrderList = async (params: any) => {
       params.query ||
       params.dateRange
     )
-    handleListMessage(list, hasSearchCondition, '闪兑订单')
+    handleListMessage(list, hasSearchCondition, '兑换订单')
 
     return {
       list,
       total
     }
   } catch (error) {
-    handleErrorMessage(error, '获取闪兑订单列表失败')
+    handleErrorMessage(error, '获取兑换订单列表失败')
     return { list: [], total: 0 }
   }
 }
@@ -714,11 +714,18 @@ const handleExport = async () => {
         订单状态: getStatusText(item.status),
         备注: item.describe || '-',
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
-        支付时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
+        支付时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-',
+        _timestamp: item.paid_at || item.created_at || 0 // 用于排序的时间戳
       }))
 
+      // 按时间倒序排序（最新的在前）
+      list.sort((a, b) => b._timestamp - a._timestamp)
+
+      // 移除排序用的时间戳字段
+      const exportList = list.map(({ _timestamp, ...rest }) => rest)
+
       // 导出为 Excel
-      simpleExportToExcel(list, '闪兑订单列表')
+      simpleExportToExcel(exportList, '兑换订单列表')
       handleSuccessMessage('订单导出成功')
     } else {
       ElMessage.error('导出失败：数据格式错误')

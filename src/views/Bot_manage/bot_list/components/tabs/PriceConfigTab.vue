@@ -427,7 +427,7 @@ const priceSchema = reactive<FormSchema[]>([
     field: 'min_trx_balance',
     component: 'InputNumber' as const,
     label: {
-      text: '最低账号余额',
+      text: '最低账号余额（TRX）',
       tips: '当您的账号余额低于此值，兑换将会失效。请设置合理的值避免影响其他业务'
     },
     componentProps: {
