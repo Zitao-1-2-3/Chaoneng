@@ -12,7 +12,7 @@
     "dev:o": "cross-env VITE_SYSTEM_TYPE=Operation pnpm vite --mode base",
     "dev:o:new": "cross-env VITE_SYSTEM_TYPE=Operation pnpm vite --mode dev",
     "ts:check": "pnpm vue-tsc --noEmit --skipLibCheck",
-    "build:pro": "node scripts/build-with-system-type.mjs",
+    "build:pro": "pnpm build:management && pnpm build:operation",
     "build:gitee": "pnpm vite build --mode gitee",
     "build:dev": "node scripts/build-with-system-type.mjs",
     "build:test": "node scripts/build-with-system-type.mjs",
