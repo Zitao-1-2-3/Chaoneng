@@ -104,6 +104,7 @@ export const usePermissionStore = defineStore('permission', {
               }
             }
           ])
+          console.log('🔍 404 路由已添加:', finalAddRouters[finalAddRouters.length - 1])
           this.addRouters = finalAddRouters
           this.routers = cloneDeep(constantRouterMap).concat(routerMap)
           this.isAddRouters = true

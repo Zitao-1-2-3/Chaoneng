@@ -24,6 +24,12 @@ router.beforeEach(async (to, from, next) => {
       next({ path: '/' })
     } else {
       if (permissionStore.getIsAddRouters) {
+        // 检查路由是否存在
+        if (to.matched.length === 0) {
+          console.log('🚫 路由不存在，跳转到 404:', to.path)
+          next('/404')
+          return
+        }
         next()
         return
       }

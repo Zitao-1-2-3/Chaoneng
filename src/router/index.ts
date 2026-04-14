@@ -1,17 +1,13 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import type { App } from 'vue'
-import { Layout, getParentLayout } from '@/utils/routerHelper'
-import { useI18n } from '@/hooks/web/useI18n'
+import { Layout } from '@/utils/routerHelper'
 import { NO_RESET_WHITE_LIST } from '@/constants'
 
 // Import route modules
 import baseRoutes from './modules/base'
 import operationRoutes from './modules/operation'
 import managementRoutes from './modules/management'
-import asyncCommonRoutes from './modules/asyncCommon'
-
-const { t } = useI18n()
 
 // 获取环境变量中的系统类型
 const systemType = import.meta.env.VITE_SYSTEM_TYPE || 'Management'
