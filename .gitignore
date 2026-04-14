@@ -9,3 +9,5 @@ stats.html
 .idea
 .env.base
 deploy.sh
+# Local Netlify folder
+.netlify

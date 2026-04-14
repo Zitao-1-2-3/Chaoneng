@@ -1,0 +1,28 @@
+# Netlify 部署配置
+# 当前配置：Management 系统
+
+[build]
+  # 构建命令：安装依赖并构建 Management 系统
+  command = "pnpm install && pnpm build:management"
+  
+  # 发布目录：构建输出目录
+  publish = "dist-management"
+
+# SPA 路由重定向配置
+# 确保所有路由都指向 index.html（Vue Router 需要）
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# 构建环境配置
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
+  # 设置 base 路径为根路径，避免资源加载 404
+  VITE_BASE_PATH = "/"
+
+# 如果需要部署 Operation 系统，请修改为：
+# [build]
+#   command = "pnpm install && pnpm build:operation"
+#   publish = "dist-operation"

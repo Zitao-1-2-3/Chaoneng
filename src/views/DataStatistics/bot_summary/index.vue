@@ -29,26 +29,23 @@
 </template>
 
 <script setup lang="tsx">
-import { reactive, computed, ref } from 'vue'
-import { useI18n } from '@/hooks/web/useI18n'
+import { reactive, ref } from 'vue'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { TableColumn } from '@/components/Table'
 import { FormSchema } from '@/components/Form'
 import { BaseButton } from '@/components/Button'
 import { ElMessage, ElDialog } from 'element-plus'
-import { getBotListApi } from '@/api/botlist'
+import { v1GetBotList } from '@/api/botlist'
 import { getBotSummaryApi } from '@/api/statistics'
 import { BotSummaryItem } from '@/api/statistics/types'
 import { Descriptions } from '@/components/Descriptions'
 import { DescriptionsSchema } from '@/components/Descriptions/src/types'
-import { handleListMessage, handleErrorMessage } from '@/utils/messageHelper'
+import { handleErrorMessage } from '@/utils/messageHelper'
 
 defineOptions({
   name: 'BotSummary'
 })
-
-const { t } = useI18n()
 
 // 表格列定义
 const columns = reactive<TableColumn[]>([
@@ -194,10 +191,10 @@ const detailSchema = reactive<DescriptionsSchema[]>([
 // 获取机器人列表选项
 const getBotOptions = async () => {
   try {
-    const res = await getBotListApi({})
+    const res = await v1GetBotList({ page_size: 1000, current_page: 1 })
     if (res?.data?.list) {
       return res.data.list.map((item) => ({
-        label: item.username,
+        label: item.user_name,
         value: item.id
       }))
     }
