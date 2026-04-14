@@ -72,7 +72,7 @@ import { BaseButton } from '@/components/Button'
 import ConsumptionRecord from './components/ConsumptionRecord.vue'
 import RenewBot from './components/RenewBot.vue'
 import BotConfig from './components/BotConfig.vue'
-import { v1GetBotList, v1CreateBot, updateBotApi, getBotRenewPriceApi } from '@/api/botlist'
+import { v1GetBotList, v1CreateBot, v1UpdateBot, v1GetBotRenewPrice } from '@/api/botlist'
 import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
@@ -381,7 +381,7 @@ const handleStatusChange = async (value) => {
   console.log('状态切换:', value)
   try {
     // 调用API更新状态
-    const res = await updateBotApi(value)
+    const res = await v1UpdateBot(value)
     if (res.code === '000000') {
       handleSuccessMessage('状态更新成功')
     } else {
@@ -593,7 +593,7 @@ const handleConfigSuccess = () => {
 
 const getBotPrice = async () => {
   try {
-    const res = await getBotRenewPriceApi()
+    const res = await v1GetBotRenewPrice()
     if (res.code === '000000') {
       botPrice.value = res.data
     } else {

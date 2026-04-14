@@ -71,28 +71,6 @@ export type BotDetail = {
 }
 
 /**
- * 代理成本价
- */
-export type AgentPrice = {
-  active: number // 激活价格
-  batch_flash: number // 批量闪兑价格
-  flash: number // 闪兑价格
-  hosting_131k: number // 托管131k价格
-  hosting_65k: number // 托管65k价格
-  stroke: number // 笔数价格
-  stroke_usdt: number // 笔数USDT价格
-  time_15d: number // 15天时间价格
-  time_1d: number // 1天时间价格
-  time_1h: number // 1小时时间价格
-  time_30d: number // 30天时间价格
-  time_3d: number // 3天时间价格
-  time_7d: number // 7天时间价格
-  trx_2_usdt: number // TRX转USDT价格
-  usdt_2_trx: number // USDT转TRX价格
-  weal_time_1h: number // 福利1小时价格
-}
-
-/**
  * 代理成本价（系统价格）
  */
 export type SystemPrice = {
@@ -119,21 +97,54 @@ export type SystemPrice = {
 }
 
 /**
- * 机器人价格配置详情
+ * 机器人价格配置详情（扁平化结构）
  */
 export type BotPriceConfig = {
   id: number // 配置ID
-  bot_id: number // 机器人ID
-  created_at: string // 创建时间
-  updated_at: string // 更新时间
-  agent_price: AgentPrice // 代理之前设置的价格
-  allow_pledge: boolean // 是否允许质押
-  max_trx_2_usdt: number // TRX转USDT最大值
-  max_usdt_2_trx: number // USDT转TRX最大值
-  min_trx_balance: number // 最小TRX余额
-  notice_status: number // 通知状态
-  weal_hour_limit: number // 福利小时限制
-  weal_total_limit: number // 福利总限制
+  bot_id?: number // 机器人ID
+  created_at: number // 创建时间（Unix时间戳）
+  updated_at: number // 更新时间（Unix时间戳）
+  admin_id: number // 管理员ID
+
+  // 批量下单
+  active: string // 激活地址单价
+  batch_flash: string // 批量下单能量单价
+
+  // 闪租能量
+  flash: string
+
+  // 智能托管
+  hosting_65k: string // 65000能量
+  hosting_131k: string // 131000能量
+
+  // 笔数能量
+  stroke: string // 笔数能量TRX
+  stroke_usdt: string // 笔数能量USDT
+
+  // 时间能量
+  time_1h: string // 1小时租赁
+  time_1d: string // 1天租赁
+  time_3d: string // 3天租赁
+  time_7d: string // 7天租赁
+  time_15d: string // 15天租赁
+  time_30d: string // 30天租赁
+
+  // 闪兑配置
+  trx_2_usdt: string // TRX兑USDT利润（小数形式，如 "0.15" 表示 15%）
+  usdt_2_trx: string // USDT兑TRX利润（小数形式，如 "0.15" 表示 15%）
+  min_trx_balance: string // 最低账号余额
+  max_trx_2_usdt: string // TRX兑USDT可兑换上限
+  max_usdt_2_trx: string // USDT兑TRX可兑换上限
+
+  // 福利板块
+  weal_time_1h: string // 福利能量
+  weal_hour_limit?: string // 每小时购买限制
+  weal_total_limit?: string // 总购买限制
+
+  // 其他配置
+  bot_fee: string // 机器人费用（暂未使用）
+  allow_pledge?: boolean // 是否允许质押
+  notice_status?: number // 通知状态
 }
 
 /**
@@ -193,38 +204,53 @@ export type UpdateBotParams = {
 }
 
 /**
- * 更新机器人价格配置请求参数
+ * 更新机器人价格配置请求参数（扁平化结构）
  */
 export type UpdateBotPriceParams = {
-  bot_id: number | string // 机器人ID（必填）
-  id?: number // 配置ID
+  id: number | string // 配置ID（必填）
+  bot_id?: number | string // 机器人ID（可选）
   created_at?: string // 创建时间
   updated_at?: string // 更新时间
-  agent_price?: {
-    active?: number // 激活价格
-    batch_flash?: number // 批量闪兑价格
-    flash?: number // 闪兑价格
-    hosting_131k?: number // 托管131k价格
-    hosting_65k?: number // 托管65k价格
-    stroke?: number // 笔数价格
-    stroke_usdt?: number // 笔数USDT价格
-    time_15d?: number // 15天时间价格
-    time_1d?: number // 1天时间价格
-    time_1h?: number // 1小时时间价格
-    time_30d?: number // 30天时间价格
-    time_3d?: number // 3天时间价格
-    time_7d?: number // 7天时间价格
-    trx_2_usdt?: number // TRX转USDT价格
-    usdt_2_trx?: number // USDT转TRX价格
-    weal_time_1h?: number // 福利1小时价格
-  }
+
+  // 批量下单
+  active?: number // 激活地址单价
+  batch_flash?: number // 批量下单能量单价
+
+  // 闪租能量
+  flash?: number
+
+  // 智能托管
+  hosting_131k?: number // 131000能量
+  hosting_65k?: number // 65000能量
+
+  // 笔数能量
+  stroke?: number // 笔数能量TRX
+  stroke_usdt?: number // 笔数能量USDT
+
+  // 时间能量
+  time_15d?: number // 15天租赁
+  time_1d?: number // 1天租赁
+  time_1h?: number // 1小时租赁
+  time_30d?: number // 30天租赁
+  time_3d?: number // 3天租赁
+  time_7d?: number // 7天租赁
+
+  // 闪兑配置
+  trx_2_usdt?: number // TRX兑USDT利润（小数形式，如 0.15 表示 15%）
+  usdt_2_trx?: number // USDT兑TRX利润（小数形式，如 0.15 表示 15%）
+  min_trx_balance?: number // 最低账号余额
+  max_trx_2_usdt?: number // TRX兑USDT可兑换上限
+  max_usdt_2_trx?: number // USDT兑TRX可兑换上限
+
+  // 福利板块
+  weal_time_1h?: number // 福利能量
+  weal_hour_limit?: number // 每小时购买限制
+  weal_total_limit?: number // 总购买限制
+
+  // 其他配置
   allow_pledge?: boolean // 是否允许质押
-  max_trx_2_usdt?: number // TRX转USDT最大值
-  max_usdt_2_trx?: number // USDT转TRX最大值
-  min_trx_balance?: number // 最小TRX余额
   notice_status?: number // 通知状态
-  weal_hour_limit?: number // 福利小时限制
-  weal_total_limit?: number // 福利总限制
+  bot_fee?: number // 机器人费用（暂未使用）
 }
 
 /**
@@ -294,67 +320,4 @@ export type AgentBillListItem = {
 export type AgentBillListResponse = {
   list: AgentBillListItem[] // 账单列表
   pager: Pager // 分页信息
-}
-
-// ========== 旧接口类型定义 ==========
-
-type BotPaymentConfig = {
-  id: number
-  botId: number
-  username: string
-  flashPaymentWallet: string
-  balancePaymentWallet: string
-}
-
-type BotTimeEnergyConfig = {
-  id: number
-  botId: number
-  timeEnergyPrice: number
-  timeEnergyMultiplier: number
-}
-
-type BotCountEnergyConfig = {
-  id: number
-  botId: number
-  countEnergyPriceTRX: number
-  countEnergyPriceUSDT: number
-}
-
-type BotManagedModeConfig = {
-  id: number
-  botId: number
-  enabled: boolean
-  countPrice: number
-  customPriceEnabled: boolean
-  price65000: number
-  price131000: number
-}
-
-type BotBatchOrderConfig = {
-  id: number
-  botId: number
-  enabled: boolean
-  energyPrice: number
-  activatePrice: number
-}
-
-type BotFlashExchangeConfig = {
-  id: number
-  botId: number
-  enabled: boolean
-  walletAddress: string
-  minBalance: number
-  exchangeProfit: number
-  exchangeLimit: number
-  insufficientStock: boolean
-  insufficientStockValue: number
-}
-
-export type {
-  BotPaymentConfig,
-  BotTimeEnergyConfig,
-  BotCountEnergyConfig,
-  BotManagedModeConfig,
-  BotBatchOrderConfig,
-  BotFlashExchangeConfig
 }
