@@ -109,6 +109,11 @@ const handleExport = async () => {
       apiParams.keyword = params.query
     }
 
+    // 处理来源
+    if (params?.source) {
+      apiParams.source = params.source
+    }
+
     // 处理订单类型
     if (params?.order_type) {
       apiParams.kind = params.order_type
@@ -150,6 +155,9 @@ const handleExport = async () => {
       const list = res.data.list.map((item: any) => ({
         订单号: item.id,
         代理名称: item.agent_name || '-',
+        用户账号: item.account || '-',
+        用户邮箱: item.email || '-',
+        来源: item.source || '-',
         订单类型: typeTextMap[item.kind] || '-',
         交易金额: `${item.amount} ${item.coin}`,
         应发放能量: formatToWan(item.energy_amount),
@@ -235,6 +243,24 @@ const columns = [
     label: '代理名称',
     width: 120,
     formatter: (row) => row.username || '-'
+  },
+  {
+    field: 'account',
+    label: '用户账号',
+    width: 120,
+    formatter: (row) => row.account || '-'
+  },
+  {
+    field: 'email',
+    label: '用户邮箱',
+    minWidth: 150,
+    formatter: (row) => row.email || '-'
+  },
+  {
+    field: 'source',
+    label: '来源',
+    width: 100,
+    formatter: (row) => row.source || '-'
   },
   {
     field: 'order_type',
@@ -381,10 +407,27 @@ const searchSchema = [
   {
     field: 'query', // Updated field name
     component: 'Input' as const,
-    label: '关键字：', // Updated label
+    label: {
+      tips: 'TG用户ID/TG用户名/TG用户昵称/机器人名称/代理名称/用户账号/用户邮箱',
+      text: '关键词'
+    },
     componentProps: {
-      placeholder: '请输入订单ID/代理名称', // Updated placeholder
+      placeholder: '请输入关键词',
       clearable: true
+    }
+  },
+  {
+    field: 'source',
+    component: 'Select' as const,
+    label: '来源',
+    componentProps: {
+      placeholder: '请选择来源',
+      clearable: true,
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'H5' },
+        { label: '机器人', value: '机器人' }
+      ]
     }
   },
   {
@@ -640,6 +683,11 @@ const fetchDataWrapper = async (params: any = {}) => {
       apiParams.keyword = params.query
     }
 
+    // 处理来源
+    if (params.source) {
+      apiParams.source = params.source
+    }
+
     // 处理订单类型 (order_type → kind)
     if (params.order_type) {
       apiParams.kind = params.order_type
@@ -736,6 +784,9 @@ const fetchDataWrapper = async (params: any = {}) => {
           id: item.id,
           order_num: item.id, // 订单ID
           username: item.agent_name, // 代理名称
+          account: item.account || '-', // 用户账号
+          email: item.email || '-', // 用户邮箱
+          source: item.source || '-', // 来源
           order_type: item.kind, // 订单类型
           order_amount: item.amount, // 交易金额
           pay_unit: item.coin, // 支付单位
@@ -761,6 +812,7 @@ const fetchDataWrapper = async (params: any = {}) => {
       // 添加数据为空提示
       const hasSearchCondition = !!(
         params.query ||
+        params.source ||
         params.bot_address ||
         params.receive_address ||
         params.status ||

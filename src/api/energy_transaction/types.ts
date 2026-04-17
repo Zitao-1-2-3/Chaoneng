@@ -14,6 +14,7 @@ export interface V2EnergyListParams {
   receive_address?: string // 接收地址
   start_time?: string // 开始时间
   status?: number // 状态: 1-新订单, 2-已支付, 3-已发送, 4-已回收, 5-已完成, 6-失败订单, 7-已退款, 8-已取消, 9-中止订单
+  source?: string // 来源
 }
 
 /**
@@ -46,6 +47,9 @@ export interface V2EnergyItem {
   expirated_at: string | null // 过期时间（ISO时间格式字符串）
   delegated_at: string | null // 委托时间（ISO时间格式字符串）
   recycled_at: string | null // 回收时间（ISO时间格式字符串）
+  account?: string // 用户账号
+  email?: string // 用户邮箱
+  source?: string // 来源
 }
 
 /**
