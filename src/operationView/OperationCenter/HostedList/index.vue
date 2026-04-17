@@ -99,6 +99,24 @@ const columns: TableColumn[] = [
     formatter: (row: AutoManageAddressItem) => row.user_name || '-'
   },
   {
+    field: 'account',
+    label: '用户账号',
+    width: 120,
+    formatter: (row: AutoManageAddressItem) => row.account || '-'
+  },
+  {
+    field: 'email',
+    label: '用户邮箱',
+    minWidth: 150,
+    formatter: (row: AutoManageAddressItem) => row.email || '-'
+  },
+  {
+    field: 'source',
+    label: '来源',
+    width: 100,
+    formatter: (row: AutoManageAddressItem) => row.source || '-'
+  },
+  {
     field: 'address',
     label: '托管地址',
     minWidth: 250,
@@ -157,10 +175,27 @@ const searchSchema = computed<FormSchema[]>(() => [
   },
   {
     field: 'keyword',
-    label: '关键字',
+    label: {
+      tips: '托管地址/用户名/用户账号/用户邮箱',
+      text: '关键词'
+    },
     component: 'Input',
     componentProps: {
-      placeholder: '请输入托管地址/用户名'
+      placeholder: '请输入关键词'
+    }
+  },
+  {
+    field: 'source',
+    label: '来源',
+    component: 'Select',
+    componentProps: {
+      placeholder: '请选择来源',
+      clearable: true,
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'H5' },
+        { label: '机器人', value: '机器人' }
+      ]
     }
   }
 ])
@@ -180,6 +215,11 @@ const fetchAutoManageList = async (params: any) => {
     // 只有当 keyword 有值时才添加参数
     if (params.keyword && params.keyword.trim()) {
       queryParams.keyword = params.keyword.trim()
+    }
+
+    // 处理来源参数
+    if (params.source) {
+      queryParams.source = params.source
     }
 
     // 处理排序参数
@@ -214,7 +254,10 @@ const fetchAutoManageList = async (params: any) => {
           bot_name: item.bot_name,
           user_name: item.user_name,
           tg_name: item.user_name,
-          order_id: item.order_id
+          order_id: item.order_id,
+          account: item.account || '-',
+          email: item.email || '-',
+          source: item.source || '-'
         }
       })
 
@@ -224,7 +267,7 @@ const fetchAutoManageList = async (params: any) => {
       })
 
       // 添加数据为空提示
-      const hasSearchCondition = !!(params.bot_id || params.keyword)
+      const hasSearchCondition = !!(params.bot_id || params.keyword || params.source)
       handleListMessage(mappedList, hasSearchCondition, '托管地址')
 
       return {
