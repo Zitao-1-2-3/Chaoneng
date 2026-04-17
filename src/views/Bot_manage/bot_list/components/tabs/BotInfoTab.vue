@@ -14,7 +14,7 @@
       <ElRow :gutter="20">
         <ElCol :span="8">
           <ElFormItem label="地址：">
-            <ElInput v-model="h5Config.h5_url" placeholder="请输入H5地址" />
+            <ElInput v-model="h5Config.h5_url" placeholder="请输入H5地址" disabled />
           </ElFormItem>
         </ElCol>
         <ElCol :span="8">
@@ -33,11 +33,12 @@
 </template>
 
 <script setup lang="tsx">
-import { reactive, ref } from 'vue'
+import { reactive, ref, watch } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { ElRow, ElCol, ElFormItem, ElSwitch, ElInput } from 'element-plus'
+import { v1GetSiteDetail } from '@/api/site'
 
 const props = defineProps({
   tgStatus: {
@@ -62,6 +63,36 @@ const h5Config = ref({
   h5_url: '',
   customer_service_account: ''
 })
+
+// 当前机器人ID
+const currentBotId = ref<number | null>(null)
+
+// 获取Site详情
+const fetchSiteDetail = async (botId: number) => {
+  try {
+    const res = await v1GetSiteDetail(botId)
+    if (res && res.data) {
+      // 更新H5配置数据
+      h5Config.value.h5_url = res.data.name || ''
+      h5Config.value.customer_service_account = res.data.tg_admin || ''
+      // status: 1-启用，2-禁用，转换为 h5_enable: 1-启用，0-禁用
+      h5Config.value.h5_enable = res.data.status === 1 ? 1 : 0
+    }
+  } catch (error) {
+    console.error('获取Site详情失败:', error)
+  }
+}
+
+// 监听机器人ID变化，自动获取Site详情
+watch(
+  () => currentBotId.value,
+  (newBotId) => {
+    if (newBotId) {
+      fetchSiteDetail(newBotId)
+    }
+  },
+  { immediate: true }
+)
 
 // 机器人信息表单
 const botInfoSchema = reactive<FormSchema[]>([
@@ -187,7 +218,12 @@ defineExpose({
       // 设置基本表单数据
       formMethods.setValues(data)
 
-      // 设置H5配置数据
+      // 保存机器人ID
+      if (data.tg_bot_id !== undefined) {
+        currentBotId.value = data.tg_bot_id
+      }
+
+      // 设置H5配置数据（如果有传入）
       if (data.h5_enable !== undefined) h5Config.value.h5_enable = data.h5_enable
       if (data.h5_url !== undefined) h5Config.value.h5_url = data.h5_url
       if (data.customer_service_account !== undefined) {
@@ -207,8 +243,6 @@ defineExpose({
 </script>
 
 <style scoped>
-
-
 @keyframes rotate {
   from {
     transform: rotate(0deg);

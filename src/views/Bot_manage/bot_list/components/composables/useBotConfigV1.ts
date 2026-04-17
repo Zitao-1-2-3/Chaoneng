@@ -11,6 +11,7 @@ import {
   v1BindAddress,
   syncTgStatusApi
 } from '@/api/botlist'
+import { v1UpdateSite, v1GetSiteDetail } from '@/api/site'
 
 export function useBotConfigV1() {
   // 共享状态
@@ -308,12 +309,43 @@ export function useBotConfigV1() {
     try {
       const botInfoData = await formMethods.getFormData()
 
+      // 1. 更新机器人基本信息
       await v1UpdateBot({
         id: currentBot.value.id,
         describe: botInfoData.describe,
         status: botInfoData.status,
         tg_admin: botInfoData.tg_admin
       })
+
+      // 2. 更新Site信息（客服账号和H5端开关）
+      await v1UpdateSite({
+        id: currentBot.value.id, // 使用机器人ID作为Site ID
+        tg_admin: botInfoData.customer_service_account, // 客服账号
+        status: botInfoData.h5_enable === 1 ? 1 : 2 // H5端开关：1-启用，0-禁用 → 1-启用，2-禁用
+      })
+
+      // 3. 重新获取Site详情，刷新显示数据
+      try {
+        const siteRes = await v1GetSiteDetail(currentBot.value.id)
+        if (siteRes && siteRes.data) {
+          // 更新表单中的H5配置数据
+          const updatedH5Config = {
+            h5_url: siteRes.data.name || '',
+            customer_service_account: siteRes.data.tg_admin || '',
+            h5_enable: siteRes.data.status === 1 ? 1 : 0
+          }
+
+          // 合并当前表单数据和更新后的H5配置
+          const currentFormData = await formMethods.getFormData()
+          formMethods.setValues({
+            ...currentFormData,
+            ...updatedH5Config
+          })
+        }
+      } catch (refreshError) {
+        console.warn('刷新Site数据失败:', refreshError)
+        // 刷新失败不影响保存成功的提示
+      }
 
       ElMessage.success('保存成功')
       return true
