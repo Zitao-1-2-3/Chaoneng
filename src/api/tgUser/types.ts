@@ -23,6 +23,7 @@ export interface UserListParamsV1 {
   page_size?: number // 每页大小
   start_time?: string // 开始时间
   status?: number // 状态
+  source?: string // 来源（h5, bot）
   order?: string // 排序参数，格式：字段名 ASC/DESC
 }
 
@@ -37,6 +38,7 @@ export interface UserItemV1 {
   tg_user_id: number // TG用户ID
   tg_user_name: string // TG用户名
   tg_first_name: string // TG用户昵称
+  email?: string // 用户邮箱
   agent_id: number // 代理ID
   trx_balance: string // TRX余额
   usdt_balance: string // USDT余额
@@ -44,6 +46,7 @@ export interface UserItemV1 {
   address_list: string[] // 地址列表
   lang: string // 语言
   status: number // 状态
+  source?: string // 来源（h5, bot）
 }
 
 /**

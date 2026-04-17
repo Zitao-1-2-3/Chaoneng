@@ -51,6 +51,13 @@
         v-model:visible="balanceRecordDialogVisible"
         :account-id="currentAccountId"
       />
+
+      <!-- 修改密码弹窗 -->
+      <ChangePasswordDialog
+        v-model:visible="changePasswordDialogVisible"
+        :user="currentAccount"
+        @success="handlePasswordChangeSuccess"
+      />
     </ContentWrap>
   </div>
 </template>
@@ -73,6 +80,7 @@ import MassSendRecordDialog from './components/MassSendRecordDialog.vue'
 import { useRoute, useRouter } from 'vue-router'
 import RechargeDialog from './components/RechargeDialog.vue'
 import BalanceRecordDialog from './components/BalanceRecordDialog.vue'
+import ChangePasswordDialog from './components/ChangePasswordDialog.vue'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
@@ -132,6 +140,9 @@ const massSendRecordDialogVisible = ref(false)
 // 新增：余额记录弹窗可见状态
 const balanceRecordDialogVisible = ref(false)
 
+// 修改密码弹窗可见状态
+const changePasswordDialogVisible = ref(false)
+
 // 表格列配置
 const columns: TableColumn[] = [
   {
@@ -150,6 +161,17 @@ const columns: TableColumn[] = [
     url: (row) => `https://t.me/${row.tg_name}`
   },
   {
+    field: 'user_account',
+    label: '用户账号',
+    width: 150,
+    formatter: (row) => row.user_account || '-'
+  },
+  {
+    field: 'email',
+    label: '用户邮箱',
+    width: 180
+  },
+  {
     field: 'tg_bot_id',
     label: '机器人ID',
     slots: {
@@ -165,6 +187,19 @@ const columns: TableColumn[] = [
   {
     field: 'bot_info.bot_name',
     label: '机器人用户名'
+  },
+  {
+    field: 'source',
+    label: '来源',
+    width: 100,
+    formatter: (row) => {
+      const sourceMap = {
+        h5: 'H5',
+        bot: '机器人',
+        tg: 'TG机器人'
+      }
+      return sourceMap[row.source] || row.source || '-'
+    }
   },
   {
     field: 'trx_mount',
@@ -194,7 +229,7 @@ const columns: TableColumn[] = [
   {
     field: 'action',
     label: '操作',
-    width: 300,
+    width: 380,
     fixed: 'right',
     slots: {
       default: ({ row }) => {
@@ -217,6 +252,13 @@ const columns: TableColumn[] = [
             >
               余额记录
             </BaseButton>
+            <BaseButton
+              type="danger"
+              style="margin-left: 8px"
+              onClick={() => handleChangePassword(row)}
+            >
+              修改密码
+            </BaseButton>
           </div>
         )
       }
@@ -234,18 +276,33 @@ const searchSchema = computed<FormSchema[]>(() => [
       options: botOptions.value,
       placeholder: '请选择机器人',
       valueKey: 'value',
-      labelKey: 'label'
+      labelKey: 'label',
+      style: { width: '160px' }
+    }
+  },
+  {
+    field: 'source',
+    component: 'Select' as const,
+    label: '来源',
+    componentProps: {
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'h5' },
+        { label: '机器人', value: 'bot' }
+      ],
+      placeholder: '请选择来源',
+      valueKey: 'value',
+      labelKey: 'label',
+      style: { width: '100px' }
     }
   },
   {
     field: 'query',
     component: 'Input' as const,
     label: '关键词',
-    colProps: {
-      span: 8
-    },
     componentProps: {
-      placeholder: '请输入TG用户ID/用户名/用户昵称'
+      placeholder: '请输入TG用户ID/用户名/用户昵称/用户账号/用户邮箱',
+      style: { width: '400px' }
     }
   }
 ])
@@ -279,6 +336,11 @@ const fetchAccountList = async (params: any) => {
       queryParams.bot_id = Number(params.bot_id)
     }
 
+    // 只有当 source 有值时才添加参数
+    if (params.source !== undefined && params.source !== '') {
+      queryParams.source = params.source
+    }
+
     // 只有当 query 有值时才添加 keyword 参数
     if (params.query && params.query.trim()) {
       queryParams.keyword = params.query.trim()
@@ -299,12 +361,15 @@ const fetchAccountList = async (params: any) => {
           tg_id: item.tg_user_id,
           nickname: item.tg_first_name,
           tg_name: item.tg_user_name,
+          email: item.email || '-',
+          user_account: item.user_account || '-',
           tg_bot_id: item.bot_id,
           bot_info: {
             tg_bot_id: item.bot_id,
             bot_name: botUserName,
             firstname: botFirstName
           },
+          source: item.source || '-',
           trx_mount: item.trx_balance,
           usdt_mount: item.usdt_balance,
           create_time: item.created_at,
@@ -366,6 +431,17 @@ const handleBalanceRecord = (accountIdValue: number | string) => {
   balanceRecordDialogVisible.value = true
 }
 
+// 修改密码处理函数
+const handleChangePassword = (row: any) => {
+  currentAccount.value = row
+  changePasswordDialogVisible.value = true
+}
+
+// 修改密码成功回调
+const handlePasswordChangeSuccess = () => {
+  searchTableRef.value?.reload()
+}
+
 // 发送消息相关
 const openSendMessageDialog = (row: any) => {
   currentAccount.value = row
@@ -415,6 +491,8 @@ const handleExport = async () => {
           TG用户ID: item.tg_user_id,
           TG用户昵称: item.tg_first_name,
           TG用户名: item.tg_user_name,
+          用户账号: item.user_account || '-',
+          用户邮箱: item.email || '-',
           机器人ID: item.bot_id,
           机器人用户名: botInfo ? botInfo.user_name : '',
           TRX余额: `${item.trx_balance || 0} TRX`,
