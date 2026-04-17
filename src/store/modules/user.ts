@@ -5,6 +5,7 @@ import { ElMessageBox } from 'element-plus'
 import { useI18n } from '@/hooks/web/useI18n'
 import { logoutApi } from '@/api/login'
 import { useTagsViewStore } from './tagsView'
+import { usePermissionStoreWithOut } from './permission'
 import router from '@/router'
 
 interface UserState {
@@ -72,20 +73,36 @@ export const useUserStore = defineStore('user', {
         type: 'warning'
       })
         .then(async () => {
-          const res = await logoutApi().catch(() => {})
-          if (res) {
-            this.reset()
-          }
+          // 调用退出登录API，无论成功失败都执行reset
+          await logoutApi().catch(() => {})
+          // 无论API是否成功，都清除本地状态并跳转到登录页
+          this.reset()
         })
         .catch(() => {})
     },
     reset() {
       const tagsViewStore = useTagsViewStore()
+      const permissionStore = usePermissionStoreWithOut()
+
+      // 清除标签页
       tagsViewStore.delAllViews()
+
+      // 清除用户信息
       this.setToken('')
       this.setUserInfo(undefined)
       this.setRoleRouters([])
-      router.replace('/login')
+
+      // 重置路由状态
+      permissionStore.setIsAddRouters(false)
+
+      // 清除所有localStorage缓存
+      localStorage.clear()
+
+      // 跳转到登录页
+      router.replace('/login').catch(() => {
+        // 如果路由跳转失败，强制刷新页面到登录页
+        window.location.href = '/#/login'
+      })
     },
     logout() {
       this.reset()
