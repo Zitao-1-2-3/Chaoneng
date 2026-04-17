@@ -12,6 +12,7 @@ export interface V2ExchangeListParams {
   page_size?: number // 每页大小
   start_time?: string // 开始时间
   status?: number // 状态: 1-新订单, 2-已支付, 3-已发送, 4-已回收, 5-已完成, 6-失败订单, 7-已退款, 8-已取消, 9-中止订单
+  source?: string // 来源
 }
 
 /**
@@ -48,6 +49,9 @@ export interface V2ExchangeItem {
   plate_profit?: string // 平台利润
   agent_cost?: string // 代理扣款
   completed_at?: number | null // 完成时间（Unix时间戳-秒）
+  account?: string // 用户账号
+  email?: string // 用户邮箱
+  source?: string // 来源
 }
 
 /**

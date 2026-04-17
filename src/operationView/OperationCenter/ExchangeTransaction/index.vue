@@ -79,6 +79,16 @@ const handleExport = async () => {
       apiParams.end_time = String(Math.floor(params.dateRange[1] / 1000))
     }
 
+    // 处理关键词查询
+    if (params?.query) {
+      apiParams.keyword = params.query
+    }
+
+    // 处理来源
+    if (params?.source) {
+      apiParams.source = params.source
+    }
+
     // 处理交易类型查询
     if (params?.coin) {
       apiParams.keyword = params.coin
@@ -133,6 +143,9 @@ const handleExport = async () => {
           日期: item.paid_at ? formatToDate(item.paid_at * 1000) : '-',
           订单ID: item.id,
           代理名称: item.agent_name || '-',
+          用户账号: item.account || '-',
+          用户邮箱: item.email || '-',
+          来源: item.source || '-',
           支付金额: `${item.amount} ${item.in_coin}`,
           兑换汇率: item.actual_rate || '-',
           实时汇率: item.real_rate || '-',
@@ -183,6 +196,24 @@ const columns = reactive<TableColumn[]>([
     label: '代理名称',
     minWidth: 150,
     formatter: (row) => row.username || '-'
+  },
+  {
+    field: 'account',
+    label: '用户账号',
+    minWidth: 120,
+    formatter: (row) => row.account || '-'
+  },
+  {
+    field: 'email',
+    label: '用户邮箱',
+    minWidth: 150,
+    formatter: (row) => row.email || '-'
+  },
+  {
+    field: 'source',
+    label: '来源',
+    width: 100,
+    formatter: (row) => row.source || '-'
   },
   {
     field: 'order_amount',
@@ -316,6 +347,32 @@ const columns = reactive<TableColumn[]>([
 // 搜索表单配置 (根据截图更新)
 const searchSchema = reactive<FormSchema[]>([
   {
+    field: 'query',
+    component: 'Input',
+    label: {
+      tips: 'TG用户ID/TG用户名/TG用户昵称/机器人名称/代理名称/用户账号/用户邮箱',
+      text: '关键词'
+    },
+    componentProps: {
+      placeholder: '请输入关键词',
+      clearable: true
+    }
+  },
+  {
+    field: 'source',
+    component: 'Select',
+    label: '来源',
+    componentProps: {
+      placeholder: '请选择来源',
+      clearable: true,
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'H5' },
+        { label: '机器人', value: '机器人' }
+      ]
+    }
+  },
+  {
     field: 'coin',
     component: 'Select',
     label: '交易类型:',
@@ -408,6 +465,16 @@ const fetchExchangeTransactionList = async (params: any) => {
       apiParams.end_time = String(Math.floor(params.dateRange[1] / 1000))
     }
 
+    // 处理关键词查询
+    if (params.query) {
+      apiParams.keyword = params.query
+    }
+
+    // 处理来源
+    if (params.source) {
+      apiParams.source = params.source
+    }
+
     // 处理交易类型查询
     if (params.coin) {
       apiParams.keyword = params.coin
@@ -458,6 +525,9 @@ const fetchExchangeTransactionList = async (params: any) => {
           id: item.id, // 订单ID（保持字符串类型）
           order_id: item.id, // 订单号
           username: item.agent_name || '', // 代理名称
+          account: item.account || '-', // 用户账号
+          email: item.email || '-', // 用户邮箱
+          source: item.source || '-', // 来源
           order_amount: String(item.amount), // 支付金额
           trx_price: String(item.actual_rate || 0), // 对话汇率（实际成交汇率）
           real_price: String(item.real_rate || 0), // 实时汇率
@@ -484,7 +554,13 @@ const fetchExchangeTransactionList = async (params: any) => {
       console.log('[fetchExchangeTransactionList] 返回数据:', { total, count: mappedList.length })
 
       // 添加数据为空提示
-      const hasSearchCondition = !!(params.coin || params.status || params.dateRange)
+      const hasSearchCondition = !!(
+        params.query ||
+        params.source ||
+        params.coin ||
+        params.status ||
+        params.dateRange
+      )
       handleListMessage(mappedList, hasSearchCondition, '闪兑订单')
 
       return {
