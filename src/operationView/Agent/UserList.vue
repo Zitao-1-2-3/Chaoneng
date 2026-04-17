@@ -93,6 +93,14 @@ const columns: TableColumn[] = [
     url: (row) => `https://t.me/${row.tg_name}`
   },
   {
+    field: 'account',
+    label: '用户账号'
+  },
+  {
+    field: 'email',
+    label: '用户邮箱'
+  },
+  {
     field: 'tg_bot_id',
     label: '机器人ID',
     slots: {
@@ -112,6 +120,10 @@ const columns: TableColumn[] = [
   {
     field: 'user_name',
     label: '代理名称'
+  },
+  {
+    field: 'source',
+    label: '来源'
   },
   {
     field: 'trx_mount',
@@ -160,7 +172,22 @@ const searchSchema = computed<FormSchema[]>(() => [
     component: 'Input' as const,
     label: '关键词',
     componentProps: {
-      placeholder: '请输入用户名/昵称'
+      placeholder: '请输入用户名/昵称/用户账号/用户邮箱'
+    }
+  },
+  {
+    field: 'source',
+    component: 'Select' as const,
+    label: '来源',
+    componentProps: {
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'H5' },
+        { label: '机器人', value: '机器人' }
+      ],
+      placeholder: '请选择来源',
+      valueKey: 'value',
+      labelKey: 'label'
     }
   },
   {
@@ -187,6 +214,7 @@ const fetchAccountList = async (params: any) => {
 
     if (params?.query) adaptedParams.keyword = params.query // query → keyword
     if (params?.bot_id) adaptedParams.bot_id = Number(params.bot_id)
+    if (params?.source) adaptedParams.source = params.source // 来源
 
     // 处理排序参数 - 需要映射字段名
     if (params?.order) {
@@ -226,8 +254,11 @@ const fetchAccountList = async (params: any) => {
         tg_bot_id: item.bot_id, // bot_id → tg_bot_id
         nickname: item.tg_first_name, // tg_first_name → nickname
         tg_name: item.tg_user_name, // tg_user_name → tg_name
+        account: item.account || '-', // 用户账号
+        email: item.email || '-', // 用户邮箱
         trx_mount: item.trx_balance, // trx_balance → trx_mount
         usdt_mount: item.usdt_balance, // usdt_balance → usdt_mount
+        source: item.source || '-', // 来源
         create_time: item.created_at, // created_at（秒）→ create_time（秒，formatter中会转毫秒）
         update_time: item.updated_at, // updated_at（秒）→ update_time（秒，formatter中会转毫秒）
         bot_info: {
@@ -244,7 +275,12 @@ const fetchAccountList = async (params: any) => {
     })
 
     // 添加数据为空提示
-    const hasSearchCondition = !!(params?.query || params?.bot_id || params?.dateRange)
+    const hasSearchCondition = !!(
+      params?.query ||
+      params?.bot_id ||
+      params?.dateRange ||
+      params?.source
+    )
     handleListMessage(list, hasSearchCondition, '用户')
 
     return {
@@ -282,6 +318,7 @@ const handleExport = async () => {
 
     if (params?.query) exportParams.keyword = params.query
     if (params?.bot_id) exportParams.bot_id = Number(params.bot_id)
+    if (params?.source) exportParams.source = params.source // 来源
 
     // 处理时间范围 - 转换为 Unix 时间戳（秒级）
     if (params?.dateRange && params.dateRange.length === 2) {
@@ -301,9 +338,12 @@ const handleExport = async () => {
           TG用户ID: item.tg_user_id,
           TG用户昵称: item.tg_first_name,
           TG用户名: item.tg_user_name,
+          用户账号: item.account || '-',
+          用户邮箱: item.email || '-',
           机器人ID: item.bot_id,
           机器人用户名: botInfo?.user_name || '',
           代理名称: botInfo?.agent_name || '',
+          来源: item.source || '-',
           TRX余额: `${item.trx_balance || 0} TRX`,
           USDT余额: `${item.usdt_balance || 0} USDT`,
           创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
