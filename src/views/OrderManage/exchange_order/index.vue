@@ -330,6 +330,31 @@ const columns: TableColumn[] = [
     }
   },
   {
+    field: 'user_account',
+    label: '用户账号',
+    width: 120,
+    formatter: (row) => row.user_account || '-'
+  },
+  {
+    field: 'user_email',
+    label: '用户邮箱',
+    minWidth: 150,
+    formatter: (row) => row.user_email || '-'
+  },
+  {
+    field: 'source',
+    label: '来源',
+    width: 100,
+    formatter: (row) => {
+      const sourceMap = {
+        h5: 'H5',
+        bot: '机器人',
+        tg: 'TG机器人'
+      }
+      return sourceMap[row.source] || row.source || '-'
+    }
+  },
+  {
     field: 'order_amount',
     label: '支付金额',
     width: 120,
@@ -447,11 +472,24 @@ const searchSchema = [
     }
   },
   {
+    field: 'source',
+    component: 'Select' as const,
+    label: '来源',
+    componentProps: {
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'h5' },
+        { label: '机器人', value: 'bot' }
+      ],
+      placeholder: '请选择来源'
+    }
+  },
+  {
     field: 'query',
     component: 'Input' as const,
     label: '关键字',
     componentProps: {
-      placeholder: '请输入机器人名称'
+      placeholder: '请输入机器人名称/用户账号/邮箱'
     }
   },
   {
@@ -518,6 +556,7 @@ const fetchExchangeOrderList = async (params: any) => {
     const adaptedParams: any = {}
 
     if (params.order_id) adaptedParams.order_id = params.order_id
+    if (params.source) adaptedParams.source = params.source
     if (params.status) adaptedParams.status = params.status
     if (params.query) adaptedParams.keyword = params.query // query → keyword
 
@@ -556,6 +595,9 @@ const fetchExchangeOrderList = async (params: any) => {
       order_id: item.id,
       tg_bot_id: item.bot_id, // bot_id → tg_bot_id
       bot_name: item.bot_name,
+      user_account: item.user_account || '-', // 用户账号
+      user_email: item.user_email || '-', // 用户邮箱
+      source: item.source || '-', // 来源
       order_amount: item.amount, // amount → order_amount
       pay_unit: item.in_coin || '', // in_coin → pay_unit（支付币种），确保有默认值
       exchange_amount: item.out_amount, // out_amount → exchange_amount（兑换得到的数量）
@@ -573,6 +615,7 @@ const fetchExchangeOrderList = async (params: any) => {
     // 添加数据为空提示
     const hasSearchCondition = !!(
       params.order_id ||
+      params.source ||
       params.status ||
       params.query ||
       params.dateRange
@@ -688,6 +731,7 @@ const handleExport = async () => {
     const adaptedParams: any = {}
 
     if (params?.order_id) adaptedParams.order_id = params.order_id
+    if (params?.source) adaptedParams.source = params.source
     if (params?.status) adaptedParams.status = params.status
     if (params?.query) adaptedParams.keyword = params.query
 
@@ -707,6 +751,9 @@ const handleExport = async () => {
       const list = res.data.list.map((item: any) => ({
         订单号: item.id,
         机器人名称: item.bot_name,
+        用户账号: item.user_account || '-',
+        用户邮箱: item.user_email || '-',
+        来源: item.source === 'h5' ? 'H5' : item.source === 'bot' ? '机器人' : item.source || '-',
         订单类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
         支付金额: `${item.amount} ${item.in_coin}`,
         兑换金额: `${item.out_amount} ${item.out_coin}`,

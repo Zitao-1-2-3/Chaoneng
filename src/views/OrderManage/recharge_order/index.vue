@@ -216,6 +216,30 @@ const columns: TableColumn[] = [
     formatter: (row) => row.tg_nickname || '-'
   },
   {
+    field: 'user_account',
+    label: '用户账号',
+    formatter: (row) => row.user_account || '-'
+  },
+  {
+    field: 'user_email',
+    label: '用户邮箱',
+    minWidth: 150,
+    formatter: (row) => row.user_email || '-'
+  },
+  {
+    field: 'source',
+    label: '来源',
+    width: 100,
+    formatter: (row) => {
+      const sourceMap = {
+        h5: 'H5',
+        bot: '机器人',
+        tg: 'TG机器人'
+      }
+      return sourceMap[row.source] || row.source || '-'
+    }
+  },
+  {
     field: 'bot_name',
     label: '机器人名称',
     slots: {
@@ -321,6 +345,19 @@ const searchSchema = [
     }
   },
   {
+    field: 'source',
+    component: 'Select' as const,
+    label: '来源',
+    componentProps: {
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'h5' },
+        { label: '机器人', value: 'bot' }
+      ],
+      placeholder: '请选择来源'
+    }
+  },
+  {
     field: 'status',
     component: 'Select' as const,
     label: '订单状态',
@@ -344,11 +381,11 @@ const searchSchema = [
     field: 'query',
     component: 'Input' as const,
     label: {
-      tips: 'TG用户名/TG用户昵称/机器人名称',
+      tips: 'TG用户名/TG用户昵称/机器人名称/用户账号/用户邮箱',
       text: '关键词'
     },
     componentProps: {
-      placeholder: '请输入关键词'
+      placeholder: '请输入TG用户名/TG用户昵称/机器人名称/用户账号/用户邮箱'
     }
   },
   {
@@ -433,6 +470,7 @@ const fetchRechargeOrderList = async (params: any) => {
 
     // 映射参数字段
     if (params.order_id) adaptedParams.order_id = params.order_id
+    if (params.source) adaptedParams.source = params.source
     if (params.status) adaptedParams.status = params.status
     if (params.query) adaptedParams.keyword = params.query // query → keyword
     if (params.order_type) {
@@ -476,6 +514,9 @@ const fetchRechargeOrderList = async (params: any) => {
       tg_name: item.tg_user_name, // tg_user_name → tg_name
       tg_nickname: item.tg_first_name, // tg_first_name → tg_nickname
       tg_id: item.user_id, // user_id → tg_id
+      user_account: item.user_account || '-', // 用户账号
+      user_email: item.user_email || '-', // 用户邮箱
+      source: item.source || '-', // 来源
       bot_name: item.bot_name,
       bot_id: item.bot_id,
       order_type: item.coin === 'TRX' ? 1 : 2, // 根据币种判断订单类型：TRX=1, USDT=2
@@ -494,6 +535,7 @@ const fetchRechargeOrderList = async (params: any) => {
     // 添加数据为空提示
     const hasSearchCondition = !!(
       params.order_id ||
+      params.source ||
       params.status ||
       params.query ||
       params.order_type ||
@@ -568,6 +610,7 @@ const handleExport = async () => {
     // 构建查询参数（复用 fetchRechargeOrderList 的逻辑）
     const adaptedParams: any = {}
     if (params?.order_id) adaptedParams.order_id = params.order_id
+    if (params?.source) adaptedParams.source = params.source
     if (params?.status) adaptedParams.status = params.status
     if (params?.query) adaptedParams.keyword = params.query
     if (params?.order_type) {
@@ -589,6 +632,9 @@ const handleExport = async () => {
         订单号: item.id,
         TG用户名: item.tg_user_name,
         TG用户昵称: item.tg_first_name,
+        用户账号: item.user_account || '-',
+        用户邮箱: item.user_email || '-',
+        来源: item.source === 'h5' ? 'H5' : item.source === 'bot' ? '机器人' : item.source || '-',
         机器人名称: item.bot_name,
         订单类型: item.coin === 'TRX' ? '充值TRX' : '充值USDT',
         金额: `${item.amount} ${item.coin}`,

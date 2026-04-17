@@ -116,6 +116,31 @@ const columns: TableColumn[] = [
     formatter: (row) => row.nickname || '-'
   },
   {
+    field: 'user_account',
+    label: '用户账号',
+    width: 120,
+    formatter: (row) => row.user_account || '-'
+  },
+  {
+    field: 'user_email',
+    label: '用户邮箱',
+    minWidth: 150,
+    formatter: (row) => row.user_email || '-'
+  },
+  {
+    field: 'source',
+    label: '来源',
+    width: 100,
+    formatter: (row) => {
+      const sourceMap = {
+        h5: 'H5',
+        bot: '机器人',
+        tg: 'TG机器人'
+      }
+      return sourceMap[row.source] || row.source || '-'
+    }
+  },
+  {
     field: 'bot_name',
     label: '机器人名称',
     minWidth: 160,
@@ -284,10 +309,23 @@ const searchSchema = [
     component: 'Input' as const,
     label: {
       text: '关键字',
-      tips: 'TG用户名/机器人名称'
+      tips: 'TG用户名/机器人名称/用户账号/用户邮箱'
     },
     componentProps: {
-      placeholder: '请输入关键字'
+      placeholder: '请输入关键词'
+    }
+  },
+  {
+    field: 'source',
+    component: 'Select' as const,
+    label: '来源',
+    componentProps: {
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'h5' },
+        { label: '机器人', value: 'bot' }
+      ],
+      placeholder: '请选择来源'
     }
   },
   {
@@ -395,6 +433,7 @@ const fetchEnergyOrderList = async (params: any) => {
     const adaptedParams: any = {}
 
     if (params.order_num) adaptedParams.order_id = params.order_num // order_num → order_id
+    if (params.source) adaptedParams.source = params.source // 来源
     if (params.status) adaptedParams.status = params.status
     if (params.query) adaptedParams.keyword = params.query // query → keyword
     if (params.order_type) adaptedParams.kind = params.order_type // order_type → kind
@@ -438,6 +477,9 @@ const fetchEnergyOrderList = async (params: any) => {
       tg_name: item.tg_user_name, // tg_user_name → tg_name
       nickname: item.tg_first_name, // tg_first_name → nickname
       tg_id: item.user_id, // user_id → tg_id
+      user_account: item.user_account || '-', // 用户账号
+      user_email: item.user_email || '-', // 用户邮箱
+      source: item.source || '-', // 来源
       bot_name: item.bot_name, // bot_name
       bot_id: item.bot_id,
       order_type: item.kind, // kind → order_type
@@ -460,6 +502,7 @@ const fetchEnergyOrderList = async (params: any) => {
     const hasSearchCondition = !!(
       params.query ||
       params.order_num ||
+      params.source ||
       params.status ||
       params.order_type ||
       params.dateRange
@@ -583,6 +626,7 @@ const handleExport = async () => {
     const adaptedParams: any = {}
 
     if (params?.order_num) adaptedParams.order_id = params.order_num
+    if (params?.source) adaptedParams.source = params.source
     if (params?.status) adaptedParams.status = params.status
     if (params?.query) adaptedParams.keyword = params.query
     if (params?.order_type) adaptedParams.kind = params.order_type
@@ -617,6 +661,9 @@ const handleExport = async () => {
         订单号: item.id,
         TG用户名: item.tg_user_name,
         TG用户昵称: item.tg_first_name,
+        用户账号: item.user_account || '-',
+        用户邮箱: item.user_email || '-',
+        来源: item.source === 'h5' ? 'H5' : item.source === 'bot' ? '机器人' : item.source || '-',
         机器人名称: item.bot_name,
         订单类型: typeTextMap[item.kind] || '-',
         支付金额: item.amount && item.amount != 0 ? `${item.amount} ${item.coin || ''}` : '-',

@@ -320,6 +320,30 @@ const columns: TableColumn[] = [
     formatter: (row) => row.nickname || '-'
   },
   {
+    field: 'user_account',
+    label: '用户账号',
+    formatter: (row) => row.user_account || '-'
+  },
+  {
+    field: 'user_email',
+    label: '用户邮箱',
+    minWidth: 150,
+    formatter: (row) => row.user_email || '-'
+  },
+  {
+    field: 'source',
+    label: '来源',
+    width: 100,
+    formatter: (row) => {
+      const sourceMap = {
+        h5: 'H5',
+        bot: '机器人',
+        tg: 'TG机器人'
+      }
+      return sourceMap[row.source] || row.source || '-'
+    }
+  },
+  {
     field: 'bot_name',
     label: '机器人名称',
     slots: {
@@ -431,14 +455,27 @@ const searchSchema = [
     }
   },
   {
+    field: 'source',
+    component: 'Select' as const,
+    label: '来源',
+    componentProps: {
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'h5' },
+        { label: '机器人', value: 'bot' }
+      ],
+      placeholder: '请选择来源'
+    }
+  },
+  {
     field: 'query',
     component: 'Input' as const,
     label: {
       text: '关键词',
-      tips: 'TG用户名/TG昵称/机器人名称'
+      tips: 'TG用户名/TG昵称/机器人名称/用户账号/用户邮箱'
     },
     componentProps: {
-      placeholder: '请输入关键字'
+      placeholder: '请输入TG用户名/TG昵称/机器人名称/用户账号/用户邮箱'
     }
   },
   {
@@ -498,6 +535,12 @@ const fetchHostedOrderList = async (params: any) => {
   try {
     // 处理排序参数 - 字段名映射
     const processedParams = { ...params }
+
+    // 添加source参数
+    if (params.source) {
+      processedParams.source = params.source
+    }
+
     if (params.order) {
       const fieldMapping: Record<string, string> = {
         create_time: 'created_at',
@@ -514,15 +557,28 @@ const fetchHostedOrderList = async (params: any) => {
     }
 
     const response = await getHostedOrderListApi(processedParams)
-    const list = response.data?.list || []
+
+    // 映射返回数据，添加新字段
+    const list = (response.data?.list || []).map((item: any) => ({
+      ...item,
+      user_account: item.user_account || '-',
+      user_email: item.user_email || '-',
+      source: item.source || '-'
+    }))
+
     const hasSearchCondition = !!(
       params.query ||
       params.order_num ||
+      params.source ||
       params.status ||
       params.dateRange
     )
     handleListMessage(list, hasSearchCondition, '托管订单')
-    return response.data
+
+    return {
+      list,
+      total: response.data?.total || 0
+    }
   } catch (error) {
     handleErrorMessage(error, '获取托管订单列表失败')
     return { list: [], total: 0 }
