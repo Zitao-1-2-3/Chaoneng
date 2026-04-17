@@ -220,6 +220,18 @@ const columns: TableColumn[] = [
     formatter: (row) => row.tg_nickname || '-'
   },
   {
+    field: 'account',
+    label: '用户账号',
+    minWidth: 120,
+    formatter: (row) => row.account || '-'
+  },
+  {
+    field: 'email',
+    label: '用户邮箱',
+    minWidth: 150,
+    formatter: (row) => row.email || '-'
+  },
+  {
     field: 'bot_name',
     label: '机器人名称',
     minWidth: 150,
@@ -240,6 +252,12 @@ const columns: TableColumn[] = [
         )
       }
     }
+  },
+  {
+    field: 'source',
+    label: '来源',
+    width: 100,
+    formatter: (row) => row.source || '-'
   },
   {
     field: 'order_type',
@@ -352,11 +370,24 @@ const searchSchema = [
     field: 'query',
     component: 'Input' as const,
     label: {
-      tips: 'TG用户名/TG用户昵称/机器人名称/代理名称',
+      tips: 'TG用户名/TG用户昵称/机器人名称/代理名称/用户账号/用户邮箱',
       text: '关键词'
     },
     componentProps: {
       placeholder: '请输入关键词'
+    }
+  },
+  {
+    field: 'source',
+    component: 'Select' as const,
+    label: '来源',
+    componentProps: {
+      options: [
+        { label: '全部', value: '' },
+        { label: 'H5', value: 'H5' },
+        { label: '机器人', value: '机器人' }
+      ],
+      placeholder: '请选择来源'
     }
   },
   {
@@ -452,6 +483,11 @@ const fetchRechargeOrderList = async (params: any) => {
       adaptedParams.status = params.status
     }
 
+    // 来源
+    if (params.source) {
+      adaptedParams.source = params.source
+    }
+
     // 订单类型：暂时搁置，等待后端确认如何处理
     // TODO: 确认后端是否支持按 coin 或其他字段筛选订单类型
     // if (params.order_type) {
@@ -504,8 +540,11 @@ const fetchRechargeOrderList = async (params: any) => {
       tg_id: item.user_id?.toString() || '', // TG用户ID
       tg_name: item.tg_user_name, // TG用户名
       tg_nickname: item.tg_first_name, // TG用户昵称
+      account: item.account || '-', // 用户账号
+      email: item.email || '-', // 用户邮箱
       bot_id: item.bot_id, // 机器人ID
       bot_name: item.bot_name, // 机器人名称
+      source: item.source || '-', // 来源
       order_type: item.coin === 'TRX' ? 1 : 2, // 订单类型: TRX=1, USDT=2
       in_mount: item.amount, // 充值金额
       in_unit: item.coin, // 充值单位
@@ -525,6 +564,7 @@ const fetchRechargeOrderList = async (params: any) => {
       params.order_id ||
       params.status ||
       params.query ||
+      params.source ||
       params.order_type ||
       params.receive_address ||
       params.pay_address
@@ -627,6 +667,11 @@ const handleExport = async () => {
       adaptedParams.status = params.status
     }
 
+    // 来源
+    if (params?.source) {
+      adaptedParams.source = params.source
+    }
+
     // 收款地址
     if (params?.receive_address) {
       adaptedParams.receive_address = params.receive_address
@@ -657,7 +702,10 @@ const handleExport = async () => {
         代理名称: item.agent_name || '-',
         TG用户名: item.tg_user_name,
         TG用户昵称: item.tg_first_name,
+        用户账号: item.account || '-',
+        用户邮箱: item.email || '-',
         机器人名称: item.bot_name,
+        来源: item.source || '-',
         订单类型: item.coin === 'TRX' ? '充值TRX' : '充值USDT',
         金额: `${item.amount} ${item.coin}`,
         订单状态: getStatusText(item.status),
