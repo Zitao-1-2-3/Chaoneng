@@ -184,157 +184,181 @@ const rechargeDetailSchema = computed(() => {
   return schema
 })
 
+// 当前选择的来源
+const selectedSource = ref<number | string>('')
+
 // 表格列配置
-const columns: TableColumn[] = [
-  {
-    field: 'order_id',
-    label: '订单号',
-    minWidth: 180,
-    formatter: (row) => row.order_id || '-'
-  },
-  {
-    field: 'user_name',
-    label: '代理名称',
-    minWidth: 120,
-    formatter: (row) => row.user_name || '-'
-  },
-  {
-    field: 'tg_name',
-    label: 'TG用户名',
-    minWidth: 120,
-    slots: {
-      default: ({ row }) => {
-        if (!row.tg_name) return <span>-</span>
-        return (
-          <ElLink href={`https://t.me/${row.tg_name}`} type="primary" target="_blank">
-            {row.tg_name}
-          </ElLink>
-        )
+const columns = computed(() => {
+  const allCols: TableColumn[] = [
+    {
+      field: 'order_id',
+      label: '订单号',
+      minWidth: 180,
+      formatter: (row) => row.order_id || '-'
+    },
+    {
+      field: 'user_name',
+      label: '代理名称',
+      minWidth: 120,
+      formatter: (row) => row.user_name || '-'
+    },
+    {
+      field: 'tg_name',
+      label: 'TG用户名',
+      minWidth: 120,
+      hideWhen: 2, // H5时隐藏
+      slots: {
+        default: ({ row }) => {
+          if (!row.tg_name) return <span>-</span>
+          return (
+            <ElLink href={`https://t.me/${row.tg_name}`} type="primary" target="_blank">
+              {row.tg_name}
+            </ElLink>
+          )
+        }
+      }
+    },
+    {
+      field: 'tg_nickname',
+      label: 'TG用户昵称',
+      minWidth: 120,
+      hideWhen: 2, // H5时隐藏
+      formatter: (row) => row.tg_nickname || '-'
+    },
+    {
+      field: 'account',
+      label: '用户账号',
+      minWidth: 120,
+      hideWhen: 1, // 机器人时隐藏
+      formatter: (row) => row.account || '-'
+    },
+    {
+      field: 'email',
+      label: '用户邮箱',
+      minWidth: 150,
+      hideWhen: 1, // 机器人时隐藏
+      formatter: (row) => row.email || '-'
+    },
+    {
+      field: 'bot_name',
+      label: '机器人名称',
+      minWidth: 150,
+      slots: {
+        default: ({ row }) => {
+          return (
+            <span
+              style={{ color: '#409EFF', cursor: 'pointer' }}
+              onClick={() => {
+                router.push({
+                  path: `/agent/bot_list`,
+                  query: { tg_bot_id: row.bot_id }
+                })
+              }}
+            >
+              {row.bot_name || '-'}
+            </span>
+          )
+        }
+      }
+    },
+    {
+      field: 'source',
+      label: '来源',
+      width: 100,
+      formatter: (row) => row.source || '-'
+    },
+    {
+      field: 'order_type',
+      label: '订单类型',
+      width: 120,
+      formatter: (row) => (row.order_type == 1 ? '充值TRX' : '充值USDT')
+    },
+    {
+      field: 'in_mount',
+      label: '金额',
+      sortable: 'custom',
+      minWidth: 120,
+      formatter: (row) => (row.in_mount ? `${row.in_mount} ${row.in_unit || 'TRX'}` : '-')
+    },
+    {
+      field: 'status',
+      label: '订单状态',
+      width: 100,
+      slots: {
+        default: ({ row }) => {
+          const type = getStatusType(row.status)
+          const text = getStatusText(row.status)
+          return h(ElTag, { type }, () => text)
+        }
+      }
+    },
+    {
+      field: 'receive_address',
+      label: '收款地址',
+      minWidth: 200,
+      showOverflowTooltip: true,
+      formatter: (row) => row.receive_address || '-'
+    },
+    {
+      field: 'pay_address',
+      label: '支付地址',
+      minWidth: 200,
+      showOverflowTooltip: true,
+      formatter: (row) => row.pay_address || '-'
+    },
+    {
+      field: 'describe',
+      label: '备注',
+      minWidth: 150,
+      showOverflowTooltip: true,
+      formatter: (row) => row.describe || '-'
+    },
+    {
+      field: 'create_time',
+      label: '创建时间',
+      sortable: 'custom',
+      minWidth: 160,
+      formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
+    },
+    {
+      field: 'finish_time',
+      label: '完成时间',
+      sortable: 'custom',
+      minWidth: 160,
+      formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
+    },
+    {
+      field: 'action',
+      label: '操作',
+      width: 120,
+      fixed: 'right',
+      slots: {
+        default: ({ row }) => {
+          return (
+            <BaseButton type="primary" onClick={() => handleViewDetail(row)}>
+              充值详情
+            </BaseButton>
+          )
+        }
       }
     }
-  },
-  {
-    field: 'tg_nickname',
-    label: 'TG用户昵称',
-    minWidth: 120,
-    formatter: (row) => row.tg_nickname || '-'
-  },
-  {
-    field: 'account',
-    label: '用户账号',
-    minWidth: 120,
-    formatter: (row) => row.account || '-'
-  },
-  {
-    field: 'email',
-    label: '用户邮箱',
-    minWidth: 150,
-    formatter: (row) => row.email || '-'
-  },
-  {
-    field: 'bot_name',
-    label: '机器人名称',
-    minWidth: 150,
-    slots: {
-      default: ({ row }) => {
-        return (
-          <span
-            style={{ color: '#409EFF', cursor: 'pointer' }}
-            onClick={() => {
-              router.push({
-                path: `/agent/bot_list`,
-                query: { tg_bot_id: row.bot_id }
-              })
-            }}
-          >
-            {row.bot_name || '-'}
-          </span>
-        )
-      }
-    }
-  },
-  {
-    field: 'source',
-    label: '来源',
-    width: 100,
-    formatter: (row) => row.source || '-'
-  },
-  {
-    field: 'order_type',
-    label: '订单类型',
-    width: 120,
-    formatter: (row) => (row.order_type == 1 ? '充值TRX' : '充值USDT')
-  },
-  {
-    field: 'in_mount',
-    label: '金额',
-    sortable: 'custom',
-    minWidth: 120,
-    formatter: (row) => (row.in_mount ? `${row.in_mount} ${row.in_unit || 'TRX'}` : '-')
-  },
-  {
-    field: 'status',
-    label: '订单状态',
-    width: 100,
-    slots: {
-      default: ({ row }) => {
-        const type = getStatusType(row.status)
-        const text = getStatusText(row.status)
-        return h(ElTag, { type }, () => text)
-      }
-    }
-  },
-  {
-    field: 'receive_address',
-    label: '收款地址',
-    minWidth: 200,
-    showOverflowTooltip: true,
-    formatter: (row) => row.receive_address || '-'
-  },
-  {
-    field: 'pay_address',
-    label: '支付地址',
-    minWidth: 200,
-    showOverflowTooltip: true,
-    formatter: (row) => row.pay_address || '-'
-  },
-  {
-    field: 'describe',
-    label: '备注',
-    minWidth: 150,
-    showOverflowTooltip: true,
-    formatter: (row) => row.describe || '-'
-  },
-  {
-    field: 'create_time',
-    label: '创建时间',
-    sortable: 'custom',
-    minWidth: 160,
-    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
-  },
-  {
-    field: 'finish_time',
-    label: '完成时间',
-    sortable: 'custom',
-    minWidth: 160,
-    formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
-  },
-  {
-    field: 'action',
-    label: '操作',
-    width: 120,
-    fixed: 'right',
-    slots: {
-      default: ({ row }) => {
-        return (
-          <BaseButton type="primary" onClick={() => handleViewDetail(row)}>
-            充值详情
-          </BaseButton>
-        )
-      }
-    }
-  }
-]
+  ]
+
+  // 根据来源过滤列
+  const filteredCols = allCols.filter((col) => {
+    if (!col.hideWhen) return true
+    return selectedSource.value !== col.hideWhen
+  })
+
+  console.log(
+    '[运营端充值订单 columns] 过滤后的列数:',
+    filteredCols.length,
+    '来源:',
+    selectedSource.value
+  )
+
+  return filteredCols
+})
 
 // 搜索表单配置
 const searchSchema = [
@@ -384,8 +408,8 @@ const searchSchema = [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: 'H5', value: 'H5' },
-        { label: '机器人', value: '机器人' }
+        { label: '机器人', value: 1 },
+        { label: 'H5', value: 2 }
       ],
       placeholder: '请选择来源'
     }
@@ -456,6 +480,15 @@ const getStatusText = (status: number): string => {
 // API 封装 - 使用新接口 v2
 const fetchRechargeOrderList = async (params: any) => {
   try {
+    // 更新选中的来源，用于控制列的显示/隐藏
+    selectedSource.value = params?.source || ''
+    console.log(
+      '[fetchRechargeOrderList] selectedSource:',
+      selectedSource.value,
+      'params.source:',
+      params?.source
+    )
+
     // 保存当前搜索参数（用于导出）
     currentSearchParams.value = params
 
@@ -483,9 +516,9 @@ const fetchRechargeOrderList = async (params: any) => {
       adaptedParams.status = params.status
     }
 
-    // 来源
-    if (params.source) {
-      adaptedParams.source = params.source
+    // 来源：直接传递数字值
+    if (params.source !== undefined && params.source !== '') {
+      adaptedParams.origin = Number(params.source)
     }
 
     // 订单类型：暂时搁置，等待后端确认如何处理
@@ -540,11 +573,11 @@ const fetchRechargeOrderList = async (params: any) => {
       tg_id: item.user_id?.toString() || '', // TG用户ID
       tg_name: item.tg_user_name, // TG用户名
       tg_nickname: item.tg_first_name, // TG用户昵称
-      account: item.account || '-', // 用户账号
+      account: item.username || '-', // 用户账号（使用 username 字段）
       email: item.email || '-', // 用户邮箱
       bot_id: item.bot_id, // 机器人ID
       bot_name: item.bot_name, // 机器人名称
-      source: item.source || '-', // 来源
+      source: item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-', // 来源（根据 origin 判断）
       order_type: item.coin === 'TRX' ? 1 : 2, // 订单类型: TRX=1, USDT=2
       in_mount: item.amount, // 充值金额
       in_unit: item.coin, // 充值单位
@@ -667,9 +700,9 @@ const handleExport = async () => {
       adaptedParams.status = params.status
     }
 
-    // 来源
-    if (params?.source) {
-      adaptedParams.source = params.source
+    // 来源：直接传递数字值
+    if (params?.source !== undefined && params?.source !== '') {
+      adaptedParams.origin = Number(params.source)
     }
 
     // 收款地址
@@ -702,10 +735,10 @@ const handleExport = async () => {
         代理名称: item.agent_name || '-',
         TG用户名: item.tg_user_name,
         TG用户昵称: item.tg_first_name,
-        用户账号: item.account || '-',
+        用户账号: item.username || '-',
         用户邮箱: item.email || '-',
         机器人名称: item.bot_name,
-        来源: item.source || '-',
+        来源: item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-',
         订单类型: item.coin === 'TRX' ? '充值TRX' : '充值USDT',
         金额: `${item.amount} ${item.coin}`,
         订单状态: getStatusText(item.status),

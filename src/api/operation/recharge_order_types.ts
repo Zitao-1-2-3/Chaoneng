@@ -45,9 +45,9 @@ export interface V2DepositItem {
   tg_user_name: string // TG用户名
   tg_first_name: string // TG名字
   pay_address: string // 支付地址
-  account?: string // 用户账号
+  username?: string // 用户账号
   email?: string // 用户邮箱
-  source?: string // 来源
+  origin?: number // 来源（1=机器人，2=H5）
 }
 
 /**
@@ -91,9 +91,9 @@ export interface V2DepositDetail {
   tg_user_name: string // TG用户名
   tg_first_name: string // TG名字
   pay_transaction: V2PayTransaction | null // 支付交易信息
-  account?: string // 用户账号
+  username?: string // 用户账号
   email?: string // 用户邮箱
-  source?: string // 来源
+  origin?: number // 来源（1=机器人，2=H5）
 }
 
 /**

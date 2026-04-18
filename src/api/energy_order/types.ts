@@ -23,6 +23,7 @@ export interface EnergyOrderListParamsV1 {
   receive_address?: string // 接收地址
   start_time?: string // 开始时间
   status?: number // 状态（1,2,3,4,5,7,8,9）
+  origin?: number // 来源（1=机器人，2=H5）
 }
 
 /**

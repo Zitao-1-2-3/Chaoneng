@@ -329,31 +329,31 @@ const columns: TableColumn[] = [
       }
     }
   },
-  {
-    field: 'user_account',
-    label: '用户账号',
-    width: 120,
-    formatter: (row) => row.user_account || '-'
-  },
-  {
-    field: 'user_email',
-    label: '用户邮箱',
-    minWidth: 150,
-    formatter: (row) => row.user_email || '-'
-  },
-  {
-    field: 'source',
-    label: '来源',
-    width: 100,
-    formatter: (row) => {
-      const sourceMap = {
-        h5: 'H5',
-        bot: '机器人',
-        tg: 'TG机器人'
-      }
-      return sourceMap[row.source] || row.source || '-'
-    }
-  },
+  // {
+  //   field: 'user_account',
+  //   label: '用户账号',
+  //   width: 120,
+  //   formatter: (row) => row.user_account || '-'
+  // },
+  // {
+  //   field: 'user_email',
+  //   label: '用户邮箱',
+  //   minWidth: 150,
+  //   formatter: (row) => row.user_email || '-'
+  // },
+  // {
+  //   field: 'source',
+  //   label: '来源',
+  //   width: 100,
+  //   formatter: (row) => {
+  //     const sourceMap = {
+  //       h5: 'H5',
+  //       bot: '机器人',
+  //       tg: 'TG机器人'
+  //     }
+  //     return sourceMap[row.source] || row.source || '-'
+  //   }
+  // },
   {
     field: 'order_amount',
     label: '支付金额',
@@ -471,25 +471,25 @@ const searchSchema = [
       placeholder: '请输入订单号'
     }
   },
-  {
-    field: 'source',
-    component: 'Select' as const,
-    label: '来源',
-    componentProps: {
-      options: [
-        { label: '全部', value: '' },
-        { label: 'H5', value: 'h5' },
-        { label: '机器人', value: 'bot' }
-      ],
-      placeholder: '请选择来源'
-    }
-  },
+  // {
+  //   field: 'source',
+  //   component: 'Select' as const,
+  //   label: '来源',
+  //   componentProps: {
+  //     options: [
+  //       { label: '全部', value: '' },
+  //       { label: 'H5', value: 'h5' },
+  //       { label: '机器人', value: 'bot' }
+  //     ],
+  //     placeholder: '请选择来源'
+  //   }
+  // },
   {
     field: 'query',
     component: 'Input' as const,
     label: '关键字',
     componentProps: {
-      placeholder: '请输入机器人名称/用户账号/邮箱'
+      placeholder: '请输入机器人名称'
     }
   },
   {

@@ -31,7 +31,7 @@ import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { FormSchema } from '@/components/Form'
 import type { TableColumn } from '@/components/Table'
-import { v2GetUserList, v2ExportUserList } from '@/api/agent/user_list'
+import { v2GetUserList } from '@/api/agent/user_list'
 import { getAgentBotListApi } from '@/api/agent/bot'
 import { useRoute, useRouter } from 'vue-router'
 import { simpleExportToExcel } from '@/utils/excel'
@@ -75,84 +75,121 @@ const fetchBotList = async () => {
   }
 }
 
+// 当前选择的来源
+const selectedSource = ref<number | string>('')
+
 // 表格字段
-const columns: TableColumn[] = [
-  {
-    field: 'tg_id',
-    label: 'TG用户ID',
-    width: 120
-  },
-  {
-    field: 'nickname',
-    label: 'TG用户昵称'
-  },
-  {
-    field: 'tg_name',
-    label: 'TG用户名',
-    type: 'link',
-    url: (row) => `https://t.me/${row.tg_name}`
-  },
-  {
-    field: 'account',
-    label: '用户账号'
-  },
-  {
-    field: 'email',
-    label: '用户邮箱'
-  },
-  {
-    field: 'tg_bot_id',
-    label: '机器人ID',
-    slots: {
-      default: ({ row }: any) => {
-        return (
-          <ElLink type="primary" onClick={() => openBotList(row.bot_info.tg_bot_id)}>
-            {row.tg_bot_id}
-          </ElLink>
-        )
+const columns = computed(() => {
+  const allCols: TableColumn[] = [
+    {
+      field: 'tg_id',
+      label: 'TG用户ID',
+      width: 120,
+      hideWhen: 2 // H5时隐藏
+    },
+    {
+      field: 'nickname',
+      label: 'TG用户昵称',
+      hideWhen: 2 // H5时隐藏
+    },
+    {
+      field: 'tg_name',
+      label: 'TG用户名',
+      type: 'link',
+      url: (row) => `https://t.me/${row.tg_name}`,
+      hideWhen: 2 // H5时隐藏
+    },
+    {
+      field: 'username',
+      label: '用户账号',
+      formatter: (row) => row.username || '-',
+      hideWhen: 1 // 机器人时隐藏
+    },
+    {
+      field: 'email',
+      label: '用户邮箱',
+      hideWhen: 1 // 机器人时隐藏
+    },
+    {
+      field: 'tg_bot_id',
+      label: '机器人ID',
+      slots: {
+        default: ({ row }: any) => {
+          return (
+            <ElLink type="primary" onClick={() => openBotList(row.bot_info.tg_bot_id)}>
+              {row.tg_bot_id}
+            </ElLink>
+          )
+        }
       }
+    },
+    {
+      field: 'bot_info.bot_name',
+      label: '机器人用户名'
+    },
+    {
+      field: 'user_name',
+      label: '代理名称'
+    },
+    {
+      field: 'source',
+      label: '来源',
+      width: 100,
+      formatter: (row) => {
+        // 根据用户账号是否存在判断来源
+        // 有用户账号 → H5
+        // 无用户账号（或为'-'） → 机器人
+        if (row.username && row.username !== '-') {
+          return 'H5'
+        } else {
+          return '机器人'
+        }
+      }
+    },
+    {
+      field: 'trx_mount',
+      label: 'TRX余额',
+      sortable: 'custom',
+      formatter: (row) => `${row.trx_mount || 0} TRX`
+    },
+    {
+      field: 'usdt_mount',
+      sortable: 'custom',
+      label: 'USDT余额',
+      hidden: true,
+      formatter: (row) => `${row.usdt_mount || 0} USDT`
+    },
+    {
+      field: 'create_time',
+      label: '创建时间',
+      width: 180,
+      sortable: 'custom',
+      formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
+    },
+    {
+      field: 'update_time',
+      label: '更新时间',
+      width: 180,
+      sortable: 'custom',
+      formatter: (row) => (row.update_time ? formatToDateTime(row.update_time * 1000) : '-')
     }
-  },
-  {
-    field: 'bot_info.bot_name',
-    label: '机器人用户名'
-  },
-  {
-    field: 'user_name',
-    label: '代理名称'
-  },
-  {
-    field: 'source',
-    label: '来源'
-  },
-  {
-    field: 'trx_mount',
-    label: 'TRX余额',
-    sortable: 'custom',
-    formatter: (row) => `${row.trx_mount || 0} TRX`
-  },
-  {
-    field: 'usdt_mount',
-    sortable: 'custom',
-    label: 'USDT余额',
-    hidden: true,
-    formatter: (row) => `${row.usdt_mount || 0} USDT`
-  },
-  {
-    field: 'create_time',
-    label: '创建时间',
-    width: 180,
-    sortable: 'custom',
-    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
-  },
-  {
-    field: 'update_time',
-    label: '更新时间',
-    width: 180,
-    sortable: 'custom',
-    formatter: (row) => (row.update_time ? formatToDateTime(row.update_time * 1000) : '-')
-  }
-]
+  ]
+
+  // 根据来源过滤列
+  const filteredCols = allCols.filter((col) => {
+    if (!col.hideWhen) return true
+    return selectedSource.value !== col.hideWhen
+  })
+
+  console.log(
+    '[运营端用户列表 columns] 过滤后的列数:',
+    filteredCols.length,
+    '来源:',
+    selectedSource.value
+  )
+
+  return filteredCols
+})
 
 // 搜索表单配置
 const searchSchema = computed<FormSchema[]>(() => [
@@ -182,8 +219,8 @@ const searchSchema = computed<FormSchema[]>(() => [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: 'H5', value: 'H5' },
-        { label: '机器人', value: '机器人' }
+        { label: '机器人', value: 1 },
+        { label: 'H5', value: 2 }
       ],
       placeholder: '请选择来源',
       valueKey: 'value',
@@ -206,6 +243,15 @@ const searchSchema = computed<FormSchema[]>(() => [
 // API 封装 - 获取账户信息（用 operationView/Agent 的接口）
 const fetchAccountList = async (params: any) => {
   try {
+    // 更新选中的来源，用于控制列的显示/隐藏
+    selectedSource.value = params?.source || ''
+    console.log(
+      '[fetchAccountList] selectedSource:',
+      selectedSource.value,
+      'params.source:',
+      params?.source
+    )
+
     // 映射参数字段
     const adaptedParams: any = {
       current_page: params?.current_page || 1,
@@ -214,7 +260,9 @@ const fetchAccountList = async (params: any) => {
 
     if (params?.query) adaptedParams.keyword = params.query // query → keyword
     if (params?.bot_id) adaptedParams.bot_id = Number(params.bot_id)
-    if (params?.source) adaptedParams.source = params.source // 来源
+    if (params?.source !== undefined && params?.source !== '') {
+      adaptedParams.origin = Number(params.source) // 直接传递数字值
+    }
 
     // 处理排序参数 - 需要映射字段名
     if (params?.order) {
@@ -254,11 +302,11 @@ const fetchAccountList = async (params: any) => {
         tg_bot_id: item.bot_id, // bot_id → tg_bot_id
         nickname: item.tg_first_name, // tg_first_name → nickname
         tg_name: item.tg_user_name, // tg_user_name → tg_name
-        account: item.account || '-', // 用户账号
+        username: item.username || '-', // 用户账号（使用 username 字段）
         email: item.email || '-', // 用户邮箱
         trx_mount: item.trx_balance, // trx_balance → trx_mount
         usdt_mount: item.usdt_balance, // usdt_balance → usdt_mount
-        source: item.source || '-', // 来源
+        source: item.origin, // 保留原始 origin 值（1=机器人，2=H5）
         create_time: item.created_at, // created_at（秒）→ create_time（秒，formatter中会转毫秒）
         update_time: item.updated_at, // updated_at（秒）→ update_time（秒，formatter中会转毫秒）
         bot_info: {
@@ -318,7 +366,9 @@ const handleExport = async () => {
 
     if (params?.query) exportParams.keyword = params.query
     if (params?.bot_id) exportParams.bot_id = Number(params.bot_id)
-    if (params?.source) exportParams.source = params.source // 来源
+    if (params?.source !== undefined && params?.source !== '') {
+      exportParams.origin = Number(params.source) // 直接传递数字值
+    }
 
     // 处理时间范围 - 转换为 Unix 时间戳（秒级）
     if (params?.dateRange && params.dateRange.length === 2) {
@@ -338,14 +388,13 @@ const handleExport = async () => {
           TG用户ID: item.tg_user_id,
           TG用户昵称: item.tg_first_name,
           TG用户名: item.tg_user_name,
-          用户账号: item.account || '-',
+          用户账号: item.username || '-',
           用户邮箱: item.email || '-',
           机器人ID: item.bot_id,
           机器人用户名: botInfo?.user_name || '',
           代理名称: botInfo?.agent_name || '',
-          来源: item.source || '-',
+          来源: item.username && item.username !== '-' ? 'H5' : '机器人', // 根据用户账号判断
           TRX余额: `${item.trx_balance || 0} TRX`,
-          USDT余额: `${item.usdt_balance || 0} USDT`,
           创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
           更新时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
         }

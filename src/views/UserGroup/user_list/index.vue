@@ -148,23 +148,24 @@ const columns: TableColumn[] = [
   {
     field: 'tg_id',
     label: 'TG用户ID',
-    width: 120
+    width: 120,
+    formatter: (row) => (row.tg_id === 0 || !row.tg_id ? '-' : row.tg_id)
   },
   {
     field: 'nickname',
-    label: 'TG用户昵称'
+    label: 'TG用户昵称',
+    formatter: (row) => row.nickname || '-'
   },
   {
     field: 'tg_name',
     label: 'TG用户名',
-    type: 'link',
-    url: (row) => `https://t.me/${row.tg_name}`
+    formatter: (row) => row.tg_name || '-'
   },
   {
-    field: 'user_account',
+    field: 'username',
     label: '用户账号',
     width: 150,
-    formatter: (row) => row.user_account || '-'
+    formatter: (row) => row.username || '-'
   },
   {
     field: 'email',
@@ -276,8 +277,7 @@ const searchSchema = computed<FormSchema[]>(() => [
       options: botOptions.value,
       placeholder: '请选择机器人',
       valueKey: 'value',
-      labelKey: 'label',
-      style: { width: '160px' }
+      labelKey: 'label'
     }
   },
   {
@@ -292,17 +292,18 @@ const searchSchema = computed<FormSchema[]>(() => [
       ],
       placeholder: '请选择来源',
       valueKey: 'value',
-      labelKey: 'label',
-      style: { width: '100px' }
+      labelKey: 'label'
     }
   },
   {
     field: 'query',
     component: 'Input' as const,
-    label: '关键词',
+    label: {
+      text: '关键词',
+      tips: '支持TG用户ID/TG用户名/TG用户昵称/用户账号/用户邮箱查询'
+    },
     componentProps: {
-      placeholder: '请输入TG用户ID/用户名/用户昵称/用户账号/用户邮箱',
-      style: { width: '400px' }
+      placeholder: '请输入关键字搜索'
     }
   }
 ])
@@ -356,20 +357,23 @@ const fetchAccountList = async (params: any) => {
         const botUserName = botInfo ? botInfo.user_name : ''
         const botFirstName = botInfo ? botInfo.first_name : ''
 
+        // 判断来源：tg_user_id === 0 为 H5，否则为机器人
+        const source = item.tg_user_id === 0 ? 'H5' : '机器人'
+
         return {
           id: item.id,
           tg_id: item.tg_user_id,
           nickname: item.tg_first_name,
           tg_name: item.tg_user_name,
           email: item.email || '-',
-          user_account: item.user_account || '-',
+          username: item.username || '-',
           tg_bot_id: item.bot_id,
           bot_info: {
             tg_bot_id: item.bot_id,
             bot_name: botUserName,
             firstname: botFirstName
           },
-          source: item.source || '-',
+          source: source,
           trx_mount: item.trx_balance,
           usdt_mount: item.usdt_balance,
           create_time: item.created_at,
@@ -487,16 +491,18 @@ const handleExport = async () => {
       // 将数据转换为 Excel 格式，字段与列表显示完全一致
       const list = res.data.list.map((item: any) => {
         const botInfo = botInfoMap.value.get(item.bot_id)
+        // 判断来源：tg_user_id === 0 为 H5，否则为机器人
+        const source = item.tg_user_id === 0 ? 'H5' : '机器人'
         return {
           TG用户ID: item.tg_user_id,
           TG用户昵称: item.tg_first_name,
           TG用户名: item.tg_user_name,
-          用户账号: item.user_account || '-',
+          用户账号: item.username || '-',
           用户邮箱: item.email || '-',
           机器人ID: item.bot_id,
           机器人用户名: botInfo ? botInfo.user_name : '',
+          来源: source,
           TRX余额: `${item.trx_balance || 0} TRX`,
-          USDT余额: `${item.usdt_balance || 0} USDT`,
           创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
           更新时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
         }

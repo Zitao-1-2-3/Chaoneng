@@ -38,9 +38,9 @@ export interface HostingItemV2 {
   updated_at: string // 更新时间
   user_id: number // 用户ID
   user_name: string // 用户名
-  account?: string // 用户账号
+  username?: string // 用户账号
   email?: string // 用户邮箱
-  source?: string // 来源 (H5/机器人)
+  origin?: number // 来源（1=机器人，2=H5）
 }
 
 /**
@@ -113,6 +113,7 @@ export interface AutoManageAddressItem {
   account?: string // 用户账号
   email?: string // 用户邮箱
   source?: string // 来源 (H5/机器人)
+  origin?: number // 来源（1=机器人，2=H5）
 }
 
 export interface TrustTransactionItem {

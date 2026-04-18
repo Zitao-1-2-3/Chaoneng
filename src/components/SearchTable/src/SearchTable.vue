@@ -212,6 +212,18 @@ const slotKeys = computed(() => {
   return slotNames.filter((key) => !excludeSlots.includes(key))
 })
 
+// 监听 columns 变化，动态更新表格列
+watch(
+  () => props.columns,
+  (newColumns) => {
+    console.log('[SearchTable] columns 变化，更新表格列:', newColumns.length)
+    if (tableMethods) {
+      tableMethods.setProps({ columns: newColumns })
+    }
+  },
+  { deep: true }
+)
+
 // 监听加载完成
 watch(
   () => loading.value,

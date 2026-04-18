@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted, h, computed } from 'vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
 import { ElTag, ElLink, ElMessage } from 'element-plus'
@@ -54,6 +54,9 @@ const totalCount = ref(0)
 const orderDialogVisible = ref(false)
 const selectedOrderDetail = ref<any>(null)
 const currentSearchParams = ref({})
+
+// 当前选择的来源
+const selectedSource = ref<string>('')
 
 // 根据订单类型（kind）格式化能量有效期
 const formatExpirationTime = (orderType?: number): string => {
@@ -83,99 +86,102 @@ const formatExpirationTime = (orderType?: number): string => {
   }
 }
 
-// 表格列配置
-const columns: TableColumn[] = [
-  {
-    field: 'order_num',
-    label: '订单号',
-    width: 180,
-    formatter: (row) => row.order_num || '-'
-  },
-  {
-    field: 'tg_name',
-    label: 'TG用户名',
-    width: 120,
-    slots: {
-      default: ({ row }) => {
-        if (isEmpty(row.tg_name)) return h('span', '-')
-        return h(
-          ElLink,
-          {
-            type: 'primary',
-            onClick: () => navigateToUserList(row.tg_id)
-          },
-          () => row.tg_name
-        )
-      }
-    }
-  },
-  {
-    field: 'nickname',
-    label: 'TG用户昵称',
-    width: 120,
-    formatter: (row) => row.nickname || '-'
-  },
-  {
-    field: 'user_account',
-    label: '用户账号',
-    width: 120,
-    formatter: (row) => row.user_account || '-'
-  },
-  {
-    field: 'user_email',
-    label: '用户邮箱',
-    minWidth: 150,
-    formatter: (row) => row.user_email || '-'
-  },
-  {
-    field: 'source',
-    label: '来源',
-    width: 100,
-    formatter: (row) => {
-      const sourceMap = {
-        h5: 'H5',
-        bot: '机器人',
-        tg: 'TG机器人'
-      }
-      return sourceMap[row.source] || row.source || '-'
-    }
-  },
-  {
-    field: 'bot_name',
-    label: '机器人名称',
-    minWidth: 160,
-    slots: {
-      default: ({ row }) => {
-        if (isEmpty(row.bot_name)) return h('span', '-')
-        return h(
-          ElLink,
-          {
-            type: 'primary',
-            onClick: () => navigateToBotList(row.bot_id)
-          },
-          () => row.bot_name
-        )
-      }
-    }
-  },
-  {
-    field: 'order_type',
-    label: '订单类型',
-    width: 120,
-    slots: {
-      default: ({ row }: any) => {
-        const typeTextMap: Record<number, string> = {
-          4: '按时间',
-          5: '按笔数',
-          6: '福利',
-          7: '闪租',
-          8: '托管',
-          9: '批量下单',
-          10: '激活'
+// 表格列配置 - 使用 computed 实现动态显示/隐藏
+const columns = computed<TableColumn[]>(() => {
+  const allCols: any[] = [
+    {
+      field: 'order_num',
+      label: '订单号',
+      width: 180,
+      formatter: (row) => row.order_num || '-'
+    },
+    {
+      field: 'tg_name',
+      label: 'TG用户名',
+      width: 120,
+      hideWhen: 2, // 来源为 H5(2) 时隐藏
+      slots: {
+        default: ({ row }) => {
+          if (isEmpty(row.tg_name)) return h('span', '-')
+          return h(
+            ElLink,
+            {
+              type: 'primary',
+              onClick: () => navigateToUserList(row.tg_id)
+            },
+            () => row.tg_name
+          )
         }
-        // Assign fixed color types
-        const typeColorMap: Record<number, 'primary' | 'success' | 'warning' | 'danger' | 'info'> =
-          {
+      }
+    },
+    {
+      field: 'nickname',
+      label: 'TG用户昵称',
+      width: 120,
+      hideWhen: 2, // 来源为 H5(2) 时隐藏
+      formatter: (row) => row.nickname || '-'
+    },
+    {
+      field: 'user_account',
+      label: '用户账号',
+      width: 120,
+      hideWhen: 1, // 来源为机器人(1)时隐藏
+      formatter: (row) => row.user_account || '-'
+    },
+    {
+      field: 'user_email',
+      label: '用户邮箱',
+      minWidth: 150,
+      hideWhen: 1, // 来源为机器人(1)时隐藏
+      formatter: (row) => row.user_email || '-'
+    },
+    {
+      field: 'origin',
+      label: '来源',
+      width: 100,
+      formatter: (row) => {
+        // 根据 origin 数字值判断来源
+        return row.origin === 1 ? '机器人' : row.origin === 2 ? 'H5' : '-'
+      }
+    },
+    {
+      field: 'bot_name',
+      label: '机器人名称',
+      minWidth: 160,
+      slots: {
+        default: ({ row }) => {
+          if (isEmpty(row.bot_name)) return h('span', '-')
+          return h(
+            ElLink,
+            {
+              type: 'primary',
+              onClick: () => navigateToBotList(row.bot_id)
+            },
+            () => row.bot_name
+          )
+        }
+      }
+    },
+    {
+      field: 'order_type',
+      label: '订单类型',
+      width: 120,
+      slots: {
+        default: ({ row }: any) => {
+          const typeTextMap: Record<number, string> = {
+            4: '按时间',
+            5: '按笔数',
+            6: '福利',
+            7: '闪租',
+            8: '托管',
+            9: '批量下单',
+            10: '激活'
+          }
+          // Assign fixed color types
+          const typeColorMap: Record<
+            number,
+            'primary' | 'success' | 'warning' | 'danger' | 'info'
+          > = {
             4: 'success',
             5: 'primary',
             6: 'primary',
@@ -185,104 +191,120 @@ const columns: TableColumn[] = [
             10: 'info'
           }
 
-        const orderTypeNum =
-          typeof row.order_type === 'string' ? parseInt(row.order_type, 10) : row.order_type
+          const orderTypeNum =
+            typeof row.order_type === 'string' ? parseInt(row.order_type, 10) : row.order_type
 
-        if (isNaN(orderTypeNum) || !(orderTypeNum in typeTextMap)) {
-          return h(ElTag, { type: 'info', size: 'small' }, () => '未知类型')
+          if (isNaN(orderTypeNum) || !(orderTypeNum in typeTextMap)) {
+            return h(ElTag, { type: 'info', size: 'small' }, () => '未知类型')
+          }
+
+          const tagType = typeColorMap[orderTypeNum] || 'info' // Fallback to info
+          const text = typeTextMap[orderTypeNum]
+
+          return h(ElTag, { type: tagType, size: 'small' }, () => text)
         }
-
-        const tagType = typeColorMap[orderTypeNum] || 'info' // Fallback to info
-        const text = typeTextMap[orderTypeNum]
-
-        return h(ElTag, { type: tagType, size: 'small' }, () => text)
       }
-    }
-  },
-  {
-    field: 'order_amount',
-    label: '支付金额',
-    width: 100,
-    formatter: (row) => {
-      return row.order_amount && row.order_amount != 0
-        ? `${row.order_amount} ${row.pay_unit || ''}`
-        : '-'
-    }
-  },
-  {
-    field: 'energy_num',
-    label: '能量数量',
-    width: 100,
-    formatter: (row) => {
-      return row.energy_num ? formatEnergyNum(row.energy_num) : '-'
-    }
-  },
-  {
-    field: 'energy_rent_text',
-    label: '能量有效期',
-    width: 100,
-    formatter: (row) => {
-      return row.energy_rent_text || '-'
-    }
-  },
-  {
-    field: 'receive_address',
-    label: '收款钱包地址',
-    minWidth: 180,
-    formatter: (row) => row.receive_address || '-'
-  },
-  {
-    field: 'energy_address',
-    label: '能量接收地址',
-    minWidth: 180,
-    formatter: (row) => row.energy_address || '-'
-  },
-  {
-    field: 'stroke_num',
-    label: '笔数',
-    width: 80,
-    formatter: (row) => {
-      return row.stroke_num ? row.stroke_num : '-'
-    }
-  },
-  {
-    field: 'status',
-    label: '订单状态',
-    width: 100,
-    slots: {
-      default: ({ row }) => {
-        const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
-          1: 'info', // 新订单
-          2: 'warning', // 已支付
-          3: 'info', // 已发送
-          4: 'warning', // 已回收
-          5: 'success', // 已完成
-          6: 'danger', // 失败订单
-          7: 'info', // 已退款
-          8: 'info', // 已取消
-          9: 'danger' // 中止订单
+    },
+    {
+      field: 'order_amount',
+      label: '支付金额',
+      width: 100,
+      formatter: (row) => {
+        return row.order_amount && row.order_amount != 0
+          ? `${row.order_amount} ${row.pay_unit || ''}`
+          : '-'
+      }
+    },
+    {
+      field: 'energy_num',
+      label: '能量数量',
+      width: 100,
+      formatter: (row) => {
+        return row.energy_num ? formatEnergyNum(row.energy_num) : '-'
+      }
+    },
+    {
+      field: 'energy_rent_text',
+      label: '能量有效期',
+      width: 100,
+      formatter: (row) => {
+        return row.energy_rent_text || '-'
+      }
+    },
+    {
+      field: 'receive_address',
+      label: '收款钱包地址',
+      minWidth: 180,
+      formatter: (row) => row.receive_address || '-'
+    },
+    {
+      field: 'energy_address',
+      label: '能量接收地址',
+      minWidth: 180,
+      formatter: (row) => row.energy_address || '-'
+    },
+    {
+      field: 'stroke_num',
+      label: '笔数',
+      width: 80,
+      formatter: (row) => {
+        return row.stroke_num ? row.stroke_num : '-'
+      }
+    },
+    {
+      field: 'status',
+      label: '订单状态',
+      width: 100,
+      slots: {
+        default: ({ row }) => {
+          const statusColorMap: Record<number, 'success' | 'warning' | 'danger' | 'info'> = {
+            1: 'info', // 新订单
+            2: 'warning', // 已支付
+            3: 'info', // 已发送
+            4: 'warning', // 已回收
+            5: 'success', // 已完成
+            6: 'danger', // 失败订单
+            7: 'info', // 已退款
+            8: 'info', // 已取消
+            9: 'danger' // 中止订单
+          }
+          const type = statusColorMap[row.status] || 'info'
+          const text = getStatusTextForTable(row.status)
+          return h(ElTag, { type }, () => text)
         }
-        const type = statusColorMap[row.status] || 'info'
-        const text = getStatusTextForTable(row.status)
-        return h(ElTag, { type }, () => text)
       }
+    },
+    {
+      field: 'create_time',
+      label: '创建时间',
+      sortable: 'custom',
+      width: 180,
+      formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
+    },
+    {
+      field: 'finish_time',
+      label: '完成时间',
+      sortable: 'custom',
+      width: 180,
+      formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
     }
-  },
-  {
-    field: 'create_time',
-    label: '创建时间',
-    sortable: 'custom',
-    width: 180,
-    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
-  },
-  {
-    field: 'finish_time',
-    label: '完成时间',
-    sortable: 'custom',
-    width: 180,
-    formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
-  }
-]
+  ]
+
+  // 根据来源过滤列
+  const filteredCols = allCols.filter((col) => {
+    if (!col.hideWhen) return true
+    return selectedSource.value !== col.hideWhen
+  })
+
+  console.log(
+    '[能量订单 columns] 过滤后的列数:',
+    filteredCols.length,
+    '来源:',
+    selectedSource.value
+  )
+
+  return filteredCols
+})
 
 // 操作列配置
 const actionColumn: TableColumn = {
@@ -322,8 +344,8 @@ const searchSchema = [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: 'H5', value: 'h5' },
-        { label: '机器人', value: 'bot' }
+        { label: '机器人', value: 1 },
+        { label: 'H5', value: 2 }
       ],
       placeholder: '请选择来源'
     }
@@ -429,11 +451,22 @@ const navigateToBotList = (botId: string | number) => {
 // API 封装
 const fetchEnergyOrderList = async (params: any) => {
   try {
+    // 更新选中的来源，用于控制列的显示/隐藏
+    selectedSource.value = params.source || ''
+    console.log(
+      '[fetchEnergyOrderList] selectedSource:',
+      selectedSource.value,
+      'params.source:',
+      params.source
+    )
+
     // 映射参数字段
     const adaptedParams: any = {}
 
     if (params.order_num) adaptedParams.order_id = params.order_num // order_num → order_id
-    if (params.source) adaptedParams.source = params.source // 来源
+    if (params.source !== undefined && params.source !== '') {
+      adaptedParams.origin = Number(params.source) // source → origin (1=机器人，2=H5)
+    }
     if (params.status) adaptedParams.status = params.status
     if (params.query) adaptedParams.keyword = params.query // query → keyword
     if (params.order_type) adaptedParams.kind = params.order_type // order_type → kind
@@ -477,9 +510,18 @@ const fetchEnergyOrderList = async (params: any) => {
       tg_name: item.tg_user_name, // tg_user_name → tg_name
       nickname: item.tg_first_name, // tg_first_name → nickname
       tg_id: item.user_id, // user_id → tg_id
-      user_account: item.user_account || '-', // 用户账号
-      user_email: item.user_email || '-', // 用户邮箱
-      source: item.source || '-', // 来源
+      user_account: item.username || '-', // 用户账号（使用 username 字段）
+      user_email: item.email || '-', // 用户邮箱（使用 email 字段）
+      origin: (() => {
+        // 来源判断逻辑：如果TG用户名不存在且用户账号存在则来源是H5，反之就是机器人
+        if (!item.tg_user_name && item.username) {
+          return 2 // H5
+        } else if (item.tg_user_name) {
+          return 1 // 机器人
+        }
+        // 兜底：根据 origin 判断
+        return item.origin || 0
+      })(),
       bot_name: item.bot_name, // bot_name
       bot_id: item.bot_id,
       order_type: item.kind, // kind → order_type
@@ -661,9 +703,18 @@ const handleExport = async () => {
         订单号: item.id,
         TG用户名: item.tg_user_name,
         TG用户昵称: item.tg_first_name,
-        用户账号: item.user_account || '-',
-        用户邮箱: item.user_email || '-',
-        来源: item.source === 'h5' ? 'H5' : item.source === 'bot' ? '机器人' : item.source || '-',
+        用户账号: item.username || '-',
+        用户邮箱: item.email || '-',
+        来源: (() => {
+          // 来源判断逻辑：如果TG用户名不存在且用户账号存在则来源是H5，反之就是机器人
+          if (!item.tg_user_name && item.username) {
+            return 'H5'
+          } else if (item.tg_user_name) {
+            return '机器人'
+          }
+          // 兜底：根据 origin 判断
+          return item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-'
+        })(),
         机器人名称: item.bot_name,
         订单类型: typeTextMap[item.kind] || '-',
         支付金额: item.amount && item.amount != 0 ? `${item.amount} ${item.coin || ''}` : '-',

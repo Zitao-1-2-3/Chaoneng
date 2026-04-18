@@ -280,6 +280,23 @@ const nodeClick = (nodeData: { id?: string; buttonList?: ButtonListItem[] }) => 
   // 注意：点击节点本身不会勾选/取消勾选菜单项，这由 ElTree 的复选框处理
 }
 
+// --- 新增：递归获取所有节点ID的辅助函数 ---
+function getAllNodeIds(nodes: any[]): string[] {
+  const ids: string[] = []
+  const traverse = (nodeList: any[]) => {
+    nodeList.forEach((node) => {
+      if (node.id) {
+        ids.push(node.id)
+      }
+      if (node.children && node.children.length > 0) {
+        traverse(node.children)
+      }
+    })
+  }
+  traverse(nodes)
+  return ids
+}
+
 // --- 恢复 watch 回调 --- (不再过滤叶子节点)
 watch(
   () => [props.currentRow, props.actionType],
@@ -297,26 +314,32 @@ watch(
       const currentPermissions = Array.isArray(validRow.permissions)
         ? validRow.permissions.map(String)
         : []
-      const menuPermissions = currentPermissions.filter((p) => !p.includes('.'))
 
-      // 移除叶子节点过滤
-      // const leafMenuPermissionsToSet = menuPermissions.filter(id => leafMenuIds.value.has(id));
+      // 检查是否为超级管理员（permissions[0] === "*"）
+      const isSuperAdmin = currentPermissions.length > 0 && currentPermissions[0] === '*'
+
+      let menuPermissions: string[]
+
+      if (isSuperAdmin) {
+        // 如果是超级管理员，获取所有节点ID
+        menuPermissions = getAllNodeIds(menuTree)
+        console.log('[角色编辑] 检测到超级管理员权限，自动选中所有菜单:', menuPermissions)
+      } else {
+        // 否则只获取菜单权限（不包含按钮权限）
+        menuPermissions = currentPermissions.filter((p) => !p.includes('.'))
+      }
 
       const valuesToSet = {
         name: validRow.Name ?? validRow.name ?? '',
         status: validRow.status ?? 1,
-        permissions: currentPermissions
+        permissions: isSuperAdmin ? menuPermissions : currentPermissions
       }
       setValues(valuesToSet)
-      currentPermissionsRef.value = currentPermissions
+      currentPermissionsRef.value = isSuperAdmin ? menuPermissions : currentPermissions
 
       nextTick(() => {
-        // Keep async for handleCheckChange if needed
         treeRef.value?.setCheckedKeys([], false)
-        // 恢复为直接传递 menuPermissions
         treeRef.value?.setCheckedKeys(menuPermissions, false)
-        // 移除手动调用 handleCheckChange
-        // await handleCheckChange();
       })
     }
   },

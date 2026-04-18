@@ -1,10 +1,10 @@
 <script setup lang="tsx">
-import { ref, computed, h, nextTick, onMounted } from 'vue'
+import { ref, h, nextTick, onMounted } from 'vue'
 import { getRoleListApi, getRoleDetailApi, deleteRoleApiV2 } from '@/api/role'
 import { useI18n } from '@/hooks/web/useI18n'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
-import { ElMessageBox, ElMessage, ElTag } from 'element-plus'
+import { ElMessageBox, ElTag } from 'element-plus'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { Table, TableColumn } from '@/components/Table'
 import Write from './components/Write.vue'
@@ -45,25 +45,32 @@ const columns: TableColumn[] = [
     label: t('userDemo.action'),
     width: 240,
     slots: {
-      default: ({ row }: any) => [
-        h(
-          BaseButton,
-          {
-            type: 'primary',
-            onClick: () => handleAction(row, 'edit'),
-            style: { marginRight: '8px' }
-          },
-          () => t('exampleDemo.edit')
-        ),
-        h(
-          BaseButton,
-          {
-            type: 'danger',
-            onClick: () => handleDelete(row)
-          },
-          () => t('exampleDemo.del')
-        )
-      ]
+      default: ({ row }: any) => {
+        // 判断是否为超级管理员角色（id === 1）
+        const isSuperAdmin = row.id === 1
+
+        return [
+          h(
+            BaseButton,
+            {
+              type: 'primary',
+              disabled: isSuperAdmin, // id为1时禁用
+              onClick: () => handleAction(row, 'edit'),
+              style: { marginRight: '8px' }
+            },
+            () => t('exampleDemo.edit')
+          ),
+          h(
+            BaseButton,
+            {
+              type: 'danger',
+              disabled: isSuperAdmin, // id为1时禁用
+              onClick: () => handleDelete(row)
+            },
+            () => t('exampleDemo.del')
+          )
+        ]
+      }
     }
   }
 ]
@@ -87,7 +94,7 @@ const { tableRegister, tableMethods, tableState } = useTable({
 })
 
 const { getList, setProps } = tableMethods
-const { dataList, loading, total, currentPage, pageSize } = tableState
+const { dataList, loading, currentPage, pageSize } = tableState
 
 // 弹窗相关
 const dialogTitle = ref('')

@@ -38,6 +38,7 @@ export interface UserItemV1 {
   tg_user_id: number // TG用户ID
   tg_user_name: string // TG用户名
   tg_first_name: string // TG用户昵称
+  username?: string // 用户账号
   email?: string // 用户邮箱
   agent_id: number // 代理ID
   trx_balance: string // TRX余额
@@ -46,7 +47,9 @@ export interface UserItemV1 {
   address_list: string[] // 地址列表
   lang: string // 语言
   status: number // 状态
+  origin?: number // 来源：1-机器人，2-H5
   source?: string // 来源（h5, bot）
+  site_id?: number // 站点ID
 }
 
 /**

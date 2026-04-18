@@ -143,9 +143,9 @@ const handleExport = async () => {
           日期: item.paid_at ? formatToDate(item.paid_at * 1000) : '-',
           订单ID: item.id,
           代理名称: item.agent_name || '-',
-          用户账号: item.account || '-',
-          用户邮箱: item.email || '-',
-          来源: item.source || '-',
+          // 用户账号: item.account || '-',
+          // 用户邮箱: item.email || '-',
+          // 来源: item.source || '-',
           支付金额: `${item.amount} ${item.in_coin}`,
           兑换汇率: item.actual_rate || '-',
           实时汇率: item.real_rate || '-',
@@ -197,24 +197,24 @@ const columns = reactive<TableColumn[]>([
     minWidth: 150,
     formatter: (row) => row.username || '-'
   },
-  {
-    field: 'account',
-    label: '用户账号',
-    minWidth: 120,
-    formatter: (row) => row.account || '-'
-  },
-  {
-    field: 'email',
-    label: '用户邮箱',
-    minWidth: 150,
-    formatter: (row) => row.email || '-'
-  },
-  {
-    field: 'source',
-    label: '来源',
-    width: 100,
-    formatter: (row) => row.source || '-'
-  },
+  // {
+  //   field: 'account',
+  //   label: '用户账号',
+  //   minWidth: 120,
+  //   formatter: (row) => row.account || '-'
+  // },
+  // {
+  //   field: 'email',
+  //   label: '用户邮箱',
+  //   minWidth: 150,
+  //   formatter: (row) => row.email || '-'
+  // },
+  // {
+  //   field: 'source',
+  //   label: '来源',
+  //   width: 100,
+  //   formatter: (row) => row.source || '-'
+  // },
   {
     field: 'order_amount',
     label: '支付金额',
@@ -358,20 +358,20 @@ const searchSchema = reactive<FormSchema[]>([
       clearable: true
     }
   },
-  {
-    field: 'source',
-    component: 'Select',
-    label: '来源',
-    componentProps: {
-      placeholder: '请选择来源',
-      clearable: true,
-      options: [
-        { label: '全部', value: '' },
-        { label: 'H5', value: 'H5' },
-        { label: '机器人', value: '机器人' }
-      ]
-    }
-  },
+  // {
+  //   field: 'source',
+  //   component: 'Select',
+  //   label: '来源',
+  //   componentProps: {
+  //     placeholder: '请选择来源',
+  //     clearable: true,
+  //     options: [
+  //       { label: '全部', value: '' },
+  //       { label: 'H5', value: 'H5' },
+  //       { label: '机器人', value: '机器人' }
+  //     ]
+  //   }
+  // },
   {
     field: 'coin',
     component: 'Select',

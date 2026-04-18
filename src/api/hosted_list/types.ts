@@ -22,6 +22,8 @@ export interface HostingListParamsV1 {
   keyword?: string // 关键字
   page_size?: number // 每页大小
   user_id?: number // 用户ID
+  origin?: number // 来源（1=机器人，2=H5）
+  order?: string // 排序参数
 }
 
 /**
@@ -39,6 +41,9 @@ export interface HostingItemV1 {
   agent_name: string // 代理名称
   bot_name: string // 机器人名称
   user_name: string // 用户名
+  user_account?: string // 用户账号
+  user_email?: string // 用户邮箱
+  origin?: number // 来源（1=机器人，2=H5）
 }
 
 /**
@@ -102,6 +107,9 @@ export interface AutoManageAddressItem {
   tg_name?: string // 用户TG名 (来自示例数据)
   user_name?: string // 用户名（新接口字段）
   bot_name?: string // 机器人用户名
+  user_account?: string // 用户账号
+  user_email?: string // 用户邮箱
+  origin?: number // 来源（1=机器人，2=H5）
 }
 
 // 由于不再有详情页，HostedOrderDetail 可以移除或注释掉

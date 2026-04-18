@@ -79,66 +79,89 @@ onMounted(() => {
   fetchBotOptions()
 })
 
-const columns: TableColumn[] = [
-  {
-    field: 'bot_id',
-    label: '机器人ID',
-    width: 120,
-    formatter: (row: AutoManageAddressItem) => row.bot_id || '-'
-  },
-  {
-    field: 'bot_name',
-    label: '机器人用户名',
-    width: 150,
-    formatter: (row: AutoManageAddressItem) => row.bot_name || '-'
-  },
-  {
-    field: 'user_name',
-    label: '用户名',
-    width: 150,
-    formatter: (row: AutoManageAddressItem) => row.user_name || '-'
-  },
-  {
-    field: 'account',
-    label: '用户账号',
-    width: 120,
-    formatter: (row: AutoManageAddressItem) => row.account || '-'
-  },
-  {
-    field: 'email',
-    label: '用户邮箱',
-    minWidth: 150,
-    formatter: (row: AutoManageAddressItem) => row.email || '-'
-  },
-  {
-    field: 'source',
-    label: '来源',
-    width: 100,
-    formatter: (row: AutoManageAddressItem) => row.source || '-'
-  },
-  {
-    field: 'address',
-    label: '托管地址',
-    minWidth: 250,
-    formatter: (row: AutoManageAddressItem) => row.address || '-'
-  },
-  {
-    field: 'create_time',
-    label: '创建时间',
-    sortable: 'custom',
-    width: 180,
-    formatter: (row: AutoManageAddressItem) =>
-      row.create_time ? formatToDateTime(row.create_time) : '-'
-  },
-  {
-    field: 'finish_time',
-    label: '更新时间',
-    sortable: 'custom',
-    width: 180,
-    formatter: (row: AutoManageAddressItem) =>
-      row.finish_time ? formatToDateTime(row.finish_time) : '-'
-  }
-]
+// 当前选择的来源
+const selectedSource = ref<number | string>('')
+
+const columns = computed(() => {
+  const allCols: TableColumn[] = [
+    {
+      field: 'bot_id',
+      label: '机器人ID',
+      width: 120,
+      formatter: (row: AutoManageAddressItem) => row.bot_id || '-'
+    },
+    {
+      field: 'bot_name',
+      label: '机器人用户名',
+      width: 150,
+      formatter: (row: AutoManageAddressItem) => row.bot_name || '-'
+    },
+    {
+      field: 'user_name',
+      label: '用户名',
+      width: 150,
+      hideWhen: 2, // H5时隐藏
+      formatter: (row: AutoManageAddressItem) => row.user_name || '-'
+    },
+    {
+      field: 'account',
+      label: '用户账号',
+      width: 120,
+      hideWhen: 1, // 机器人时隐藏
+      formatter: (row: AutoManageAddressItem) => row.account || '-'
+    },
+    {
+      field: 'email',
+      label: '用户邮箱',
+      minWidth: 150,
+      hideWhen: 1, // 机器人时隐藏
+      formatter: (row: AutoManageAddressItem) => row.email || '-'
+    },
+    {
+      field: 'source',
+      label: '来源',
+      width: 100,
+      formatter: (row: AutoManageAddressItem) => row.source || '-'
+    },
+    {
+      field: 'address',
+      label: '托管地址',
+      minWidth: 250,
+      formatter: (row: AutoManageAddressItem) => row.address || '-'
+    },
+    {
+      field: 'create_time',
+      label: '创建时间',
+      sortable: 'custom',
+      width: 180,
+      formatter: (row: AutoManageAddressItem) =>
+        row.create_time ? formatToDateTime(row.create_time) : '-'
+    },
+    {
+      field: 'finish_time',
+      label: '更新时间',
+      sortable: 'custom',
+      width: 180,
+      formatter: (row: AutoManageAddressItem) =>
+        row.finish_time ? formatToDateTime(row.finish_time) : '-'
+    }
+  ]
+
+  // 根据来源过滤列
+  const filteredCols = allCols.filter((col) => {
+    if (!col.hideWhen) return true
+    return selectedSource.value !== col.hideWhen
+  })
+
+  console.log(
+    '[运营端托管列表 columns] 过滤后的列数:',
+    filteredCols.length,
+    '来源:',
+    selectedSource.value
+  )
+
+  return filteredCols
+})
 
 const actionColumn: TableColumn = {
   field: 'action',
@@ -193,8 +216,8 @@ const searchSchema = computed<FormSchema[]>(() => [
       clearable: true,
       options: [
         { label: '全部', value: '' },
-        { label: 'H5', value: 'H5' },
-        { label: '机器人', value: '机器人' }
+        { label: '机器人', value: 1 },
+        { label: 'H5', value: 2 }
       ]
     }
   }
@@ -202,6 +225,15 @@ const searchSchema = computed<FormSchema[]>(() => [
 
 const fetchAutoManageList = async (params: any) => {
   try {
+    // 更新选中的来源，用于控制列的显示/隐藏
+    selectedSource.value = params?.source || ''
+    console.log(
+      '[fetchAutoManageList] selectedSource:',
+      selectedSource.value,
+      'params.source:',
+      params?.source
+    )
+
     const queryParams: HostingListParamsV2 = {
       current_page: Number(params.current_page) || 1,
       page_size: Number(params.page_size) || 10
@@ -217,9 +249,9 @@ const fetchAutoManageList = async (params: any) => {
       queryParams.keyword = params.keyword.trim()
     }
 
-    // 处理来源参数
-    if (params.source) {
-      queryParams.source = params.source
+    // 处理来源参数：直接传递数字值
+    if (params.source !== undefined && params.source !== '') {
+      queryParams.origin = Number(params.source)
     }
 
     // 处理排序参数
@@ -255,9 +287,9 @@ const fetchAutoManageList = async (params: any) => {
           user_name: item.user_name,
           tg_name: item.user_name,
           order_id: item.order_id,
-          account: item.account || '-',
-          email: item.email || '-',
-          source: item.source || '-'
+          account: item.username || '-', // 用户账号（使用 username 字段）
+          email: item.email || '-', // 用户邮箱
+          source: item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-' // 来源（根据 origin 判断）
         }
       })
 

@@ -335,12 +335,7 @@ const columns: TableColumn[] = [
     label: '来源',
     width: 100,
     formatter: (row) => {
-      const sourceMap = {
-        h5: 'H5',
-        bot: '机器人',
-        tg: 'TG机器人'
-      }
-      return sourceMap[row.source] || row.source || '-'
+      return row.origin === 1 ? '机器人' : row.origin === 2 ? 'H5' : '-'
     }
   },
   {
@@ -563,7 +558,7 @@ const fetchHostedOrderList = async (params: any) => {
       ...item,
       user_account: item.user_account || '-',
       user_email: item.user_email || '-',
-      source: item.source || '-'
+      source: item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-'
     }))
 
     const hasSearchCondition = !!(
