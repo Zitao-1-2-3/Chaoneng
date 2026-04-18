@@ -143,129 +143,147 @@ const balanceRecordDialogVisible = ref(false)
 // 修改密码弹窗可见状态
 const changePasswordDialogVisible = ref(false)
 
+// 当前选择的来源
+const selectedSource = ref<number | string>('')
+
 // 表格列配置
-const columns: TableColumn[] = [
-  {
-    field: 'tg_id',
-    label: 'TG用户ID',
-    width: 120,
-    formatter: (row) => (row.tg_id === 0 || !row.tg_id ? '-' : row.tg_id)
-  },
-  {
-    field: 'nickname',
-    label: 'TG用户昵称',
-    formatter: (row) => row.nickname || '-'
-  },
-  {
-    field: 'tg_name',
-    label: 'TG用户名',
-    formatter: (row) => row.tg_name || '-'
-  },
-  {
-    field: 'username',
-    label: '用户账号',
-    width: 150,
-    formatter: (row) => row.username || '-'
-  },
-  {
-    field: 'email',
-    label: '用户邮箱',
-    width: 180
-  },
-  {
-    field: 'tg_bot_id',
-    label: '机器人ID',
-    slots: {
-      default: ({ row }) => {
-        return (
-          <ElLink type="primary" onClick={() => openBotList(row.bot_info.tg_bot_id)}>
-            {row.tg_bot_id}
-          </ElLink>
-        )
+const columns = computed(() => {
+  const allCols: TableColumn[] = [
+    {
+      field: 'tg_id',
+      label: 'TG用户ID',
+      width: 120,
+      hideWhen: 1, // H5时隐藏
+      formatter: (row) => (row.tg_id === 0 || !row.tg_id ? '-' : row.tg_id)
+    },
+    {
+      field: 'nickname',
+      label: 'TG用户昵称',
+      hideWhen: 1, // H5时隐藏
+      formatter: (row) => row.nickname || '-'
+    },
+    {
+      field: 'tg_name',
+      label: 'TG用户名',
+      hideWhen: 1, // H5时隐藏
+      formatter: (row) => row.tg_name || '-'
+    },
+    {
+      field: 'username',
+      label: '用户账号',
+      width: 150,
+      hideWhen: 2, // 机器人时隐藏
+      formatter: (row) => row.username || '-'
+    },
+    {
+      field: 'email',
+      label: '用户邮箱',
+      width: 180,
+      hideWhen: 2 // 机器人时隐藏
+    },
+    {
+      field: 'tg_bot_id',
+      label: '机器人ID',
+      slots: {
+        default: ({ row }) => {
+          return (
+            <ElLink type="primary" onClick={() => openBotList(row.bot_info.tg_bot_id)}>
+              {row.tg_bot_id}
+            </ElLink>
+          )
+        }
+      }
+    },
+    {
+      field: 'bot_info.bot_name',
+      label: '机器人用户名'
+    },
+    {
+      field: 'source',
+      label: '来源',
+      width: 100,
+      formatter: (row) => {
+        // 根据用户账号是否存在判断来源
+        if (row.username && row.username !== '-') {
+          return 'H5'
+        } else {
+          return '机器人'
+        }
+      }
+    },
+    {
+      field: 'trx_mount',
+      label: 'TRX余额',
+      formatter: (row) => `${row.trx_mount || 0} TRX`
+    },
+    {
+      field: 'usdt_mount',
+      label: 'USDT余额',
+      hidden: true,
+      formatter: (row) => `${row.usdt_mount || 0} USDT`
+    },
+    {
+      field: 'create_time',
+      label: '创建时间',
+      sortable: 'custom',
+      width: 180,
+      formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
+    },
+    {
+      field: 'update_time',
+      label: '更新时间',
+      sortable: 'custom',
+      width: 180,
+      formatter: (row) => (row.update_time ? formatToDateTime(row.update_time * 1000) : '-')
+    },
+    {
+      field: 'action',
+      label: '操作',
+      width: 380,
+      fixed: 'right',
+      slots: {
+        default: ({ row }) => {
+          return (
+            <div>
+              <BaseButton type="primary" onClick={() => openSendMessageDialog(row)}>
+                发送消息
+              </BaseButton>
+              <BaseButton
+                type="success"
+                style="margin-left: 8px"
+                onClick={() => openRechargeDialog(row)}
+              >
+                充值
+              </BaseButton>
+              <BaseButton
+                type="warning"
+                style="margin-left: 8px"
+                onClick={() => handleBalanceRecord(row.id)}
+              >
+                余额记录
+              </BaseButton>
+              <BaseButton
+                type="danger"
+                style="margin-left: 8px"
+                onClick={() => handleChangePassword(row)}
+              >
+                修改密码
+              </BaseButton>
+            </div>
+          )
+        }
       }
     }
-  },
-  {
-    field: 'bot_info.bot_name',
-    label: '机器人用户名'
-  },
-  {
-    field: 'source',
-    label: '来源',
-    width: 100,
-    formatter: (row) => {
-      const sourceMap = {
-        h5: 'H5',
-        bot: '机器人',
-        tg: 'TG机器人'
-      }
-      return sourceMap[row.source] || row.source || '-'
-    }
-  },
-  {
-    field: 'trx_mount',
-    label: 'TRX余额',
-    formatter: (row) => `${row.trx_mount || 0} TRX`
-  },
-  {
-    field: 'usdt_mount',
-    label: 'USDT余额',
-    hidden: true,
-    formatter: (row) => `${row.usdt_mount || 0} USDT`
-  },
-  {
-    field: 'create_time',
-    label: '创建时间',
-    sortable: 'custom',
-    width: 180,
-    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
-  },
-  {
-    field: 'update_time',
-    label: '更新时间',
-    sortable: 'custom',
-    width: 180,
-    formatter: (row) => (row.update_time ? formatToDateTime(row.update_time * 1000) : '-')
-  },
-  {
-    field: 'action',
-    label: '操作',
-    width: 380,
-    fixed: 'right',
-    slots: {
-      default: ({ row }) => {
-        return (
-          <div>
-            <BaseButton type="primary" onClick={() => openSendMessageDialog(row)}>
-              发送消息
-            </BaseButton>
-            <BaseButton
-              type="success"
-              style="margin-left: 8px"
-              onClick={() => openRechargeDialog(row)}
-            >
-              充值
-            </BaseButton>
-            <BaseButton
-              type="warning"
-              style="margin-left: 8px"
-              onClick={() => handleBalanceRecord(row.id)}
-            >
-              余额记录
-            </BaseButton>
-            <BaseButton
-              type="danger"
-              style="margin-left: 8px"
-              onClick={() => handleChangePassword(row)}
-            >
-              修改密码
-            </BaseButton>
-          </div>
-        )
-      }
-    }
-  }
-]
+  ]
+
+  // 根据来源过滤列
+  const filteredCols = allCols.filter((col) => {
+    if (!col.hideWhen) return true
+    return selectedSource.value !== col.hideWhen
+  })
+
+  return filteredCols
+})
 
 // 搜索表单配置
 const searchSchema = computed<FormSchema[]>(() => [
@@ -281,14 +299,14 @@ const searchSchema = computed<FormSchema[]>(() => [
     }
   },
   {
-    field: 'source',
+    field: 'origin',
     component: 'Select' as const,
     label: '来源',
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: 'H5', value: 'h5' },
-        { label: '机器人', value: 'bot' }
+        { label: 'H5', value: 1 },
+        { label: '机器人', value: 2 }
       ],
       placeholder: '请选择来源',
       valueKey: 'value',
@@ -311,6 +329,9 @@ const searchSchema = computed<FormSchema[]>(() => [
 // API 封装 - 获取账户信息
 const fetchAccountList = async (params: any) => {
   try {
+    // 更新选中的来源，用于控制列的显示/隐藏
+    selectedSource.value = params.origin || ''
+
     const queryParams: UserListParamsV1 = {
       current_page: Number(params.current_page) || 1,
       page_size: Number(params.page_size) || 10
@@ -337,9 +358,9 @@ const fetchAccountList = async (params: any) => {
       queryParams.bot_id = Number(params.bot_id)
     }
 
-    // 只有当 source 有值时才添加参数
-    if (params.source !== undefined && params.source !== '') {
-      queryParams.source = params.source
+    // 只有当 origin 有值时才添加参数
+    if (params.origin !== undefined && params.origin !== '') {
+      queryParams.origin = Number(params.origin)
     }
 
     // 只有当 query 有值时才添加 keyword 参数
@@ -397,7 +418,7 @@ const fetchAccountList = async (params: any) => {
 // useSearchTable hooks 只保留searchTableRef
 const { searchTableRef } = useSearchTable({
   searchSchema: searchSchema.value,
-  tableColumns: columns,
+  tableColumns: columns.value,
   fetchDataApi: fetchAccountList,
   immediate: false // 由ready事件控制首次加载
 })

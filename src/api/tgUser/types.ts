@@ -23,7 +23,7 @@ export interface UserListParamsV1 {
   page_size?: number // 每页大小
   start_time?: string // 开始时间
   status?: number // 状态
-  source?: string // 来源（h5, bot）
+  origin?: number | string // 来源：1-机器人，2-H5
   order?: string // 排序参数，格式：字段名 ASC/DESC
 }
 
@@ -47,8 +47,7 @@ export interface UserItemV1 {
   address_list: string[] // 地址列表
   lang: string // 语言
   status: number // 状态
-  origin?: number // 来源：1-机器人，2-H5
-  source?: string // 来源（h5, bot）
+  origin?: number | string // 来源：1-机器人，2-H5
   site_id?: number // 站点ID
 }
 

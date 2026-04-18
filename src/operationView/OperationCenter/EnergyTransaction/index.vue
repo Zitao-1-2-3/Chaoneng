@@ -55,7 +55,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, reactive, h } from 'vue'
+import { ref, reactive, h, computed } from 'vue'
 import { ElButton, ElMessage, ElTag } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
@@ -75,7 +75,6 @@ import type { V2EnergyItem } from '@/api/energy_transaction/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute } from 'vue-router'
 import { formatToWan } from '@/utils'
-import { useSearchTable } from '@/hooks/web/useSearchTable'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 
@@ -110,8 +109,9 @@ const handleExport = async () => {
     }
 
     // 处理来源
-    if (params?.source) {
-      apiParams.source = params.source
+    // 直接传递数字值：1=机器人，2=H5
+    if (params?.origin !== undefined && params?.origin !== '') {
+      apiParams.origin = Number(params.origin)
     }
 
     // 处理订单类型
@@ -155,9 +155,9 @@ const handleExport = async () => {
       const list = res.data.list.map((item: any) => ({
         订单号: item.id,
         代理名称: item.agent_name || '-',
-        用户账号: item.account || '-',
+        用户账号: item.username || '-',
         用户邮箱: item.email || '-',
-        来源: item.source || '-',
+        来源: item.username && item.username !== '-' ? 'H5' : '机器人', // 根据用户账号判断
         订单类型: typeTextMap[item.kind] || '-',
         交易金额: `${item.amount} ${item.coin}`,
         应发放能量: formatToWan(item.energy_amount),
@@ -230,144 +230,189 @@ const renderStatusTag = (
   return h(ElTag, { type: tagType, size: 'small' }, () => text)
 }
 
+// 当前选择的来源
+const selectedSource = ref<number | string>('')
+
 // --- 表格列配置 (根据 Go Struct 更新字段名) ---
-const columns = [
-  {
-    field: 'order_num',
-    label: '订单ID',
-    minWidth: 180,
-    formatter: (row) => row.order_num || '-'
-  },
-  {
-    field: 'username',
-    label: '代理名称',
-    width: 120,
-    formatter: (row) => row.username || '-'
-  },
-  {
-    field: 'account',
-    label: '用户账号',
-    width: 120,
-    formatter: (row) => row.account || '-'
-  },
-  {
-    field: 'email',
-    label: '用户邮箱',
-    minWidth: 150,
-    formatter: (row) => row.email || '-'
-  },
-  {
-    field: 'source',
-    label: '来源',
-    width: 100,
-    formatter: (row) => row.source || '-'
-  },
-  {
-    field: 'order_type',
-    label: '订单类型',
-    width: 120,
-    slots: {
-      default: ({ row }) => {
-        const type = Number(row.order_type)
-        const typeMap: Record<number, string> = {
-          4: '按时间',
-          5: '按笔数',
-          6: '福利',
-          7: '闪租',
-          8: '托管',
-          9: '批量下单',
-          10: '激活'
+const columns = computed(() => {
+  const allCols = [
+    {
+      field: 'order_num',
+      label: '订单ID',
+      minWidth: 180,
+      formatter: (row) => row.order_num || '-'
+    },
+    {
+      field: 'username',
+      label: '代理名称',
+      width: 120,
+      formatter: (row) => row.username || '-'
+    },
+    {
+      field: 'tg_name',
+      label: 'TG用户名',
+      width: 120,
+      hideWhen: 2, // H5时隐藏
+      formatter: (row) => row.tg_name || '-'
+    },
+    {
+      field: 'tg_nickname',
+      label: 'TG用户昵称',
+      width: 120,
+      hideWhen: 2, // H5时隐藏
+      formatter: (row) => row.tg_nickname || '-'
+    },
+    {
+      field: 'account',
+      label: '用户账号',
+      width: 120,
+      hideWhen: 1, // 来源为机器人(1)时隐藏
+      formatter: (row) => row.account || '-'
+    },
+    {
+      field: 'email',
+      label: '用户邮箱',
+      minWidth: 150,
+      hideWhen: 1, // 来源为机器人(1)时隐藏
+      formatter: (row) => row.email || '-'
+    },
+    {
+      field: 'origin',
+      label: '来源',
+      width: 100,
+      formatter: (row) => {
+        // 根据用户账号是否存在判断来源
+        // 有用户账号 → H5
+        // 无用户账号（或为'-'） → 机器人
+        if (row.account && row.account !== '-') {
+          return 'H5'
+        } else {
+          return '机器人'
         }
-        const typeColorMap: Record<number, ElTagType> = {
-          4: 'info',
-          5: 'primary',
-          6: 'success',
-          7: 'danger',
-          8: 'warning',
-          9: 'warning',
-          10: 'primary'
-        }
-        const text = typeMap[type] || '未知类型'
-        const tagType = typeColorMap[type] || 'info'
-        return h(ElTag, { type: tagType, size: 'small' }, () => text)
       }
+    },
+    {
+      field: 'order_type',
+      label: '订单类型',
+      width: 120,
+      slots: {
+        default: ({ row }) => {
+          const type = Number(row.order_type)
+          const typeMap: Record<number, string> = {
+            4: '按时间',
+            5: '按笔数',
+            6: '福利',
+            7: '闪租',
+            8: '托管',
+            9: '批量下单',
+            10: '激活'
+          }
+          const typeColorMap: Record<number, ElTagType> = {
+            4: 'info',
+            5: 'primary',
+            6: 'success',
+            7: 'danger',
+            8: 'warning',
+            9: 'warning',
+            10: 'primary'
+          }
+          const text = typeMap[type] || '未知类型'
+          const tagType = typeColorMap[type] || 'info'
+          return h(ElTag, { type: tagType, size: 'small' }, () => text)
+        }
+      }
+    },
+    {
+      field: 'order_amount',
+      label: '交易金额',
+      width: 100,
+      formatter: (row) => {
+        const amount = row.order_amount ?? ''
+        const unit = row.pay_unit ?? ''
+        return amount || unit ? `${amount} ${unit}`.trim() : '-'
+      }
+    },
+    {
+      field: 'energy_num',
+      label: '应发放能量',
+      width: 100,
+      formatter: (row) => formatToWan(row.energy_num) || '-'
+    },
+    {
+      field: 'delegate_energy_num',
+      label: '实际发放能量',
+      width: 110,
+      formatter: (row) => formatToWan(row.delegate_energy_num) || '-'
+    },
+    {
+      field: 'bot_address',
+      label: '收款钱包地址',
+      minWidth: 200,
+      formatter: (row) => row.bot_address || '-'
+    },
+    {
+      field: 'receive_address',
+      label: '能量接收地址',
+      minWidth: 200,
+      formatter: (row) => row.receive_address || '-'
+    },
+    {
+      field: 'stroke_num',
+      label: '笔数',
+      width: 100,
+      formatter: (row) => (row.stroke_num == 0 ? '-' : row.stroke_num)
+    },
+    {
+      field: 'energy_rent_text',
+      label: '有效时长',
+      width: 100,
+      formatter: (row) => row.energy_rent_text || '-'
+    },
+    {
+      field: 'recycle_time',
+      label: '回收时间',
+      sortable: 'custom',
+      width: 160,
+      formatter: (row) => (row.recycle_time ? formatToDateTime(row.recycle_time * 1000) : '-')
+    },
+    {
+      field: 'status',
+      label: '状态',
+      width: 100,
+      slots: {
+        default: ({ row }) => renderStatusTag(row.status, orderStatusMap, orderStatusColorMap)
+      }
+    },
+    {
+      field: 'create_time',
+      label: '创建时间',
+      sortable: 'custom',
+      width: 160,
+      formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
+    },
+    {
+      field: 'describe',
+      label: '描述',
+      width: 160,
+      formatter: (row) => row.describe || '-'
     }
-  },
-  {
-    field: 'order_amount',
-    label: '交易金额',
-    width: 100,
-    formatter: (row) => {
-      const amount = row.order_amount ?? ''
-      const unit = row.pay_unit ?? ''
-      return amount || unit ? `${amount} ${unit}`.trim() : '-'
-    }
-  },
-  {
-    field: 'energy_num',
-    label: '应发放能量',
-    width: 100,
-    formatter: (row) => formatToWan(row.energy_num) || '-'
-  },
-  {
-    field: 'delegate_energy_num',
-    label: '实际发放能量',
-    width: 110,
-    formatter: (row) => formatToWan(row.delegate_energy_num) || '-'
-  },
-  {
-    field: 'bot_address',
-    label: '收款钱包地址',
-    minWidth: 200,
-    formatter: (row) => row.bot_address || '-'
-  },
-  {
-    field: 'receive_address',
-    label: '能量接收地址',
-    minWidth: 200,
-    formatter: (row) => row.receive_address || '-'
-  },
-  {
-    field: 'stroke_num',
-    label: '笔数',
-    width: 100,
-    formatter: (row) => (row.stroke_num == 0 ? '-' : row.stroke_num)
-  },
-  {
-    field: 'energy_rent_text',
-    label: '有效时长',
-    width: 100,
-    formatter: (row) => row.energy_rent_text || '-'
-  },
-  {
-    field: 'recycle_time',
-    label: '回收时间',
-    sortable: 'custom',
-    width: 160,
-    formatter: (row) => (row.recycle_time ? formatToDateTime(row.recycle_time * 1000) : '-')
-  },
-  {
-    field: 'status',
-    label: '状态',
-    width: 100,
-    slots: {
-      default: ({ row }) => renderStatusTag(row.status, orderStatusMap, orderStatusColorMap)
-    }
-  },
-  {
-    field: 'create_time',
-    label: '创建时间',
-    sortable: 'custom',
-    width: 160,
-    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
-  },
-  {
-    field: 'describe',
-    label: '描述',
-    width: 160,
-    formatter: (row) => row.describe || '-'
-  }
-]
+  ]
+
+  // 根据来源过滤列
+  const filteredCols = allCols.filter((col) => {
+    if (!col.hideWhen) return true
+    return selectedSource.value !== col.hideWhen
+  })
+
+  console.log(
+    '[运营端能量交易订单 columns] 过滤后的列数:',
+    filteredCols.length,
+    '来源:',
+    selectedSource.value
+  )
+
+  return filteredCols
+})
 
 // 操作列配置
 const actionColumn = {
@@ -417,7 +462,7 @@ const searchSchema = [
     }
   },
   {
-    field: 'source',
+    field: 'origin',
     component: 'Select' as const,
     label: '来源',
     componentProps: {
@@ -425,8 +470,8 @@ const searchSchema = [
       clearable: true,
       options: [
         { label: '全部', value: '' },
-        { label: 'H5', value: 'H5' },
-        { label: '机器人', value: '机器人' }
+        { label: '机器人', value: 1 },
+        { label: 'H5', value: 2 }
       ]
     }
   },
@@ -658,9 +703,19 @@ const totalCount = ref(0)
 
 // 保存当前搜索参数
 const currentSearchParams = ref<any>({})
+
 // 获取能量交易列表
 const fetchDataWrapper = async (params: any = {}) => {
   try {
+    // 更新选中的来源，用于控制列的显示/隐藏
+    selectedSource.value = params.origin || ''
+    console.log(
+      '[fetchDataWrapper] selectedSource:',
+      selectedSource.value,
+      'params.origin:',
+      params.origin
+    )
+
     // 保存当前搜索参数（用于导出）
     currentSearchParams.value = params
 
@@ -684,9 +739,17 @@ const fetchDataWrapper = async (params: any = {}) => {
     }
 
     // 处理来源
-    if (params.source) {
-      apiParams.source = params.source
+    // 直接传递数字值：1=机器人，2=H5
+    if (params.origin !== undefined && params.origin !== '') {
+      apiParams.origin = Number(params.origin)
+      console.log('[fetchDataWrapper] 来源参数:', {
+        'params.origin': params.origin,
+        'apiParams.origin': apiParams.origin,
+        类型: typeof apiParams.origin
+      })
     }
+
+    console.log('[fetchDataWrapper] 最终API参数:', apiParams)
 
     // 处理订单类型 (order_type → kind)
     if (params.order_type) {
@@ -729,7 +792,10 @@ const fetchDataWrapper = async (params: any = {}) => {
     // 调用新接口
     const response = await v2GetEnergyList(apiParams)
 
-    if (response && response.data) {
+    console.log('[fetchDataWrapper] API响应:', response)
+
+    // 检查响应码是否成功
+    if (response && response.code === '000000' && response.data) {
       const data = response.data
       const list = data.list || []
       const total = data.pager?.total || 0
@@ -784,9 +850,9 @@ const fetchDataWrapper = async (params: any = {}) => {
           id: item.id,
           order_num: item.id, // 订单ID
           username: item.agent_name, // 代理名称
-          account: item.account || '-', // 用户账号
+          account: item.username || '-', // 用户账号（使用 username 字段）
           email: item.email || '-', // 用户邮箱
-          source: item.source || '-', // 来源
+          origin: item.origin, // 保留原始 origin 值（1=机器人，2=H5）
           order_type: item.kind, // 订单类型
           order_amount: item.amount, // 交易金额
           pay_unit: item.coin, // 支付单位
@@ -812,7 +878,7 @@ const fetchDataWrapper = async (params: any = {}) => {
       // 添加数据为空提示
       const hasSearchCondition = !!(
         params.query ||
-        params.source ||
+        params.origin ||
         params.bot_address ||
         params.receive_address ||
         params.status ||
@@ -826,6 +892,12 @@ const fetchDataWrapper = async (params: any = {}) => {
         total: total
       }
     } else {
+      // 处理错误响应
+      console.error('[fetchDataWrapper] API返回错误:', {
+        code: response?.code,
+        data: response?.data
+      })
+      ElMessage.error('获取数据失败')
       totalCount.value = 0
       return { list: [], total: 0 }
     }
@@ -878,14 +950,7 @@ const handleStop = async (row) => {
 }
 
 const route = useRoute()
-const { searchTableRef } = useSearchTable({
-  searchSchema,
-  tableColumns: columns,
-  fetchDataApi: fetchDataWrapper,
-  fetchDelApi: fetchEnergyTransactionDelete,
-  actionColumn,
-  immediate: false // 由ready事件控制首次加载
-})
+const searchTableRef = ref()
 
 function onSearchTableReady(instance) {
   const query = route.query
