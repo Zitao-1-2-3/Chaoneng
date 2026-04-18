@@ -9,6 +9,11 @@
         :showAddButton="false"
         ref="searchTableRef"
         @ready="onSearchTableReady"
+        :table-props="{
+          rowKey: 'id',
+          highlightCurrentRow: false,
+          reserveSelection: false
+        }"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport" style="margin-right: 10px">

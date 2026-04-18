@@ -9,6 +9,11 @@
         :fetchDataApi="getAgentLedgerList"
         @search="handleSearch"
         :show-add-button="false"
+        :table-props="{
+          rowKey: 'id',
+          highlightCurrentRow: false,
+          reserveSelection: false
+        }"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -30,7 +35,7 @@ import { SearchTable } from '@/components/SearchTable'
 import { FormSchema } from '@/components/Form'
 import { TableColumn } from '@/components/Table'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { v2GetAgentBillList, v2ExportAgentBill } from '@/api/agent/ledger'
+import { v2GetAgentBillList } from '@/api/agent/ledger'
 import { ContentWrap } from '@/components/ContentWrap'
 import { isEmpty } from 'lodash-es'
 import { useRouter } from 'vue-router'
@@ -42,17 +47,16 @@ const router = useRouter()
 
 const orderTypeMap = () => {
   return {
-    1: '能量订单',
-    2: '托管',
+    1: '代理充值',
     3: '兑换',
-    4: '按笔数',
-    5: '按时间',
-    6: '批量下单',
+    4: '按时间',
+    5: '按笔数',
+    6: '福利能量',
     7: '闪租',
-    8: '激活',
-    9: '机器人续费',
-    10: '后台手动变更',
-    11: '福利订单'
+    8: '托管',
+    9: '批量能量',
+    10: '激活',
+    11: '机器人付费'
   }
 }
 
@@ -180,25 +184,35 @@ const columns = ref<TableColumn[]>([
         if (isEmpty(row.order_num)) return <span>-</span>
         let href = '/operation'
         switch (row.order_type) {
-          case 1: // 能量订单
-          case 4: // 按笔数
-          case 5: // 按时间
-          case 6: // 批量下单
-          case 7: // 闪租
-          case 8: // 激活
-          case 9: // 机器人续费
-          case 11: // 福利订单
-            href = `${href}/energy_transaction`
+          case 1: // 代理充值
+            href = `${href}/recharge_order`
             break
           case 3: // 兑换
             href = `${href}/flash_exchange`
             break
-          case 2: // 托管
+          case 4: // 按时间
+          case 5: // 按笔数
+          case 6: // 福利能量
+          case 7: // 闪租
+          case 9: // 批量能量
+          case 10: // 激活
+            href = `${href}/energy_transaction`
+            break
+          case 8: // 托管
             href = `${href}/custody_details`
+            break
+          case 11: // 机器人付费
+            href = '' // 机器人付费没有对应的详情页
             break
           default:
             href = ''
         }
+
+        // 如果没有跳转链接，只显示文本
+        if (!href) {
+          return <span>{row.order_num}</span>
+        }
+
         return (
           <>
             <ElLink

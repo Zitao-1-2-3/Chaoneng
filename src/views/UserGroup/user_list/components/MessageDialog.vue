@@ -385,14 +385,21 @@ const handleSubmit = async () => {
       formDataObj.append('file', fileToUpload.value)
       try {
         const res = await uploadAPI(formDataObj)
-        if (res && res.data && res.data.url) {
-          imageUrl = res.data.url
+        console.log('图片上传响应:', res)
+
+        // 从返回值中获取 filename
+        if (res && res.data && res.data.filename) {
+          // 使用当前浏览器的域名拼接 filename
+          const browserOrigin = window.location.origin
+          imageUrl = `${browserOrigin}/${res.data.filename}`
+          console.log('拼接后的图片URL:', imageUrl)
         } else {
-          ElMessage.error('图片上传失败，未返回图片链接')
+          ElMessage.error('图片上传失败，未返回文件名')
           submitting.value = false
           return
         }
       } catch (error: any) {
+        console.error('图片上传错误:', error)
         ElMessage.error('图片上传失败: ' + (error?.message || '请重试'))
         submitting.value = false
         return

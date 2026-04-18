@@ -121,9 +121,9 @@ const dialogTitle = computed(() => (isEdit.value ? '编辑代理' : '新增代�
 function validateEmail() {
   emailError.value = ''
 
+  // 如果邮箱为空，不验证（改为可选）
   if (!emailValue.value) {
-    emailError.value = '联系方式不能为空'
-    return false
+    return true
   }
 
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -271,10 +271,7 @@ defineExpose({ openDialog })
 
     <!-- 自定义邮箱输入 -->
     <div class="custom-form-item" :class="{ 'edit-mode': isEdit }">
-      <div class="form-item-label">
-        <span class="required-mark">*</span>
-        联系方式
-      </div>
+      <div class="form-item-label">联系方式</div>
       <div class="form-item-content">
         <div class="email-wrapper" :class="{ 'has-error': emailError }">
           <EmailInput v-model="emailValue" @blur="validateEmail" />
