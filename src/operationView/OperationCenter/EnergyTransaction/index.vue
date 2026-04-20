@@ -423,9 +423,8 @@ const actionColumn = {
   slots: {
     default: (data: any) => {
       const row = data.row
-      // 判断逻辑：有 delegated_at 且 recycled_at 为 null 时，显示可点击的"停止代理"
-      // 其他情况显示灰色禁用的"停止代理"
-      const canStop = row.delegated_at && !row.recycled_at
+      // 只有 status=3 时才可点击停止代理按钮
+      const canStop = row.status === 3
 
       return (
         <>
