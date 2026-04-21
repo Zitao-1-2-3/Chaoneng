@@ -1,3 +1,21 @@
+// ========== 账户详情类型 ==========
+
+export interface AccountDetail {
+  id: number
+  username: string
+  trx_mount: number
+  usdt_mount: number
+  create_time: number
+  update_time: number
+  pay_address: string
+  qr_address: string
+  email: string
+}
+
+export interface AccountDetailResponse {
+  data: AccountDetail
+}
+
 // ========== 新接口 v1 类型定义 ==========
 
 /**
