@@ -72,3 +72,88 @@ EnergyOrderDetailV1 {
 
 - 类型定义按用途分类（列表、详情、摘要、资源、激活）
 - 响应类型匹配axios拦截器处理后的结构
+
+---
+
+## 3. 代理端用户列表 (user_list)
+
+### 相关文件
+
+- **类型定义**：`bot-frontend/src/api/tgUser/types.ts`
+- **API接口**：`bot-frontend/src/api/tgUser/index.ts`
+- **页面组件**：`bot-frontend/src/views/UserGroup/user_list/index.vue`
+- **弹窗组件**：
+  - `bot-frontend/src/views/UserGroup/user_list/components/MessageDialog.vue`
+  - `bot-frontend/src/views/UserGroup/user_list/components/RechargeDialog.vue`
+  - `bot-frontend/src/views/UserGroup/user_list/components/BalanceRecordDialog.vue`
+  - `bot-frontend/src/views/UserGroup/user_list/components/MassSendRecordDialog.vue`
+  - `bot-frontend/src/views/UserGroup/user_list/components/ChangePasswordDialog.vue`
+
+### 主要数据类型
+
+#### 用户列表响应
+
+```typescript
+UserListResponseV1 {
+  list: UserItemV1[]
+  pager: Pager
+}
+```
+
+#### 群发记录响应
+
+```typescript
+MassSendListResponseV1 {
+  list: MassSendItemV1[]
+  pager: Pager
+}
+```
+
+#### 用户账单响应
+
+```typescript
+UserBillListResponseV1 {
+  list: UserBillItemV1[]
+  pager: Pager
+}
+```
+
+### 重构说明
+
+- 类型定义按用途分类（用户列表、群发记录、用户账单）
+- 响应类型匹配axios拦截器处理后的结构
+
+---
+
+## 4. 代理端充值订单 (recharge_order)
+
+### 相关文件
+
+- **类型定义**：`bot-frontend/src/api/recharge_order/type.ts`
+- **API接口**：`bot-frontend/src/api/recharge_order/index.ts`
+- **页面组件**：`bot-frontend/src/views/OrderManage/recharge_order/index.vue`
+
+### 主要数据类型
+
+#### 列表响应
+
+```typescript
+DepositListResponseV1 {
+  list: DepositItemV1[]
+  pager: Pager
+}
+```
+
+#### 详情响应
+
+```typescript
+DepositDetailV1 {
+  // 订单基本信息
+  pay_transaction?: PayTransaction // 支付交易详情（包含from/to地址）
+}
+```
+
+### 重构说明
+
+- 类型定义按用途分类（列表、详情、支付交易）
+- 响应类型匹配axios拦截器处理后的结构

@@ -19,11 +19,13 @@ export interface DepositListParamsV1 {
   keyword?: string // 关键字
   kind?: number // 订单类型
   order_id?: string // 订单ID
+  origin?: number // 来源：1-机器人，2-H5
   page_size?: number // 每页大小
   pay_address?: string // 支付地址
   receive_address?: string // 接收地址
   start_time?: string // 开始时间
   status?: number // 状态
+  order?: string // 排序参数，格式：字段名 ASC/DESC
 }
 
 /**
@@ -31,11 +33,12 @@ export interface DepositListParamsV1 {
  */
 export interface DepositItemV1 {
   id: string // 订单ID
-  created_at: number // 创建时间（时间戳）
-  updated_at: number // 更新时间（时间戳）
-  paid_at: number // 支付时间（时间戳）
+  created_at: number // 创建时间（时间戳-秒）
+  updated_at: number // 更新时间（时间戳-秒）
+  paid_at: number // 支付时间（时间戳-秒）
   kind: number // 订单类型
   status: number // 状态
+  origin: number // 来源：1-机器人，2-H5
   user_id: number // 用户ID
   agent_id: number // 代理ID
   bot_id: number // 机器人ID
@@ -43,13 +46,15 @@ export interface DepositItemV1 {
   coin: string // 币种
   receive_address: string // 接收地址
   pay_id: string // 支付ID
-  cost: string // 成本
   describe: string // 描述
   agent_name: string // 代理名称
   bot_name: string // 机器人名称
   tg_user_name: string // TG用户名
   tg_first_name: string // TG用户昵称
+  username: string // 用户账号（H5用户）
+  email: string // 用户邮箱（H5用户）
   pay_address: string // 支付地址
+  cost?: string // 成本（可选）
 }
 
 /**
@@ -61,49 +66,45 @@ export interface DepositListResponseV1 {
 }
 
 /**
- * 订单详情 - 新接口 v1
+ * 支付交易详情
  */
-export interface DepositDetailV1 {
-  agent_id: number // 代理ID
+export interface PayTransaction {
+  id: string // 交易ID
+  from: string // 发送地址
+  to: string // 接收地址
   amount: string // 金额
-  bot_id: number // 机器人ID
   coin: string // 币种
-  cost: string // 成本
-  created_at: string // 创建时间
-  describe: string // 描述
-  id: string // 订单ID
-  kind: number // 订单类型
-  paid_at: string // 支付时间
-  pay_id: string // 支付ID
-  receive_address: string // 接收地址
-  status: number // 状态
-  updated_at: string // 更新时间
-  user_id: number // 用户ID
-  bot_name?: string // 机器人名称（可选）
-  tg_user_name?: string // TG用户名（可选）
-  tg_first_name?: string // TG用户昵称（可选）
+  height: number // 区块高度
+  time: number // 交易时间（时间戳-秒）
+  handled: boolean // 是否已处理
 }
 
 /**
- * 订单详情响应 - 新接口 v1
+ * 订单详情 - 新接口 v1
  */
-export interface DepositDetailResponseV1 {
-  agent_id: number
-  amount: string
-  bot_id: number
-  coin: string
-  cost: string
-  created_at: string
-  describe: string
-  id: string
-  kind: number
-  paid_at: string
-  pay_id: string
-  receive_address: string
-  status: number
-  updated_at: string
-  user_id: number
-  bot_name?: string
-  tg_user_name?: string
-  tg_first_name?: string
+export interface DepositDetailV1 {
+  id: string // 订单ID
+  created_at: number // 创建时间（时间戳-秒）
+  updated_at: number // 更新时间（时间戳-秒）
+  paid_at: number // 支付时间（时间戳-秒）
+  kind: number // 订单类型
+  status: number // 状态
+  origin: number // 来源：1-机器人，2-H5
+  user_id: number // 用户ID
+  agent_id: number // 代理ID
+  bot_id: number // 机器人ID
+  amount: string // 金额
+  coin: string // 币种
+  receive_address: string // 接收地址
+  pay_id: string // 支付ID
+  describe: string // 描述
+  agent_name: string // 代理名称
+  bot_name: string // 机器人名称
+  bot_user_name: string // 机器人用户名
+  bot_first_name: string // 机器人昵称
+  tg_user_name: string // TG用户名
+  tg_first_name: string // TG用户昵称
+  username: string // 用户账号（H5用户）
+  email: string // 用户邮箱（H5用户）
+  pay_transaction?: PayTransaction // 支付交易详情（可选）
 }

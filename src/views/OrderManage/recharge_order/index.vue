@@ -76,7 +76,7 @@ const rechargeDetail = ref<any>({})
 // 订单详情schema
 const orderDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
-    { field: 'order_num', label: '订单号' },
+    { field: 'id', label: '订单号' },
     {
       field: 'status',
       label: '订单状态',
@@ -102,52 +102,82 @@ const orderDetailSchema = computed(() => {
         }
       }
     },
-    { field: 'tg_id', label: 'TG用户ID' },
-    { field: 'tg_name', label: 'TG用户名' },
-    { field: 'tg_nickname', label: 'TG用户昵称' },
+    { field: 'user_id', label: 'TG用户ID' },
+    { field: 'tg_user_name', label: 'TG用户名' },
+    { field: 'tg_first_name', label: 'TG用户昵称' },
+    {
+      field: 'username',
+      label: '用户账号',
+      slots: {
+        default: (row: any) => {
+          if (!row || !row.username) return h('span', '-')
+          return h('span', row.username)
+        }
+      }
+    },
+    {
+      field: 'email',
+      label: '用户邮箱',
+      slots: {
+        default: (row: any) => {
+          if (!row || !row.email) return h('span', '-')
+          return h('span', row.email)
+        }
+      }
+    },
+    {
+      field: 'origin',
+      label: '来源',
+      slots: {
+        default: (row: any) => {
+          if (!row || row.origin === undefined) return h('span', '-')
+          return h('span', row.origin === 1 ? '机器人' : row.origin === 2 ? 'H5' : '-')
+        }
+      }
+    },
     { field: 'bot_id', label: '机器人ID' },
     { field: 'bot_name', label: '机器人名称' },
     {
-      field: 'in_mount',
+      field: 'amount',
       label: '金额',
       slots: {
         default: (row: any) => {
-          if (!row || !row.in_mount) return h('span', '-')
-          return h('span', `${row.in_mount} ${row.in_unit || ''}`)
+          if (!row || !row.amount) return h('span', '-')
+          return h('span', `${row.amount} ${row.coin || ''}`)
         }
       }
     },
     { field: 'describe', label: '备注' },
     {
-      field: 'create_time',
+      field: 'created_at',
       label: '创建时间',
       span: 24,
       slots: {
         default: (row: any) => {
-          if (!row || !row.create_time) return h('span', '-')
-          return h('span', formatToDateTime(row.create_time))
+          if (!row || !row.created_at) return h('span', '-')
+          return h('span', formatToDateTime(row.created_at * 1000))
         }
       }
     },
     {
-      field: 'pay_time',
+      field: 'paid_at',
       label: '支付时间',
       span: 24,
       slots: {
         default: (row: any) => {
-          if (!row || !row.pay_time) return h('span', '-')
-          return h('span', formatToDateTime(row.pay_time))
+          if (!row || !row.paid_at) return h('span', '-')
+          return h('span', formatToDateTime(row.paid_at * 1000))
         }
       }
     },
     {
-      field: 'finish_time',
+      field: 'paid_at',
       label: '完成时间',
       span: 24,
       slots: {
         default: (row: any) => {
-          if (!row || !row.finish_time) return h('span', '-')
-          return h('span', formatToDateTime(row.finish_time))
+          if (!row || !row.paid_at) return h('span', '-')
+          return h('span', formatToDateTime(row.paid_at * 1000))
         }
       }
     }
@@ -158,22 +188,43 @@ const orderDetailSchema = computed(() => {
 // 充值详情schema
 const rechargeDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
-    { field: 'to_address', label: '收款地址', span: 24 },
-    { field: 'owner_address', label: '支付地址', span: 24 },
+    { field: 'receive_address', label: '收款地址', span: 24 },
     {
-      field: 'hash',
+      field: 'pay_from',
+      label: '支付地址',
+      span: 24,
+      slots: {
+        default: (row: any) => {
+          if (!row || !row.pay_from) return h('span', '-')
+          return h('span', row.pay_from)
+        }
+      }
+    },
+    {
+      field: 'pay_to',
+      label: '接收地址',
+      span: 24,
+      slots: {
+        default: (row: any) => {
+          if (!row || !row.pay_to) return h('span', '-')
+          return h('span', row.pay_to)
+        }
+      }
+    },
+    {
+      field: 'pay_id',
       label: '交易哈希',
       span: 24,
       slots: {
         default: (row: any) => {
-          if (!row || !row.hash) return h('span', '-')
+          if (!row || !row.pay_id) return h('span', '-')
           return (
             <ElLink
-              href={`${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.hash}`}
+              href={`${import.meta.env.VITE_TRONSCAN_URL}/#/transaction/${row.pay_id}`}
               type="primary"
               target="_blank"
             >
-              {row.hash}
+              {row.pay_id}
             </ElLink>
           )
         }
@@ -187,14 +238,14 @@ const rechargeDetailSchema = computed(() => {
 const columns = computed<TableColumn[]>(() => {
   const allCols: any[] = [
     {
-      field: 'order_id',
+      field: 'id',
       label: '订单号',
       minWidth: 180,
       showOverflowTooltip: false,
-      formatter: (row) => row.order_id || '-'
+      formatter: (row) => row.id || '-'
     },
     {
-      field: 'tg_name',
+      field: 'tg_user_name',
       label: 'TG用户名',
       hideWhen: 2, // 来源为 H5 时隐藏
       slots: {
@@ -205,34 +256,34 @@ const columns = computed<TableColumn[]>(() => {
               onClick={() => {
                 router.push({
                   path: `/user_group/user_list`,
-                  query: { tg_id: row.tg_id }
+                  query: { tg_id: row.user_id }
                 })
               }}
             >
-              {row.tg_name || '-'}
+              {row.tg_user_name || '-'}
             </span>
           )
         }
       }
     },
     {
-      field: 'tg_nickname',
+      field: 'tg_first_name',
       label: 'TG用户昵称',
       hideWhen: 2, // 来源为 H5 时隐藏
-      formatter: (row) => row.tg_nickname || '-'
+      formatter: (row) => row.tg_first_name || '-'
     },
     {
-      field: 'user_account',
+      field: 'username',
       label: '用户账号',
       hideWhen: 1, // 来源为机器人时隐藏
-      formatter: (row) => row.user_account || '-'
+      formatter: (row) => row.username || '-'
     },
     {
-      field: 'user_email',
+      field: 'email',
       label: '用户邮箱',
       minWidth: 150,
       hideWhen: 1, // 来源为机器人时隐藏
-      formatter: (row) => row.user_email || '-'
+      formatter: (row) => row.email || '-'
     },
     {
       field: 'origin',
@@ -270,11 +321,11 @@ const columns = computed<TableColumn[]>(() => {
       formatter: (row) => (row.order_type == 1 ? '充值TRX' : '充值USDT')
     },
     {
-      field: 'in_mount',
+      field: 'amount',
       label: '金额',
       sortable: 'custom',
       minWidth: 120,
-      formatter: (row) => (row.in_mount ? `${row.in_mount} ${row.in_unit || 'TRX'}` : '-')
+      formatter: (row) => (row.amount ? `${row.amount} ${row.coin || 'TRX'}` : '-')
     },
     {
       field: 'status',
@@ -307,25 +358,26 @@ const columns = computed<TableColumn[]>(() => {
       formatter: (row) => row.describe || '-'
     },
     {
-      field: 'create_time',
+      field: 'created_at',
       label: '创建时间',
       sortable: 'custom',
       minWidth: 160,
       showOverflowTooltip: false,
-      formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
+      formatter: (row) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
     },
     {
-      field: 'finish_time',
+      field: 'paid_at',
       label: '完成时间',
       sortable: 'custom',
       minWidth: 160,
       showOverflowTooltip: false,
-      formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
+      formatter: (row) => (row.paid_at ? formatToDateTime(row.paid_at * 1000) : '-')
     },
     {
       field: 'action',
       label: '操作',
       minWidth: 120,
+      fixed: 'right',
       slots: {
         default: ({ row }) => {
           return (
@@ -366,8 +418,8 @@ const searchSchema = [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: '机器人', value: 1 },
-        { label: 'H5', value: 2 }
+        { label: 'H5', value: 2 },
+        { label: '机器人', value: 1 }
       ],
       placeholder: '请选择来源'
     }
@@ -384,10 +436,10 @@ const searchSchema = [
         { label: '已发送', value: 3 },
         { label: '已回收', value: 4 },
         { label: '已完成', value: 5 },
-        { label: '失败订单', value: 6 },
+        { label: '已失败', value: 6 },
         { label: '已退款', value: 7 },
         { label: '已取消', value: 8 },
-        { label: '中止订单', value: 9 }
+        { label: '已中止', value: 9 }
       ],
       placeholder: '请选择订单状态'
     }
@@ -453,10 +505,10 @@ const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger
     3: 'warning', // 已发送
     4: 'warning', // 已回收
     5: 'success', // 已完成
-    6: 'danger', // 失败订单
+    6: 'danger', // 已失败
     7: 'warning', // 已退款
     8: 'info', // 已取消
-    9: 'danger' // 中止订单
+    9: 'danger' // 已中止
   }
   return statusMap[status] || 'info'
 }
@@ -469,10 +521,10 @@ const getStatusText = (status: number): string => {
     3: '已发送',
     4: '已回收',
     5: '已完成',
-    6: '失败订单',
+    6: '已失败',
     7: '已退款',
     8: '已取消',
-    9: '中止订单'
+    9: '已中止'
   }
   return statusMap[status] || '-'
 }
@@ -510,14 +562,10 @@ const fetchRechargeOrderList = async (params: any) => {
     if (params.current_page) adaptedParams.current_page = params.current_page
     if (params.page_size) adaptedParams.page_size = params.page_size
 
-    // 处理排序参数 - 需要映射字段名
+    // 处理排序参数 - 字段名映射
     if (params.order) {
-      // 字段名映射：前端 → 后端
-      const fieldMap: Record<string, string> = {
-        in_mount: 'amount', // 金额
-        create_time: 'created_at', // 创建时间
-        finish_time: 'paid_at' // 完成时间
-      }
+      // 字段名映射：前端 → 后端（已使用API原始字段，无需映射）
+      const fieldMap: Record<string, string> = {}
 
       // 解析排序参数，格式：'field_name ASC' 或 'field_name DESC'
       const [field, direction] = params.order.split(' ')
@@ -533,29 +581,11 @@ const fetchRechargeOrderList = async (params: any) => {
 
     const response = await v1GetDepositList(adaptedParams)
 
-    // 映射返回数据字段
+    // 直接使用API原始字段，只做必要的补充
     const list = (response.data?.list || []).map((item: any) => ({
-      id: item.id,
-      order_id: item.id, // id → order_id
-      tg_name: item.tg_user_name, // tg_user_name → tg_name
-      tg_nickname: item.tg_first_name, // tg_first_name → tg_nickname
-      tg_id: item.user_id, // user_id → tg_id
-      user_account: item.username || '-', // 用户账号（使用 username 字段）
-      user_email: item.email || '-', // 用户邮箱（使用 email 字段）
-      origin: item.origin, // 来源：保留数字值（1=机器人，2=H5）
-      bot_name: item.bot_name,
-      bot_id: item.bot_id,
-      order_type: item.coin === 'TRX' ? 1 : 2, // 根据币种判断订单类型：TRX=1, USDT=2
-      in_mount: item.amount, // amount → in_mount
-      in_unit: item.coin, // coin → in_unit
-      pay_mount: item.cost && item.cost !== '0' ? item.cost : '0', // cost → pay_mount
-      pay_unit: item.cost && item.cost !== '0' ? 'USDT' : '', // 支付单位默认为USDT
-      status: item.status,
-      receive_address: item.receive_address,
-      pay_address: item.pay_address,
-      describe: item.describe,
-      create_time: item.created_at, // created_at → create_time
-      finish_time: item.paid_at // paid_at → finish_time
+      ...item, // 保留所有原始字段
+      // 补充计算字段
+      order_type: item.coin === 'TRX' ? 1 : 2 // 根据币种计算订单类型
     }))
 
     // 添加数据为空提示
@@ -588,37 +618,26 @@ const handleViewDetail = async (row: any) => {
 
     const detail = response.data || {}
 
-    // 映射订单详情字段
+    // 使用API原始字段，只补充必要的计算字段
     orderDetail.value = {
-      order_num: detail.id, // id → order_num
-      status: detail.status,
+      ...detail, // 保留所有原始字段
+      order_type: detail.coin === 'TRX' ? 1 : 2, // 计算订单类型
       statusText: getStatusText(detail.status),
-      order_type: detail.coin === 'TRX' ? 1 : 2, // 根据币种判断订单类型
-      tg_id: detail.user_id, // user_id → tg_id
-      tg_name: detail.tg_user_name || row.tg_name || '', // 优先使用详情接口返回的，否则使用列表中的
-      tg_nickname: detail.tg_first_name || row.tg_nickname || '-', // 优先使用详情接口返回的，否则使用列表中的，都没有显示'-'
-      bot_id: detail.bot_id,
-      bot_name: detail.bot_name || row.bot_name || '', // 优先使用详情接口返回的，否则使用列表中的
-      in_mount: detail.amount, // amount → in_mount
-      in_unit: detail.coin, // coin → in_unit
-      pay_mount: detail.cost, // cost → pay_mount
-      pay_unit: detail.cost && detail.cost !== '0' ? 'USDT' : '', // 支付单位
-      pay_address: row.pay_address || '', // 从列表数据中获取支付地址
-      describe: detail.describe,
-      create_time: detail.created_at, // created_at → create_time
-      pay_time: detail.paid_at, // paid_at → pay_time
-      finish_time: detail.paid_at // paid_at → finish_time
+      // 补充列表中的字段（如果详情接口没有返回）
+      tg_user_name: detail.tg_user_name || row.tg_user_name || '',
+      tg_first_name: detail.tg_first_name || row.tg_first_name || '-',
+      bot_name: detail.bot_name || row.bot_name || ''
     }
 
-    // 映射充值详情字段
+    // 充值详情：从 pay_transaction 对象中提取地址信息
     rechargeDetail.value = {
-      to_address: detail.receive_address, // receive_address → to_address
-      owner_address: row.pay_address || '', // 从列表数据中获取支付地址
-      hash: detail.pay_id // pay_id → hash
+      ...detail,
+      pay_from: detail.pay_transaction?.from || '-', // 支付地址（发送方）
+      pay_to: detail.pay_transaction?.to || '-' // 接收地址（接收方）
     }
 
     console.log('orderDetail.value:', orderDetail.value)
-    console.log('row data:', row)
+    console.log('rechargeDetail.value:', rechargeDetail.value)
 
     dialogVisible.value = true
     activeTab.value = 'order'
@@ -670,8 +689,8 @@ const handleExport = async () => {
         收款地址: item.receive_address || '-',
         支付地址: item.pay_address || '-',
         备注: item.describe || '-',
-        创建时间: item.created_at ? formatToDateTime(item.created_at) : '-',
-        完成时间: item.paid_at ? formatToDateTime(item.paid_at) : '-'
+        创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
+        完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
       }))
 
       // 导出为 Excel

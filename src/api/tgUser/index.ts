@@ -4,6 +4,7 @@ import type {
   UserListParamsV1,
   UserListResponseV1,
   RechargeUserParamsV1,
+  AdminChangePasswordParamsV1,
   MassSendListParamsV1,
   MassSendListResponseV1,
   SendGroupMessageParamsV1,
@@ -38,6 +39,17 @@ export const v1GetUserList = (params: UserListParamsV1): Promise<IResponse<UserL
 export const v1RechargeUser = (data: RechargeUserParamsV1): Promise<IResponse> => {
   return request.post({
     url: `${BASE_UEL}change_balance`,
+    data
+  })
+}
+
+/**
+ * 管理员修改用户密码 - 新接口 v1
+ * POST /v1/user/update
+ */
+export const v1AdminChangePassword = (data: AdminChangePasswordParamsV1): Promise<IResponse> => {
+  return request.post({
+    url: '/v1/user/update',
     data
   })
 }

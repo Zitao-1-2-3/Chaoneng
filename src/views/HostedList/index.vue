@@ -179,8 +179,8 @@ const searchSchema = computed<FormSchema[]>(() => [
       placeholder: '请选择来源',
       options: [
         { label: '全部', value: '' },
-        { label: '机器人', value: 1 },
-        { label: 'H5', value: 2 }
+        { label: 'H5', value: 2 },
+        { label: '机器人', value: 1 }
       ],
       clearable: true
     }

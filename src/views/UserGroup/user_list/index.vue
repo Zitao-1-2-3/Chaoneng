@@ -155,52 +155,53 @@ const selectedSource = ref<number | string>('')
 const columns = computed(() => {
   const allCols: TableColumn[] = [
     {
-      field: 'tg_id',
+      field: 'tg_user_id',
       label: 'TG用户ID',
       width: 120,
-      hideWhen: 1, // H5时隐藏
-      formatter: (row) => (row.tg_id === 0 || !row.tg_id ? '-' : row.tg_id)
+      hideWhen: 2, // H5时隐藏
+      formatter: (row) => (row.tg_user_id === 0 || !row.tg_user_id ? '-' : row.tg_user_id)
     },
     {
-      field: 'nickname',
+      field: 'tg_first_name',
       label: 'TG用户昵称',
-      hideWhen: 1, // H5时隐藏
-      formatter: (row) => row.nickname || '-'
+      hideWhen: 2, // H5时隐藏
+      formatter: (row) => row.tg_first_name || '-'
     },
     {
-      field: 'tg_name',
+      field: 'tg_user_name',
       label: 'TG用户名',
-      hideWhen: 1, // H5时隐藏
-      formatter: (row) => row.tg_name || '-'
+      hideWhen: 2, // H5时隐藏
+      formatter: (row) => row.tg_user_name || '-'
     },
     {
       field: 'username',
       label: '用户账号',
       width: 150,
-      hideWhen: 2, // 机器人时隐藏
+      hideWhen: 1, // 机器人时隐藏
       formatter: (row) => row.username || '-'
     },
     {
       field: 'email',
       label: '用户邮箱',
       width: 180,
-      hideWhen: 2 // 机器人时隐藏
+      hideWhen: 1, // 机器人时隐藏
+      formatter: (row) => row.email || '-'
     },
     {
-      field: 'tg_bot_id',
+      field: 'bot_id',
       label: '机器人ID',
       slots: {
         default: ({ row }) => {
           return (
-            <ElLink type="primary" onClick={() => openBotList(row.bot_info.tg_bot_id)}>
-              {row.tg_bot_id}
+            <ElLink type="primary" onClick={() => openBotList(row.bot_id)}>
+              {row.bot_id}
             </ElLink>
           )
         }
       }
     },
     {
-      field: 'bot_info.bot_name',
+      field: 'bot_user_name',
       label: '机器人用户名'
     },
     {
@@ -208,38 +209,34 @@ const columns = computed(() => {
       label: '来源',
       width: 100,
       formatter: (row) => {
-        // 根据用户账号是否存在判断来源
-        if (row.username && row.username !== '-') {
-          return 'H5'
-        } else {
-          return '机器人'
-        }
+        // 根据 tg_user_id 判断来源
+        return row.tg_user_id === 0 ? 'H5' : '机器人'
       }
     },
     {
-      field: 'trx_mount',
+      field: 'trx_balance',
       label: 'TRX余额',
-      formatter: (row) => `${row.trx_mount || 0} TRX`
+      formatter: (row) => `${row.trx_balance || 0} TRX`
     },
     {
-      field: 'usdt_mount',
+      field: 'usdt_balance',
       label: 'USDT余额',
       hidden: true,
-      formatter: (row) => `${row.usdt_mount || 0} USDT`
+      formatter: (row) => `${row.usdt_balance || 0} USDT`
     },
     {
-      field: 'create_time',
+      field: 'created_at',
       label: '创建时间',
       sortable: 'custom',
       width: 180,
-      formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
+      formatter: (row) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
     },
     {
-      field: 'update_time',
+      field: 'updated_at',
       label: '更新时间',
       sortable: 'custom',
       width: 180,
-      formatter: (row) => (row.update_time ? formatToDateTime(row.update_time * 1000) : '-')
+      formatter: (row) => (row.updated_at ? formatToDateTime(row.updated_at * 1000) : '-')
     },
     {
       field: 'action',
@@ -248,6 +245,9 @@ const columns = computed(() => {
       fixed: 'right',
       slots: {
         default: ({ row }) => {
+          // 判断是否为H5用户（有username字段且不为空）
+          const isH5User = row.username && row.username !== '-'
+
           return (
             <div>
               <BaseButton type="primary" onClick={() => openSendMessageDialog(row)}>
@@ -270,6 +270,7 @@ const columns = computed(() => {
               <BaseButton
                 type="danger"
                 style="margin-left: 8px"
+                disabled={!isH5User}
                 onClick={() => handleChangePassword(row)}
               >
                 修改密码
@@ -310,8 +311,8 @@ const searchSchema = computed<FormSchema[]>(() => [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: 'H5', value: 1 },
-        { label: '机器人', value: 2 }
+        { label: 'H5', value: 2 },
+        { label: '机器人', value: 1 }
       ],
       placeholder: '请选择来源',
       valueKey: 'value',
@@ -345,8 +346,7 @@ const fetchAccountList = async (params: any) => {
     // 处理排序参数 - 字段名映射
     if (params.order) {
       const fieldMapping: Record<string, string> = {
-        create_time: 'created_at',
-        update_time: 'updated_at'
+        // 前端显示字段 -> API字段（已经使用API原始字段，无需映射）
       }
 
       // 解析排序参数，格式：column ASC 或 column DESC
@@ -380,30 +380,12 @@ const fetchAccountList = async (params: any) => {
       const mappedList = (response.data.list || []).map((item: any) => {
         // 从 botInfoMap 中获取机器人信息
         const botInfo = botInfoMap.value.get(item.bot_id)
-        const botUserName = botInfo ? botInfo.user_name : ''
-        const botFirstName = botInfo ? botInfo.first_name : ''
-
-        // 判断来源：tg_user_id === 0 为 H5，否则为机器人
-        const source = item.tg_user_id === 0 ? 'H5' : '机器人'
 
         return {
-          id: item.id,
-          tg_id: item.tg_user_id,
-          nickname: item.tg_first_name,
-          tg_name: item.tg_user_name,
-          email: item.email || '-',
-          username: item.username || '-',
-          tg_bot_id: item.bot_id,
-          bot_info: {
-            tg_bot_id: item.bot_id,
-            bot_name: botUserName,
-            firstname: botFirstName
-          },
-          source: source,
-          trx_mount: item.trx_balance,
-          usdt_mount: item.usdt_balance,
-          create_time: item.created_at,
-          update_time: item.updated_at
+          ...item, // 保留所有原始字段
+          // 补充机器人信息
+          bot_user_name: botInfo?.user_name || '',
+          bot_first_name: botInfo?.first_name || ''
         }
       })
 

@@ -260,10 +260,10 @@ const columns = computed<TableColumn[]>(() => {
             3: 'info', // 已发送
             4: 'warning', // 已回收
             5: 'success', // 已完成
-            6: 'danger', // 失败订单
+            6: 'danger', // 已失败
             7: 'info', // 已退款
             8: 'info', // 已取消
-            9: 'danger' // 中止订单
+            9: 'danger' // 已中止
           }
           const type = statusColorMap[row.status] || 'info'
           const text = getStatusTextForTable(row.status)
@@ -341,8 +341,8 @@ const searchSchema = [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: '机器人', value: 1 },
-        { label: 'H5', value: 2 }
+        { label: 'H5', value: 2 },
+        { label: '机器人', value: 1 }
       ],
       placeholder: '请选择来源'
     }
@@ -401,10 +401,10 @@ const searchSchema = [
         { label: '已发送', value: 3 },
         { label: '已回收', value: 4 },
         { label: '已完成', value: 5 },
-        { label: '失败订单', value: 6 },
+        { label: '已失败', value: 6 },
         { label: '已退款', value: 7 },
         { label: '已取消', value: 8 },
-        { label: '中止订单', value: 9 }
+        { label: '已中止', value: 9 }
       ],
       placeholder: '请选择订单状态'
     }
@@ -419,10 +419,10 @@ const getStatusTextForTable = (status: number): string => {
     3: '已发送',
     4: '已回收',
     5: '已完成',
-    6: '失败订单',
+    6: '已失败',
     7: '已退款',
     8: '已取消',
-    9: '中止订单'
+    9: '已中止 '
   }
   return statusMap[status] || '-'
 }

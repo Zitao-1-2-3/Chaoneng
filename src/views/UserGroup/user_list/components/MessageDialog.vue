@@ -133,10 +133,10 @@ const handleImageRemove = () => {
 
 // 用户信息 Descriptions 配置
 const userDescriptionSchema = computed<DescriptionsSchema[]>(() => [
-  { field: 'bot_info.bot_name', label: '机器人名称' },
-  { field: 'bot_info.firstname', label: '机器人用户名' },
-  { field: 'tg_name', label: 'TG用户昵称' },
-  { field: 'tg_id', label: 'TG用户ID' }
+  { field: 'bot_user_name', label: '机器人名称' },
+  { field: 'bot_first_name', label: '机器人用户名' },
+  { field: 'tg_user_name', label: 'TG用户昵称' },
+  { field: 'tg_user_id', label: 'TG用户ID' }
 ])
 
 // 表单相关

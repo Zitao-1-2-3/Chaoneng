@@ -85,7 +85,6 @@ import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Descriptions } from '@/components/Descriptions'
-// import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { DescriptionsSchema } from '@/components/Descriptions'
 import { v1GetExchangeOrderList, v1GetExchangeOrderDetail } from '@/api/exchange_order'
@@ -291,14 +290,6 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
       }
     }
   },
-  // {
-  //   field: 'out_number',
-  //   label: '区块号',
-  //   formatter: (row) => {
-  //     if (!row.out_number) return '0'
-  //     return row.out_number
-  //   }
-  // },
   {
     field: 'out_time',
     label: '转出时间',
@@ -448,19 +439,6 @@ const searchSchema = [
       placeholder: '请输入订单号'
     }
   },
-  // {
-  //   field: 'source',
-  //   component: 'Select' as const,
-  //   label: '来源',
-  //   componentProps: {
-  //     options: [
-  //       { label: '全部', value: '' },
-  //       { label: 'H5', value: 'h5' },
-  //       { label: '机器人', value: 'bot' }
-  //     ],
-  //     placeholder: '请选择来源'
-  //   }
-  // },
   {
     field: 'query',
     component: 'Input' as const,
@@ -478,7 +456,8 @@ const searchSchema = [
         { label: '全部', value: '' },
         { label: '已支付', value: 2 },
         { label: '已完成', value: 5 },
-        { label: '失败订单', value: 6 }
+        { label: '已失败', value: 6 },
+        { label: '已中止', value: 9 }
       ],
       placeholder: '请选择订单状态'
     }
@@ -490,7 +469,8 @@ const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger
   const statusMap: Record<number, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
     1: 'info', // 新订单
     5: 'success', // 已完成
-    6: 'danger' // 失败订单
+    6: 'danger', // 已失败
+    9: 'danger' // 已中止
   }
   return statusMap[status] || 'info'
 }
@@ -500,18 +480,11 @@ const getStatusText = (status: number): string => {
   const statusMap = {
     1: '新订单',
     5: '已完成',
-    6: '失败订单'
+    6: '已失败',
+    9: '已中止'
   }
   return statusMap[status] || '-'
 }
-
-// 跳转到用户列表
-// const navigateToUserList = (userId: string) => {
-//   router.push({
-//     path: '/user/list',
-//     query: { userId }
-//   })
-// }
 
 // 跳转到机器人列表
 const navigateToBotList = (botId: string) => {

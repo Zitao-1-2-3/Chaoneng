@@ -2,8 +2,8 @@
   <Dialog
     v-model="dialogVisible"
     title="修改密码"
-    width="600px"
-    max-height="300px"
+    width="500px"
+    max-height="140px"
     @close="handleClose"
   >
     <ElForm
@@ -13,28 +13,15 @@
       label-width="100px"
       style="padding: 15px 10px"
     >
-      <ElFormItem label="机器人ID" prop="botId" style="margin-bottom: 16px">
-        <ElInput v-model="formData.botId" disabled />
-      </ElFormItem>
-
       <ElFormItem label="账号" prop="account" style="margin-bottom: 16px">
         <ElInput v-model="formData.account" disabled />
       </ElFormItem>
 
-      <ElFormItem label="新密码" prop="newPassword" style="margin-bottom: 16px">
+      <ElFormItem label="新密码" prop="newPassword" style="margin-bottom: 8px">
         <ElInput
           v-model="formData.newPassword"
           type="password"
           placeholder="请输入新密码"
-          show-password
-        />
-      </ElFormItem>
-
-      <ElFormItem label="确认密码" prop="confirmPassword" style="margin-bottom: 8px">
-        <ElInput
-          v-model="formData.confirmPassword"
-          type="password"
-          placeholder="请再次输入新密码"
           show-password
         />
       </ElFormItem>
@@ -59,6 +46,8 @@ import { Dialog } from '@/components/Dialog'
 import { ElForm, ElFormItem, ElInput, ElButton } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { v1AdminChangePassword } from '@/api/tgUser'
+import type { AdminChangePasswordParamsV1 } from '@/api/tgUser/types'
 
 interface Props {
   visible: boolean
@@ -78,31 +67,14 @@ const formRef = ref<FormInstance>()
 const loading = ref(false)
 
 const formData = reactive({
-  botId: '',
   account: '',
-  newPassword: '',
-  confirmPassword: ''
+  newPassword: ''
 })
-
-// 自定义验证：确认密码必须与新密码一致
-const validateConfirmPassword = (_rule: any, value: any, callback: any) => {
-  if (value === '') {
-    callback(new Error('请再次输入新密码'))
-  } else if (value !== formData.newPassword) {
-    callback(new Error('两次输入的密码不一致'))
-  } else {
-    callback()
-  }
-}
 
 const rules: FormRules = {
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
     { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请再次输入新密码', trigger: 'blur' },
-    { validator: validateConfirmPassword, trigger: 'blur' }
   ]
 }
 
@@ -111,11 +83,10 @@ watch(
   (val) => {
     dialogVisible.value = val
     if (val && props.user) {
-      // 填充表单数据
-      formData.botId = String(props.user.tg_bot_id || '')
-      formData.account = props.user.tg_name || props.user.nickname || ''
+      // 填充表单数据 - 使用API原始字段
+      // 优先使用 username（H5用户账号），如果没有则使用 tg_user_name（机器人用户名）
+      formData.account = props.user.username || props.user.tg_user_name || ''
       formData.newPassword = ''
-      formData.confirmPassword = ''
       // 清除验证
       formRef.value?.clearValidate()
     }
@@ -139,15 +110,12 @@ const handleSubmit = async () => {
 
     loading.value = true
 
-    // TODO: 调用修改密码API
-    // const params = {
-    //   user_id: props.user.id,
-    //   new_password: formData.newPassword
-    // }
-    // await changePasswordApi(params)
-
-    // 模拟API调用
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // 调用管理员修改用户密码API
+    const params: AdminChangePasswordParamsV1 = {
+      id: props.user.id,
+      password: formData.newPassword
+    }
+    await v1AdminChangePassword(params)
 
     handleSuccessMessage('密码修改成功')
     emit('success')

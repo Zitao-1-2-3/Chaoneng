@@ -211,6 +211,30 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       }
     },
     {
+      field: 'username',
+      label: '用户账号',
+      slots: {
+        default: (data: any) => h('span', data?.username || '-')
+      }
+    },
+    {
+      field: 'email',
+      label: '用户邮箱',
+      slots: {
+        default: (data: any) => h('span', data?.email || '-')
+      }
+    },
+    {
+      field: 'origin',
+      label: '来源',
+      slots: {
+        default: (data: any) => {
+          if (!data || data.origin === undefined) return h('span', '-')
+          return h('span', data.origin === 1 ? '机器人' : data.origin === 2 ? 'H5' : '-')
+        }
+      }
+    },
+    {
       field: 'bot_user_name',
       label: '机器人名称',
       slots: {

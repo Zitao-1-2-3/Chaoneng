@@ -32,23 +32,23 @@ export interface UserListParamsV1 {
  */
 export interface UserItemV1 {
   id: number // 用户ID
-  created_at: number // 创建时间（时间戳）
-  updated_at: number // 更新时间（时间戳）
+  created_at: number // 创建时间（时间戳-秒）
+  updated_at: number // 更新时间（时间戳-秒）
   bot_id: number // 机器人ID
   tg_user_id: number // TG用户ID
   tg_user_name: string // TG用户名
   tg_first_name: string // TG用户昵称
-  username?: string // 用户账号
-  email?: string // 用户邮箱
+  username?: string // 用户账号（H5用户）
+  email?: string // 用户邮箱（H5用户）
   agent_id: number // 代理ID
   trx_balance: string // TRX余额
-  usdt_balance: string // USDT余额
-  last_address: string // 最后地址
-  address_list: string[] // 地址列表
+  usdt_balance?: string // USDT余额（可选）
+  last_address?: string // 最后地址（可选）
+  address_list: string[] | null // 地址列表
   lang: string // 语言
   status: number // 状态
+  site_id: number // 站点ID
   origin?: number | string // 来源：1-机器人，2-H5
-  site_id?: number // 站点ID
 }
 
 /**
@@ -70,6 +70,17 @@ export interface RechargeUserParamsV1 {
 }
 
 /**
+ * 管理员修改用户密码请求参数 - 新接口 v1
+ */
+export interface AdminChangePasswordParamsV1 {
+  id: number // 用户ID（必填）
+  password: string // 新密码（必填）
+  username?: string // 用户名（可选）
+  email?: string // 电子邮箱（可选）
+  address_list?: string[] // 地址列表（可选）
+}
+
+/**
  * 群发消息列表查询参数 - 新接口 v1
  */
 export interface MassSendListParamsV1 {
@@ -79,6 +90,7 @@ export interface MassSendListParamsV1 {
   keyword?: string // 关键字
   page_size?: number // 每页大小
   status?: number // 状态
+  order?: string // 排序参数，格式：字段名 ASC/DESC
 }
 
 /**
@@ -94,20 +106,21 @@ export interface MassSendKeyboard {
  * 群发消息列表项 - 新接口 v1
  */
 export interface MassSendItemV1 {
+  id: number // 消息ID
+  created_at: number // 创建时间（时间戳-秒）
+  updated_at: number // 更新时间（时间戳-秒）
   agent_id: number // 代理ID
   bot_id: number // 机器人ID
+  bot_name: string // 机器人名称
+  percent: number // 完成百分比
   content: string // 消息内容
-  created_at: string // 创建时间
-  fail_num: number // 失败数量
-  id: number // 消息ID
-  image: string // 图片
-  keyboards: MassSendKeyboard[] // 键盘按钮
+  keyboards: any[] // 键盘按钮
+  image: string // 图片URL
   ok_num: number // 成功数量
-  percent: number // 百分比
-  receive_type: string // 接收类型
+  fail_num: number // 失败数量
+  receive_type: string // 接收类型（all_user, user_custom, one_user）
+  tg_user_ids: string // TG用户ID列表（逗号分隔）
   status: number // 状态
-  tg_user_ids: string // TG用户ID列表
-  updated_at: string // 更新时间
 }
 
 /**

@@ -65,30 +65,25 @@ const { formRegister, formMethods } = useForm()
 const rechargeSchema = computed<DescriptionsSchema[]>(() => {
   return [
     {
-      field: 'bot_info.bot_name',
+      field: 'bot_user_name',
       label: '机器人用户名'
     },
     {
-      field: 'bot_info.firstname',
+      field: 'bot_first_name',
       label: '机器人名称'
     },
     {
-      field: 'tg_id',
+      field: 'tg_user_id',
       label: 'TG用户ID'
     },
     {
-      field: 'nickname',
+      field: 'tg_first_name',
       label: 'TG用户名称'
     },
     {
-      field: 'trx_mount',
+      field: 'trx_balance',
       label: 'TRX余额'
     }
-    // {
-    //   field: 'usdt_mount',
-    //   label: 'USDT余额',
-    //   hidden: true
-    // }
   ]
 })
 
