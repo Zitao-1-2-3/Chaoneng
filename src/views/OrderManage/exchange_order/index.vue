@@ -113,27 +113,34 @@ const currentSearchParams = ref<any>({})
 // 兑换详情Schema
 const exchangeDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
-    { field: 'order_id', label: '订单号' },
-    { field: 'tg_bot_id', label: '机器人ID' },
-    // { field: 'tg_name', label: 'TG用户名' },
+    { field: 'id', label: '订单号' },
+    { field: 'bot_id', label: '机器人ID' },
     {
-      field: 'order_amount',
+      field: 'amount',
       label: '支付金额',
       slots: {
         default: (row: any) => {
-          if (!row || !row.order_amount) return h('span', '-')
-          return h('span', row.order_amount + row.pay_unit)
+          if (!row || !row.amount) return h('span', '-')
+          return h('span', row.amount + row.coin)
         }
       }
     },
-    { field: 'trx_price', label: '兑换汇率' },
     {
-      field: 'create_time',
+      field: 'exchange',
+      label: '兑换汇率',
+      slots: {
+        default: (row: any) => {
+          return h('span', row.exchange?.actual_rate || '-')
+        }
+      }
+    },
+    {
+      field: 'created_at',
       label: '创建时间',
       slots: {
         default: (row: any) => {
-          if (!row || !row.create_time) return h('span', '-')
-          return h('span', formatToDateTime(row.create_time))
+          if (!row || !row.created_at) return h('span', '-')
+          return h('span', formatToDateTime(row.created_at))
         }
       }
     },
@@ -147,15 +154,14 @@ const exchangeDetailSchema = computed(() => {
         }
       }
     },
-    { field: 'bot_name', label: '机器人名称' },
-    // { field: 'nickname', label: 'TG用户昵称' },
+    { field: 'bot_user_name', label: '机器人名称' },
     {
-      field: 'exchange_amount',
+      field: 'exchange',
       label: '兑换金额',
       slots: {
         default: (row: any) => {
-          if (!row) return h('span', '-')
-          return h('span', `${row.exchange_amount} ${row.exchange_unit}`)
+          if (!row || !row.exchange) return h('span', '-')
+          return h('span', `${row.exchange.out_amount} ${row.exchange.out_coin}`)
         }
       }
     },
@@ -172,12 +178,12 @@ const exchangeDetailSchema = computed(() => {
       }
     },
     {
-      field: 'pay_time',
+      field: 'paid_at',
       label: '支付时间',
       slots: {
         default: (row: any) => {
-          if (!row || !row.pay_time) return h('span', '-')
-          return h('span', formatToDateTime(row.pay_time))
+          if (!row || !row.paid_at) return h('span', '-')
+          return h('span', formatToDateTime(row.paid_at))
         }
       }
     }
@@ -308,11 +314,11 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
 // 表格列配置
 const columns: TableColumn[] = [
   {
-    field: 'order_id',
+    field: 'id',
     label: '订单号',
     minWidth: 180,
     showOverflowTooltip: false,
-    formatter: (row) => row.order_id || '-'
+    formatter: (row) => row.id || '-'
   },
   {
     field: 'bot_name',
@@ -325,63 +331,37 @@ const columns: TableColumn[] = [
           ElLink,
           {
             type: 'primary',
-            onClick: () => navigateToBotList(row.tg_bot_id)
+            onClick: () => navigateToBotList(row.bot_id)
           },
           () => row.bot_name || '-'
         )
       }
     }
   },
-  // {
-  //   field: 'user_account',
-  //   label: '用户账号',
-  //   width: 120,
-  //   formatter: (row) => row.user_account || '-'
-  // },
-  // {
-  //   field: 'user_email',
-  //   label: '用户邮箱',
-  //   minWidth: 150,
-  //   formatter: (row) => row.user_email || '-'
-  // },
-  // {
-  //   field: 'source',
-  //   label: '来源',
-  //   width: 100,
-  //   formatter: (row) => {
-  //     const sourceMap = {
-  //       h5: 'H5',
-  //       bot: '机器人',
-  //       tg: 'TG机器人'
-  //     }
-  //     return sourceMap[row.source] || row.source || '-'
-  //   }
-  // },
   {
-    field: 'order_amount',
+    field: 'amount',
     label: '支付金额',
     width: 120,
     showOverflowTooltip: false,
     formatter: (row) => {
-      if (!row.order_amount) return '-'
-      const unit = row.pay_unit || 'TRX' // 如果没有单位，默认显示 TRX
-      return `${row.order_amount} ${unit}`
+      if (!row.amount) return '-'
+      const unit = row.in_coin || 'TRX'
+      return `${row.amount} ${unit}`
     }
   },
   {
-    field: 'exchange_amount',
+    field: 'out_amount',
     label: '兑换金额',
     width: 120,
     showOverflowTooltip: false,
-    formatter: (row) =>
-      row.exchange_amount ? `${row.exchange_amount} ${row.exchange_unit || ''}` : '-'
+    formatter: (row) => (row.out_amount ? `${row.out_amount} ${row.out_coin || ''}` : '-')
   },
   {
-    field: 'trx_price',
+    field: 'actual_rate',
     label: '兑换汇率',
     width: 100,
     showOverflowTooltip: false,
-    formatter: (row) => row.trx_price || '-'
+    formatter: (row) => row.actual_rate || '-'
   },
   {
     field: 'order_type',
@@ -416,30 +396,24 @@ const columns: TableColumn[] = [
     field: 'describe',
     label: '备注',
     minWidth: 120,
-    showOverflowTooltip: false
-  },
-  {
-    field: 'describe',
-    label: '备注',
-    minWidth: 120,
     showOverflowTooltip: false,
     formatter: (row) => row.describe || '-'
   },
   {
-    field: 'create_time',
+    field: 'created_at',
     label: '创建时间',
     sortable: 'custom',
     width: 180,
     showOverflowTooltip: false,
-    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
+    formatter: (row) => (row.created_at ? formatToDateTime(row.created_at) : '-')
   },
   {
-    field: 'pay_time',
+    field: 'paid_at',
     label: '支付时间',
     sortable: 'custom',
     width: 180,
     showOverflowTooltip: false,
-    formatter: (row) => (row.pay_time ? formatToDateTime(row.pay_time) : '-')
+    formatter: (row) => (row.paid_at ? formatToDateTime(row.paid_at) : '-')
   }
 ]
 
@@ -592,25 +566,12 @@ const fetchExchangeOrderList = async (params: any) => {
     // 使用新接口 v1GetExchangeOrderList
     const response = await v1GetExchangeOrderList(adaptedParams)
 
-    // 映射返回数据字段
+    // 简化映射：直接使用API字段，只做必要转换
     const list = (response.data?.list || []).map((item: any) => ({
-      id: item.id,
-      order_id: item.id,
-      tg_bot_id: item.bot_id, // bot_id → tg_bot_id
-      bot_name: item.bot_name,
-      user_account: item.user_account || '-', // 用户账号
-      user_email: item.user_email || '-', // 用户邮箱
-      source: item.source || '-', // 来源
-      order_amount: item.amount, // amount → order_amount
-      pay_unit: item.in_coin || '', // in_coin → pay_unit（支付币种），确保有默认值
-      exchange_amount: item.out_amount, // out_amount → exchange_amount（兑换得到的数量）
-      exchange_unit: item.out_coin || '', // out_coin → exchange_unit（兑换得到的币种），确保有默认值
-      trx_price: item.actual_rate, // actual_rate → trx_price（实际成交汇率）
-      order_type: item.in_coin === 'USDT' ? 1 : 2, // USDT→TRX=1, TRX→USDT=2
-      status: item.status,
-      describe: item.describe,
-      create_time: item.created_at * 1000, // created_at（秒）→ create_time（毫秒）
-      pay_time: item.paid_at ? item.paid_at * 1000 : null // paid_at（秒）→ pay_time（毫秒）
+      ...item, // 保留所有原始字段
+      order_type: item.in_coin === 'USDT' ? 1 : 2, // 计算订单类型：USDT→TRX=1, TRX→USDT=2
+      created_at: item.created_at * 1000, // 秒转毫秒
+      paid_at: item.paid_at ? item.paid_at * 1000 : null // 秒转毫秒
     }))
 
     const total = response.data?.pager?.total || 0
@@ -638,25 +599,15 @@ const fetchExchangeOrderList = async (params: any) => {
 // 查看兑换详情
 const handleViewDetail = async (row: any) => {
   try {
-    // 使用新接口 v1GetExchangeOrderDetail
     const response = await v1GetExchangeOrderDetail(row.id)
 
     if (response && response.data) {
-      const detail = response.data
-      // 映射新接口返回的数据到旧的数据结构
+      // 直接使用API返回的数据，只添加必要的计算字段
       orderDetail.value = {
-        ...detail,
-        order_id: detail.id,
-        tg_bot_id: detail.bot_id,
-        bot_name: detail.bot_user_name,
-        order_amount: detail.amount,
-        pay_unit: detail.coin,
-        exchange_amount: detail.exchange?.out_amount || detail.cost,
-        exchange_unit: detail.exchange?.out_coin || '',
-        trx_price: detail.exchange?.actual_rate || '', // 使用实际成交汇率
-        order_type: detail.exchange?.in_coin === 'USDT' ? 1 : 2,
-        create_time: detail.created_at * 1000, // created_at（秒）→ create_time（毫秒）
-        pay_time: detail.paid_at ? detail.paid_at * 1000 : null // paid_at（秒）→ pay_time（毫秒）
+        ...response.data,
+        order_type: response.data.exchange?.in_coin === 'USDT' ? 1 : 2,
+        created_at: response.data.created_at * 1000,
+        paid_at: response.data.paid_at ? response.data.paid_at * 1000 : null
       }
       dialogVisible.value = true
     } else {
@@ -670,26 +621,25 @@ const handleViewDetail = async (row: any) => {
 // 查看交易详情
 const handleTransactionDetail = async (row: any) => {
   try {
-    // 使用新接口 v1GetExchangeOrderDetail
     const response = await v1GetExchangeOrderDetail(row.id)
 
     if (response.data) {
       const detail = response.data
-      // 映射新接口返回的数据到旧的交易详情结构
+      // 直接使用API返回的数据，只做时间转换
       transactionDetail.value = {
         order_id: detail.id,
         order_type: detail.exchange?.in_coin === 'USDT' ? 1 : 2,
-        // 转入交易信息
+        // 转入交易信息（直接使用pay_transaction）
         in_txid: detail.pay_transaction?.id || '',
         in_to_address: detail.pay_transaction?.to || '',
         in_from_address: detail.pay_transaction?.from || '',
-        in_time: detail.pay_transaction?.time ? detail.pay_transaction.time * 1000 : 0, // 秒转毫秒
+        in_time: detail.pay_transaction?.time ? detail.pay_transaction.time * 1000 : 0,
         order_amount: detail.amount,
-        // 转出交易信息 - 使用 deliver_transaction
+        // 转出交易信息（直接使用deliver_transaction）
         out_txid: detail.deliver_transaction?.id || '',
         out_to_address: detail.deliver_transaction?.to || '',
         out_from_address: detail.deliver_transaction?.from || '',
-        out_time: detail.deliver_transaction?.time ? detail.deliver_transaction.time * 1000 : 0, // 秒转毫秒
+        out_time: detail.deliver_transaction?.time ? detail.deliver_transaction.time * 1000 : 0,
         user_get_amount: detail.deliver_transaction?.amount || '0'
       }
 
@@ -697,20 +647,19 @@ const handleTransactionDetail = async (row: any) => {
 
       // 设置默认活动标签页
       if (transactionDetail.value.in_txid && transactionDetail.value.out_txid) {
-        activeTransactionTab.value = 'in' // 如果都有，默认显示转入
+        activeTransactionTab.value = 'in'
       } else if (transactionDetail.value.in_txid) {
-        activeTransactionTab.value = 'in' // 只有转入
+        activeTransactionTab.value = 'in'
       } else if (transactionDetail.value.out_txid) {
-        activeTransactionTab.value = 'out' // 只有转出
+        activeTransactionTab.value = 'out'
       } else {
-        // 没有任何交易数据
         ElMessage.info('暂无交易数据')
       }
 
       transactionDialogVisible.value = true
     } else {
       ElMessage.info('暂无交易数据')
-      transactionDetail.value = { order_id: row.order_id }
+      transactionDetail.value = { order_id: row.id }
       transactionDialogVisible.value = true
     }
   } catch (error) {

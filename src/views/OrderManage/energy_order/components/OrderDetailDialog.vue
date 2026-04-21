@@ -126,7 +126,7 @@ const navigateToBotList = (botId: string | number) => {
 
 const orderDetailSchema = computed((): DescriptionsSchema[] => {
   const schema = [
-    { field: 'order_num', label: '订单号' },
+    { field: 'id', label: '订单号' },
     {
       field: 'status',
       label: '订单状态',
@@ -150,11 +150,11 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       }
     },
     {
-      field: 'order_type',
+      field: 'kind',
       label: '订单类型',
       slots: {
         default: (data: any) => {
-          if (!data || data.order_type === undefined) return h('span', '-')
+          if (!data || data.kind === undefined) return h('span', '-')
           const typeTextMap: Record<number, string> = {
             4: '按时间',
             5: '按笔数',
@@ -176,8 +176,7 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
             9: 'danger',
             10: 'info'
           }
-          const orderTypeNum =
-            typeof data.order_type === 'string' ? parseInt(data.order_type, 10) : data.order_type
+          const orderTypeNum = typeof data.kind === 'string' ? parseInt(data.kind, 10) : data.kind
 
           if (isNaN(orderTypeNum) || !(orderTypeNum in typeTextMap)) {
             return h(ElTag, { type: 'info', size: 'small' }, () => '未知类型')
@@ -190,61 +189,61 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       }
     },
     {
-      field: 'tg_name',
+      field: 'tg_user_name',
       label: 'TG用户名',
       slots: {
         default: (data: any) => {
-          const tgName = data?.tg_name
+          const tgName = data?.tg_user_name
           if (isEmpty(tgName)) return h('span', '-')
           return h(
             ElLink,
-            { type: 'primary', onClick: () => navigateToUserList(data.tg_id) },
+            { type: 'primary', onClick: () => navigateToUserList(data.user_id) },
             () => tgName
           )
         }
       }
     },
     {
-      field: 'nickname',
+      field: 'tg_first_name',
       label: 'TG用户昵称',
       slots: {
-        default: (data: any) => h('span', data?.nickname || '-')
+        default: (data: any) => h('span', data?.tg_first_name || '-')
       }
     },
     {
-      field: 'bot_name',
+      field: 'bot_user_name',
       label: '机器人名称',
       slots: {
         default: (data: any) => {
-          if (isEmpty(data?.bot_name)) return h('span', '-')
+          if (isEmpty(data?.bot_user_name)) return h('span', '-')
           return h(
             ElLink,
             { type: 'primary', onClick: () => navigateToBotList(data.bot_id) },
-            () => data.bot_name
+            () => data.bot_user_name
           )
         }
       }
     },
     { field: 'bot_id', label: '机器人ID' },
     {
-      field: 'order_amount',
+      field: 'amount',
       label: '订单金额',
       slots: {
-        default: (data: any) => h('span', {}, `${data.order_amount || 0} ${data.pay_unit || 'TRX'}`)
+        default: (data: any) => h('span', {}, `${data.amount || 0} ${data.coin || 'TRX'}`)
       }
     },
     {
-      field: 'pay_amount',
+      field: 'amount',
       label: '支付金额',
       slots: {
-        default: (data: any) => h('span', {}, `${data.pay_amount || 0} ${data.pay_unit || 'TRX'}`)
+        default: (data: any) => h('span', {}, `${data.amount || 0} ${data.coin || 'TRX'}`)
       }
     },
     {
-      field: 'energy_num',
+      field: 'energy_amount',
       label: '能量数',
       slots: {
-        default: (data: any) => h('span', {}, formatEnergyNum(data.energy_num))
+        default: (data: any) => h('span', {}, formatEnergyNum(data.energy_amount))
       }
     },
     {
@@ -259,8 +258,8 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       label: '有效时长',
       slots: {
         default: (data: any) => {
-          // 使用 order_type 计算有效时长，与列表保持一致
-          const calculatedTime = formatExpirationTime(data.order_type)
+          // 使用 kind 计算有效时长，与列表保持一致
+          const calculatedTime = formatExpirationTime(data.kind)
           return h('span', {}, calculatedTime)
         }
       }
@@ -273,26 +272,25 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
       }
     },
     {
-      field: 'create_time',
+      field: 'created_at',
       label: '创建时间',
       slots: {
         default: (data: any) =>
-          h('span', {}, data.create_time ? formatToDateTime(data.create_time) : '-')
+          h('span', {}, data.created_at ? formatToDateTime(data.created_at) : '-')
       }
     },
     {
-      field: 'pay_time',
+      field: 'paid_at',
       label: '支付时间',
       slots: {
-        default: (data: any) => h('span', {}, data.pay_time ? formatToDateTime(data.pay_time) : '-')
+        default: (data: any) => h('span', {}, data.paid_at ? formatToDateTime(data.paid_at) : '-')
       }
     },
     {
-      field: 'finish_time',
+      field: 'paid_at',
       label: '完成时间',
       slots: {
-        default: (data: any) =>
-          h('span', {}, data.finish_time ? formatToDateTime(data.finish_time) : '-')
+        default: (data: any) => h('span', {}, data.paid_at ? formatToDateTime(data.paid_at) : '-')
       }
     },
     {
@@ -311,7 +309,7 @@ const orderDetailSchema = computed((): DescriptionsSchema[] => {
 
 <template>
   <Dialog v-model="localVisible" :title="'订单详情'" @close="handleClose">
-    <ElTabs v-if="orderDetail && orderDetail.order_num" v-model="activeTab">
+    <ElTabs v-if="orderDetail && orderDetail.id" v-model="activeTab">
       <!-- 基础订单详情页 -->
       <ElTabPane label="基本信息" name="order">
         <Descriptions :schema="orderDetailSchema" :data="orderDetail" :column="2" border />

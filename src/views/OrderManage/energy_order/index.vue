@@ -90,50 +90,50 @@ const formatExpirationTime = (orderType?: number): string => {
 const columns = computed<TableColumn[]>(() => {
   const allCols: any[] = [
     {
-      field: 'order_num',
+      field: 'id',
       label: '订单号',
       width: 180,
-      formatter: (row) => row.order_num || '-'
+      formatter: (row) => row.id || '-'
     },
     {
-      field: 'tg_name',
+      field: 'tg_user_name',
       label: 'TG用户名',
       width: 120,
       hideWhen: 2, // 来源为 H5(2) 时隐藏
       slots: {
         default: ({ row }) => {
-          if (isEmpty(row.tg_name)) return h('span', '-')
+          if (isEmpty(row.tg_user_name)) return h('span', '-')
           return h(
             ElLink,
             {
               type: 'primary',
-              onClick: () => navigateToUserList(row.tg_id)
+              onClick: () => navigateToUserList(row.user_id)
             },
-            () => row.tg_name
+            () => row.tg_user_name
           )
         }
       }
     },
     {
-      field: 'nickname',
+      field: 'tg_first_name',
       label: 'TG用户昵称',
       width: 120,
       hideWhen: 2, // 来源为 H5(2) 时隐藏
-      formatter: (row) => row.nickname || '-'
+      formatter: (row) => row.tg_first_name || '-'
     },
     {
-      field: 'user_account',
+      field: 'username',
       label: '用户账号',
       width: 120,
       hideWhen: 1, // 来源为机器人(1)时隐藏
-      formatter: (row) => row.user_account || '-'
+      formatter: (row) => row.username || '-'
     },
     {
-      field: 'user_email',
+      field: 'email',
       label: '用户邮箱',
       minWidth: 150,
       hideWhen: 1, // 来源为机器人(1)时隐藏
-      formatter: (row) => row.user_email || '-'
+      formatter: (row) => row.email || '-'
     },
     {
       field: 'origin',
@@ -163,7 +163,7 @@ const columns = computed<TableColumn[]>(() => {
       }
     },
     {
-      field: 'order_type',
+      field: 'kind',
       label: '订单类型',
       width: 120,
       slots: {
@@ -191,8 +191,7 @@ const columns = computed<TableColumn[]>(() => {
             10: 'info'
           }
 
-          const orderTypeNum =
-            typeof row.order_type === 'string' ? parseInt(row.order_type, 10) : row.order_type
+          const orderTypeNum = typeof row.kind === 'string' ? parseInt(row.kind, 10) : row.kind
 
           if (isNaN(orderTypeNum) || !(orderTypeNum in typeTextMap)) {
             return h(ElTag, { type: 'info', size: 'small' }, () => '未知类型')
@@ -206,21 +205,19 @@ const columns = computed<TableColumn[]>(() => {
       }
     },
     {
-      field: 'order_amount',
+      field: 'amount',
       label: '支付金额',
       width: 100,
       formatter: (row) => {
-        return row.order_amount && row.order_amount != 0
-          ? `${row.order_amount} ${row.pay_unit || ''}`
-          : '-'
+        return row.amount && row.amount != 0 ? `${row.amount} ${row.coin || ''}` : '-'
       }
     },
     {
-      field: 'energy_num',
+      field: 'energy_amount',
       label: '能量数量',
       width: 100,
       formatter: (row) => {
-        return row.energy_num ? formatEnergyNum(row.energy_num) : '-'
+        return row.energy_amount ? formatEnergyNum(row.energy_amount) : '-'
       }
     },
     {
@@ -244,11 +241,11 @@ const columns = computed<TableColumn[]>(() => {
       formatter: (row) => row.energy_address || '-'
     },
     {
-      field: 'stroke_num',
+      field: 'energy_count',
       label: '笔数',
       width: 80,
       formatter: (row) => {
-        return row.stroke_num ? row.stroke_num : '-'
+        return row.energy_count ? row.energy_count : '-'
       }
     },
     {
@@ -275,18 +272,18 @@ const columns = computed<TableColumn[]>(() => {
       }
     },
     {
-      field: 'create_time',
+      field: 'created_at',
       label: '创建时间',
       sortable: 'custom',
       width: 180,
-      formatter: (row) => (row.create_time ? formatToDateTime(row.create_time) : '-')
+      formatter: (row) => (row.created_at ? formatToDateTime(row.created_at) : '-')
     },
     {
-      field: 'finish_time',
+      field: 'paid_at',
       label: '完成时间',
       sortable: 'custom',
       width: 180,
-      formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
+      formatter: (row) => (row.paid_at ? formatToDateTime(row.paid_at) : '-')
     }
   ]
 
@@ -327,7 +324,7 @@ const actionColumn: TableColumn = {
 // 搜索表单配置
 const searchSchema = [
   {
-    field: 'query',
+    field: 'keyword',
     component: 'Input' as const,
     label: {
       text: '关键字',
@@ -338,7 +335,7 @@ const searchSchema = [
     }
   },
   {
-    field: 'source',
+    field: 'origin',
     component: 'Select' as const,
     label: '来源',
     componentProps: {
@@ -367,7 +364,7 @@ const searchSchema = [
     }
   },
   {
-    field: 'order_num',
+    field: 'order_id',
     component: 'Input' as const,
     label: '订单号',
     componentProps: {
@@ -375,7 +372,7 @@ const searchSchema = [
     }
   },
   {
-    field: 'order_type',
+    field: 'kind',
     component: 'Select' as const,
     label: '订单类型',
     componentProps: {
@@ -452,45 +449,34 @@ const navigateToBotList = (botId: string | number) => {
 const fetchEnergyOrderList = async (params: any) => {
   try {
     // 更新选中的来源，用于控制列的显示/隐藏
-    selectedSource.value = params.source || ''
+    selectedSource.value = params.origin || ''
     console.log(
       '[fetchEnergyOrderList] selectedSource:',
       selectedSource.value,
-      'params.source:',
-      params.source
+      'params.origin:',
+      params.origin
     )
 
-    // 映射参数字段
-    const adaptedParams: any = {}
+    // 直接使用API字段，减少映射
+    const adaptedParams: any = {
+      current_page: params.current_page || 1,
+      page_size: params.page_size || 10
+    }
 
-    if (params.order_num) adaptedParams.order_id = params.order_num // order_num → order_id
-    if (params.source !== undefined && params.source !== '') {
-      adaptedParams.origin = Number(params.source) // source → origin (1=机器人，2=H5)
+    // 只映射必要的字段
+    if (params.order_id) adaptedParams.order_id = params.order_id
+    if (params.origin !== undefined && params.origin !== '') {
+      adaptedParams.origin = Number(params.origin)
     }
     if (params.status) adaptedParams.status = params.status
-    if (params.query) adaptedParams.keyword = params.query // query → keyword
-    if (params.order_type) adaptedParams.kind = params.order_type // order_type → kind
-    if (params.receive_address) adaptedParams.receive_address = params.receive_address // 收款钱包地址
-    if (params.energy_address) adaptedParams.energy_address = params.energy_address // 能量接收地址
+    if (params.keyword) adaptedParams.keyword = params.keyword
+    if (params.kind) adaptedParams.kind = params.kind
+    if (params.receive_address) adaptedParams.receive_address = params.receive_address
+    if (params.energy_address) adaptedParams.energy_address = params.energy_address
 
-    // 分页参数
-    adaptedParams.current_page = params.current_page || 1
-    adaptedParams.page_size = params.page_size || 10
-
-    // 处理排序参数 - 字段名映射
+    // 处理排序参数
     if (params.order) {
-      const fieldMapping: Record<string, string> = {
-        create_time: 'created_at',
-        finish_time: 'paid_at'
-      }
-
-      // 解析排序参数，格式：column ASC 或 column DESC
-      const orderParts = params.order.split(' ')
-      if (orderParts.length === 2) {
-        const [field, direction] = orderParts
-        const mappedField = fieldMapping[field] || field
-        adaptedParams.order = `${mappedField} ${direction}`
-      }
+      adaptedParams.order = params.order
     }
 
     // 处理时间范围（转换为秒级Unix时间戳字符串）
@@ -502,39 +488,22 @@ const fetchEnergyOrderList = async (params: any) => {
     console.log('能量订单查询参数:', adaptedParams)
     const response = await v1GetEnergyOrderList(adaptedParams)
 
-    // 映射返回数据字段
+    // 映射返回数据字段 - 直接使用API原始字段，只做必要转换
     const list = (response.data?.list || []).map((item: any) => ({
-      id: item.id,
-      order_id: item.id,
-      order_num: item.id, // id → order_num
-      tg_name: item.tg_user_name, // tg_user_name → tg_name
-      nickname: item.tg_first_name, // tg_first_name → nickname
-      tg_id: item.user_id, // user_id → tg_id
-      user_account: item.username || '-', // 用户账号（使用 username 字段）
-      user_email: item.email || '-', // 用户邮箱（使用 email 字段）
+      ...item, // 保留所有原始字段
+      created_at: item.created_at * 1000, // 秒 → 毫秒
+      paid_at: item.paid_at ? item.paid_at * 1000 : null, // 秒 → 毫秒
+      energy_rent_text: formatExpirationTime(item.kind), // 计算有效期
+      // 来源判断逻辑：如果TG用户名不存在且用户账号存在则来源是H5，反之就是机器人
       origin: (() => {
-        // 来源判断逻辑：如果TG用户名不存在且用户账号存在则来源是H5，反之就是机器人
         if (!item.tg_user_name && item.username) {
           return 2 // H5
         } else if (item.tg_user_name) {
           return 1 // 机器人
         }
-        // 兜底：根据 origin 判断
+        // 兜底：使用API返回的 origin
         return item.origin || 0
-      })(),
-      bot_name: item.bot_name, // bot_name
-      bot_id: item.bot_id,
-      order_type: item.kind, // kind → order_type
-      order_amount: item.amount, // amount → order_amount
-      pay_unit: item.coin, // coin → pay_unit
-      energy_num: item.energy_amount, // energy_amount → energy_num
-      energy_rent_text: formatExpirationTime(item.kind), // 根据订单类型计算有效期
-      receive_address: item.receive_address, // 收款钱包地址
-      energy_address: item.energy_address, // 能量接收地址
-      stroke_num: item.energy_count, // energy_count → stroke_num
-      status: item.status,
-      create_time: item.created_at * 1000, // created_at（秒）→ create_time（毫秒）
-      finish_time: item.paid_at ? item.paid_at * 1000 : undefined // paid_at（秒）→ finish_time（毫秒）
+      })()
     }))
 
     totalCount.value = response.data?.pager?.total || 0
@@ -542,11 +511,11 @@ const fetchEnergyOrderList = async (params: any) => {
 
     // 提示消息
     const hasSearchCondition = !!(
-      params.query ||
-      params.order_num ||
-      params.source ||
+      params.keyword ||
+      params.order_id ||
+      params.origin ||
       params.status ||
-      params.order_type ||
+      params.kind ||
       params.dateRange
     )
     handleListMessage(list, hasSearchCondition, '能量订单')
@@ -563,16 +532,14 @@ const fetchEnergyOrderList = async (params: any) => {
 
 // 查看订单详情
 const handleViewDetail = async (row: any) => {
-  const orderId = row.id || row.order_id
+  const orderId = row.id
   if (!orderId) {
     return
   }
   try {
-    // 使用新接口获取详情
     const response = await v1GetEnergyOrderDetail(orderId)
 
     if (response && response.data) {
-      // 映射新接口返回的数据
       const detail = response.data
 
       // 从 resources 中获取能量相关信息
@@ -615,39 +582,20 @@ const handleViewDetail = async (row: any) => {
         energyRentText = '长期有效'
       }
 
+      // 直接使用API原始字段，只添加必要的计算字段
       selectedOrderDetail.value = {
         ...detail,
-        // 基本字段映射
-        order_num: detail.id,
-        order_type: detail.kind,
-        tg_id: detail.user_id,
-        tg_name: detail.tg_user_name,
-        nickname: detail.tg_first_name,
-        bot_name: detail.bot_user_name,
-        create_time: detail.created_at * 1000,
-        finish_time: detail.paid_at ? detail.paid_at * 1000 : null,
-        pay_time: detail.paid_at ? detail.paid_at * 1000 : null,
-        order_amount: detail.amount,
-        pay_amount: detail.amount,
-        pay_unit: detail.coin,
-        pay_type: 1, // 默认为余额支付
+        created_at: detail.created_at * 1000, // 秒 → 毫秒
+        paid_at: detail.paid_at ? detail.paid_at * 1000 : null, // 秒 → 毫秒
         // 从 resources 计算的字段
-        energy_num: energyAmount,
-        receive_address: detail.receive_address || '', // 使用API返回的收款地址
-        energy_address: energyAddress, // 能量接收地址
+        energy_amount: energyAmount,
+        energy_address: energyAddress,
         energy_rent_text: energyRentText,
-        recycle_time: recycleTime,
-        // 新增字段
-        summary: detail.summary,
-        resources: detail.resources,
-        activations: detail.activations // 添加激活记录列表
+        recycle_time: recycleTime
       }
       orderDialogVisible.value = true
-    } else {
-      // ElMessage.error removed
     }
   } catch (error) {
-    // ElMessage.error removed
     selectedOrderDetail.value = null
   }
 }
@@ -660,18 +608,17 @@ const handleExport = async () => {
     try {
       params = await searchTableRef.value?.searchMethods?.getFormData()
     } catch (e) {
-      // 如果 getFormData 不可用，使用保存的搜索参数
       params = currentSearchParams.value
     }
 
-    // 映射当前搜索条件参数
+    // 直接使用API字段
     const adaptedParams: any = {}
 
-    if (params?.order_num) adaptedParams.order_id = params.order_num
-    if (params?.source) adaptedParams.source = params.source
+    if (params?.order_id) adaptedParams.order_id = params.order_id
+    if (params?.origin) adaptedParams.origin = params.origin
     if (params?.status) adaptedParams.status = params.status
-    if (params?.query) adaptedParams.keyword = params.query
-    if (params?.order_type) adaptedParams.kind = params.order_type
+    if (params?.keyword) adaptedParams.keyword = params.keyword
+    if (params?.kind) adaptedParams.kind = params.kind
     if (params?.receive_address) adaptedParams.receive_address = params.receive_address
     if (params?.energy_address) adaptedParams.energy_address = params.energy_address
 
@@ -683,7 +630,6 @@ const handleExport = async () => {
 
     console.log('导出参数:', adaptedParams)
 
-    // 使用获取列表的接口，传入搜索条件
     const res = await v1GetEnergyOrderList(adaptedParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
@@ -698,7 +644,7 @@ const handleExport = async () => {
         10: '激活'
       }
 
-      // 将数据转换为 Excel 格式，列名与列表显示一致
+      // 将数据转换为 Excel 格式，使用API原始字段
       const list = res.data.list.map((item: any) => ({
         订单号: item.id,
         TG用户名: item.tg_user_name,
@@ -719,10 +665,10 @@ const handleExport = async () => {
         订单类型: typeTextMap[item.kind] || '-',
         支付金额: item.amount && item.amount != 0 ? `${item.amount} ${item.coin || ''}` : '-',
         能量数量: formatEnergyNum(item.energy_amount),
-        能量有效期: item.energy_rent_text || '-',
+        能量有效期: formatExpirationTime(item.kind),
         收款钱包地址: item.receive_address || '-',
         能量接收地址: item.energy_address || '-',
-        笔数: item.stroke_num || '-',
+        笔数: item.energy_count || '-',
         订单状态: getStatusTextForTable(item.status),
         创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
         完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-'
@@ -749,7 +695,7 @@ onMounted(() => {
   setTimeout(() => {
     if (searchTableRef.value) {
       searchTableRef.value.setSearchParams({
-        order_num: query.order_num
+        order_id: query.order_id
       })
       searchTableRef.value.reload()
     }
