@@ -208,24 +208,6 @@ const transactionInSchema = computed<DescriptionsSchema[]>(() => [
   },
   { field: 'in_to_address', label: '接收人', span: 24 },
   { field: 'in_from_address', label: '发送人', span: 24 },
-  // {
-  //   field: 'in_number',
-  //   label: '区块号',
-  //   span: 24,
-  //   slots: {
-  //     default: (row: any) => {
-  //       return h(
-  //         ElLink,
-  //         {
-  //           href: `${import.meta.env.VITE_TRONSCAN_URL}/#/block/${row.in_number}`,
-  //           type: 'primary',
-  //           target: '_blank'
-  //         },
-  //         () => row.in_number
-  //       )
-  //     }
-  //   }
-  // },
   {
     field: 'order_amount',
     label: '金额',
@@ -270,8 +252,28 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
       }
     }
   },
-  { field: 'out_to_address', label: '接收人', span: 24 },
-  { field: 'out_from_address', label: '发送人', span: 24 },
+  {
+    field: 'out_to_address',
+    label: '接收人',
+    span: 24,
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.out_txid) return h('span', '-')
+        return h('span', row.out_to_address || '-')
+      }
+    }
+  },
+  {
+    field: 'out_from_address',
+    label: '发送人',
+    span: 24,
+    slots: {
+      default: (row: any) => {
+        if (!row || !row.out_txid) return h('span', '-')
+        return h('span', row.out_from_address || '-')
+      }
+    }
+  },
   {
     field: 'user_get_amount',
     label: '金额',
@@ -296,6 +298,7 @@ const transactionOutSchema = computed<DescriptionsSchema[]>(() => [
     label: '转出时间',
     slots: {
       default: (row: any) => {
+        if (!row || !row.out_txid) return h('span', '-')
         return h('span', formatToDateTime(row.out_time))
       }
     }
@@ -499,7 +502,7 @@ const searchSchema = [
     componentProps: {
       options: [
         { label: '全部', value: '' },
-        { label: '新订单', value: 1 },
+        { label: '已支付', value: 2 },
         { label: '已完成', value: 5 },
         { label: '失败订单', value: 6 }
       ],
@@ -682,12 +685,12 @@ const handleTransactionDetail = async (row: any) => {
         in_from_address: detail.pay_transaction?.from || '',
         in_time: detail.pay_transaction?.time ? detail.pay_transaction.time * 1000 : 0, // 秒转毫秒
         order_amount: detail.amount,
-        // 转出交易信息
-        out_txid: detail.exchange?.out_txid || '',
-        out_to_address: detail.exchange?.out_address || '',
-        out_from_address: detail.receive_address || '',
-        out_time: detail.exchange?.out_at ? detail.exchange.out_at * 1000 : 0, // 秒转毫秒
-        user_get_amount: detail.exchange?.out_amount || '0'
+        // 转出交易信息 - 使用 deliver_transaction
+        out_txid: detail.deliver_transaction?.id || '',
+        out_to_address: detail.deliver_transaction?.to || '',
+        out_from_address: detail.deliver_transaction?.from || '',
+        out_time: detail.deliver_transaction?.time ? detail.deliver_transaction.time * 1000 : 0, // 秒转毫秒
+        user_get_amount: detail.deliver_transaction?.amount || '0'
       }
 
       console.log('transactionDetail.value', transactionDetail.value)
