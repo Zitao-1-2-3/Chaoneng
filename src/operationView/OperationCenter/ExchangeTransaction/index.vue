@@ -294,7 +294,7 @@ const columns = reactive<TableColumn[]>([
             break
           case 6:
             type = 'danger'
-            label = '失败订单'
+            label = '已失败'
             break
           case 8:
             type = 'warning'
@@ -306,7 +306,7 @@ const columns = reactive<TableColumn[]>([
             break
           case 2:
             type = 'warning'
-            label = '支付中'
+            label = '已支付'
             break
           case 3:
             type = 'info'
@@ -322,7 +322,7 @@ const columns = reactive<TableColumn[]>([
             break
           case 9:
             type = 'danger'
-            label = '已过期'
+            label = '已中止'
             break
         }
         return <ElTag type={type}>{label}</ElTag>
@@ -394,9 +394,10 @@ const searchSchema = reactive<FormSchema[]>([
       placeholder: '全部', // 匹配截图 placeholder
       options: [
         { label: '全部', value: '' },
+        { label: '已支付', value: 2 },
         { label: '已完成', value: 5 },
-        { label: '失败订单', value: 6 },
-        { label: '已取消', value: 8 }
+        { label: '已失败', value: 6 },
+        { label: '已中止', value: 9 }
       ],
       clearable: true
     }

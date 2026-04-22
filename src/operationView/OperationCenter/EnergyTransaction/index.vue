@@ -194,10 +194,10 @@ const orderStatusMap: Record<number, string> = {
   3: '已发送',
   4: '已回收',
   5: '已完成',
-  6: '失败订单',
+  6: '已失败',
   7: '已退款',
   8: '已取消',
-  9: '中止订单'
+  9: '已中止'
 }
 const orderStatusColorMap: Record<number, ElTagType> = {
   1: 'info',

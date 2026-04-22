@@ -6,7 +6,6 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchAutoManageList"
-        :action-column="actionColumn"
         :fetch-del-api="deleteAddressAction"
         :show-add-button="false"
         ref="searchTableRef"
@@ -144,10 +143,31 @@ const columns = computed(() => {
       width: 180,
       formatter: (row: AutoManageAddressItem) =>
         row.finish_time ? formatToDateTime(row.finish_time) : '-'
+    },
+    // 操作列直接包含在 columns 中，而不是单独的 actionColumn
+    {
+      field: 'action',
+      label: '操作',
+      width: 240,
+      fixed: 'right',
+      slots: {
+        default: (data: { row: AutoManageAddressItem }) => {
+          return (
+            <div style="display: flex; gap: 8px;">
+              <BaseButton type="primary" onClick={() => handleRecycleAndReset(data.row)}>
+                回收与重置
+              </BaseButton>
+              <BaseButton type="danger" onClick={() => handleDeleteConfirmation(data.row)}>
+                取消托管
+              </BaseButton>
+            </div>
+          )
+        }
+      }
     }
   ]
 
-  // 根据来源过滤列
+  // 根据来源过滤列（操作列始终显示，不会被过滤）
   const filteredCols = allCols.filter((col) => {
     if (!col.hideWhen) return true
     return selectedSource.value !== col.hideWhen
@@ -162,27 +182,6 @@ const columns = computed(() => {
 
   return filteredCols
 })
-
-const actionColumn: TableColumn = {
-  field: 'action',
-  label: '操作',
-  width: 240,
-  fixed: 'right',
-  slots: {
-    default: (data: { row: AutoManageAddressItem }) => {
-      return (
-        <div style="display: flex; gap: 8px;">
-          <BaseButton type="primary" onClick={() => handleRecycleAndReset(data.row)}>
-            回收与重置
-          </BaseButton>
-          <BaseButton type="danger" onClick={() => handleDeleteConfirmation(data.row)}>
-            取消托管
-          </BaseButton>
-        </div>
-      )
-    }
-  }
-}
 
 const searchSchema = computed<FormSchema[]>(() => [
   {

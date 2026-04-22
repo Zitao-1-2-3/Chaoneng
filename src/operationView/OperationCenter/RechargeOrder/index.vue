@@ -382,10 +382,10 @@ const searchSchema = [
         { label: '已发送', value: 3 },
         { label: '已回收', value: 4 },
         { label: '已完成', value: 5 },
-        { label: '失败订单', value: 6 },
+        { label: '已失败', value: 6 },
         { label: '已退款', value: 7 },
         { label: '已取消', value: 8 },
-        { label: '中止订单', value: 9 }
+        { label: '已中止', value: 9 }
       ],
       placeholder: '请选择订单状态'
     }
@@ -453,10 +453,10 @@ const getStatusType = (status: number): 'success' | 'warning' | 'info' | 'danger
     3: 'primary', // 已发送
     4: 'primary', // 已回收
     5: 'success', // 已完成
-    6: 'danger', // 失败订单
+    6: 'danger', // 已失败
     7: 'warning', // 已退款
     8: 'info', // 已取消
-    9: 'danger' // 中止订单
+    9: 'danger' // 已中止
   }
   return statusMap[status] || 'info'
 }
@@ -469,10 +469,10 @@ const getStatusText = (status: number): string => {
     3: '已发送',
     4: '已回收',
     5: '已完成',
-    6: '失败订单',
+    6: '已失败',
     7: '已退款',
     8: '已取消',
-    9: '中止订单'
+    9: '已中止'
   }
   return statusMap[status] || '-'
 }

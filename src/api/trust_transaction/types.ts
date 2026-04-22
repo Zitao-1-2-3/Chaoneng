@@ -21,6 +21,8 @@ export interface HostingListParamsV2 {
   page_size?: number // 每页大小
   user_id?: number // 用户ID
   source?: string // 来源 (H5/机器人)
+  origin?: number // 来源（1=机器人，2=H5）
+  order?: string // 排序参数（例如：created_at ASC）
 }
 
 /**
