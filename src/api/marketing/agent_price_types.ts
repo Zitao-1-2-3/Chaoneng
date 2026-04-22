@@ -11,19 +11,20 @@ export interface V2SystemPriceResponse {
   created_at: number // Unix时间戳
   updated_at: number // Unix时间戳
   active: string | number // 是否激活
-  time_1h: string | number // 1小时价格
-  time_1d: string | number // 1天价格
-  time_3d: string | number // 3天价格
-  time_7d: string | number // 7天价格
-  time_15d: string | number // 15天价格
-  time_30d: string | number // 30天价格
+  time_1h: string | number // 按时间-1小时价格
+  time_1d: string | number // 按时间-1天价格
+  time_3d: string | number // 按时间-3天价格
+  time_7d: string | number // 按时间-7天价格
+  time_15d: string | number // 按时间-15天价格
+  time_30d: string | number // 按时间-30天价格
   stroke: string | number // 按笔数价格
-  flash: string | number // 首次激活价格
+  flash: string | number // 闪租价格
   hosting_65k: string | number // 托管65k价格
   hosting_131k: string | number // 托管131k价格
-  trx_2_usdt: string | number // TRX兑换USDT费率
-  usdt_2_trx: string | number // USDT兑换TRX费率
-  bot_fee: string | number // 机器人费用
+  trx_2_usdt: string | number // 闪兑-TRX兑换USDT费率（小数，显示时需乘以100）
+  usdt_2_trx: string | number // 闪兑-USDT兑换TRX费率（小数，显示时需乘以100）
+  bot_fee: string | number // 机器人价格
+  batch_flash: string | number // 批量下单价格
 }
 
 // 系统价格参数更新参数 - v2
@@ -31,19 +32,20 @@ export interface V2UpdateSystemPriceParams {
   id: number // 必须：记录ID
   // 以下字段为可选，只传需要修改的字段
   active?: string | number
-  time_1h?: string | number
-  time_1d?: string | number
-  time_3d?: string | number
-  time_7d?: string | number
-  time_15d?: string | number
-  time_30d?: string | number
-  stroke?: string | number
-  flash?: string | number
-  hosting_65k?: string | number
-  hosting_131k?: string | number
-  trx_2_usdt?: string | number
-  usdt_2_trx?: string | number
-  bot_fee?: string | number
+  time_1h?: string | number // 按时间-1小时价格
+  time_1d?: string | number // 按时间-1天价格
+  time_3d?: string | number // 按时间-3天价格
+  time_7d?: string | number // 按时间-7天价格
+  time_15d?: string | number // 按时间-15天价格
+  time_30d?: string | number // 按时间-30天价格
+  stroke?: string | number // 按笔数价格
+  flash?: string | number // 闪租价格
+  hosting_65k?: string | number // 托管65k价格
+  hosting_131k?: string | number // 托管131k价格
+  trx_2_usdt?: string | number // 闪兑-TRX兑换USDT费率（小数，保存时需除以100）
+  usdt_2_trx?: string | number // 闪兑-USDT兑换TRX费率（小数，保存时需除以100）
+  bot_fee?: string | number // 机器人价格
+  batch_flash?: string | number // 批量下单价格
 }
 
 // ========== 旧的类型定义 ==========
