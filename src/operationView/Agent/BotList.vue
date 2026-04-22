@@ -175,10 +175,7 @@ const columns = ref<TableColumn[]>([
     field: 'tg_admin',
     label: '管理员TG号'
   },
-  {
-    field: 'token', // 新接口字段：token (原来是apl_key)
-    label: 'API密钥'
-  },
+  // API密钥列已删除
   {
     field: 'account_num',
     label: '用户数量',
@@ -309,7 +306,6 @@ const handleExport = async () => {
         代理名称: item.agent_name,
         机器人昵称: item.first_name,
         管理员TG号: item.tg_admin || '-',
-        API密钥: item.token,
         用户数量: item.user_count || 0,
         交易订单数: item.order_count || 0,
         机器人状态: item.status === 1 ? '启用' : item.status === 2 ? '禁用' : '未知',

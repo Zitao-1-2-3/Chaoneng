@@ -125,23 +125,6 @@ const botInfoSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'token',
-    component: 'Input' as const,
-    label: '机器人Token：',
-    componentProps: {
-      disabled: true
-    }
-  },
-  // API密钥字段已隐藏
-  // {
-  //   field: 'api_key',
-  //   component: 'Input' as const,
-  //   label: 'API秘钥：',
-  //   componentProps: {
-  //     disabled: true
-  //   }
-  // },
-  {
     field: 'tg_admin',
     component: 'Input' as const,
     label: '管理员TG账号：',
@@ -159,6 +142,16 @@ const botInfoSchema = reactive<FormSchema[]>([
     }
   },
   {
+    field: 'describe',
+    component: 'Input' as const,
+    label: '备注：',
+    componentProps: {
+      placeholder: '请输入备注(选填)',
+      type: 'textarea',
+      rows: 1
+    }
+  },
+  {
     field: 'status',
     component: 'Switch' as const,
     label: '状态：',
@@ -167,46 +160,7 @@ const botInfoSchema = reactive<FormSchema[]>([
       activeValue: 1,
       inactiveValue: 2
     }
-  },
-  {
-    field: 'describe',
-    component: 'Input' as const,
-    label: '备注：',
-    componentProps: {
-      placeholder: '请输入备注(选填)',
-      type: 'textarea',
-      rows: 3
-    }
   }
-  // {
-  //   field: 'tg_verify_status',
-  //   component: 'Tag' as const,
-  //   label: 'TG同步状态：',
-  //   componentProps: {
-  //     disabled: true
-  //   },
-  //   formItemProps: {
-  //     slots: {
-  //       default: () => {
-  //         return (
-  //           <>
-  //             <div class="flex items-center">
-  //               <ElTag type="success">已同步</ElTag>
-  //               <div
-  //                 class="flex items-center ml-2 cursor-pointer"
-  //                 style="color: #007bff"
-  //                 onClick={syncTgStatus}
-  //               >
-  //                 <Icon icon="ri:refresh-line" />
-  //                 <span class="ml-1">点我同步</span>
-  //               </div>
-  //             </div>
-  //           </>
-  //         )
-  //       }
-  //     }
-  //   }
-  // }
 ])
 
 // 暴露表单方法，扩展以支持H5配置

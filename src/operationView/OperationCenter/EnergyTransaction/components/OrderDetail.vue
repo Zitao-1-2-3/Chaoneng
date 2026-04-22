@@ -78,11 +78,6 @@ const commonDetailSchema = reactive<any[]>([
     field: 'order_amount',
     slots: {
       default: (data) => {
-        // 当订单类型为7(闪租)、9(批量下单)时，支付金额固定为0 TRX
-        const orderType = Number(data?.order_type)
-        if (orderType === 7 || orderType === 9) {
-          return '0 TRX'
-        }
         return data?.order_amount !== undefined
           ? `${data.order_amount} ${data.pay_unit || ''}`
           : '暂无'
@@ -175,10 +170,10 @@ const statusMap = {
   3: '已发送',
   4: '已回收',
   5: '已完成',
-  6: '失败订单',
+  6: '已失败',
   7: '已退款',
   8: '已取消',
-  9: '中止订单'
+  9: '已中止'
 }
 const statusColorMap = {
   1: 'info',

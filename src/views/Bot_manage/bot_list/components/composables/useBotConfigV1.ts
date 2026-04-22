@@ -72,7 +72,7 @@ export function useBotConfigV1() {
       // 保存机器人信息
       currentBot.value = botDetailRes.data
 
-      // 保存成本价数据 - 福利能量和批量下单能量单价使用闪租能量字段
+      // 保存成本价数据 - 使用后端返回的 batch_flash 字段
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
         flash_rent_price: parseFloat(systemPrice.flash) || 0,
@@ -84,7 +84,7 @@ export function useBotConfigV1() {
         count_price: parseFloat(systemPrice.stroke) || 0,
         manage_price_65000: parseFloat(systemPrice.hosting_65k) || 0,
         manage_price_13100: parseFloat(systemPrice.hosting_131k) || 0,
-        batch_energy_price: parseFloat(systemPrice.flash) || 0, // 使用闪租能量
+        batch_flash: parseFloat(systemPrice.batch_flash) || 0,
         batch_active_price: parseFloat(systemPrice.active) || 0,
         weal_price_trx: parseFloat(systemPrice.flash) || 0 // 使用闪租能量
       })
@@ -180,7 +180,7 @@ export function useBotConfigV1() {
         return false
       }
 
-      // 保存成本价数据 - 福利能量和批量下单能量单价使用闪租能量字段
+      // 保存成本价数据 - 使用后端返回的 batch_flash 字段
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
         flash_rent_price: parseFloat(systemPrice.flash) || 0,
@@ -192,7 +192,7 @@ export function useBotConfigV1() {
         count_price: parseFloat(systemPrice.stroke) || 0,
         manage_price_65000: parseFloat(systemPrice.hosting_65k) || 0,
         manage_price_13100: parseFloat(systemPrice.hosting_131k) || 0,
-        batch_energy_price: parseFloat(systemPrice.flash) || 0, // 使用闪租能量
+        batch_flash: parseFloat(systemPrice.batch_flash) || 0,
         batch_active_price: parseFloat(systemPrice.active) || 0,
         weal_price_trx: parseFloat(systemPrice.flash) || 0 // 使用闪租能量
       })
@@ -224,7 +224,7 @@ export function useBotConfigV1() {
         price_trx_131000: parseFloat(botPriceData.hosting_131k) || 0,
 
         // 批量下单
-        batch_energy_price: parseFloat(botPriceData.batch_flash) || 0,
+        batch_flash: parseFloat(botPriceData.batch_flash) || 0,
         batch_active_price: parseFloat(botPriceData.active) || 0,
 
         // 闪兑配置
@@ -452,7 +452,7 @@ export function useBotConfigV1() {
         hosting_65k: priceData.price_trx_65000 || 0,
         hosting_131k: priceData.price_trx_131000 || 0,
         // 批量下单
-        batch_flash: priceData.batch_energy_price || 0,
+        batch_flash: priceData.batch_flash || 0,
         active: priceData.batch_active_price || 0,
         // 闪兑配置
         usdt_2_trx: (priceData.profit_usdt_to_trx || 0) / 100,

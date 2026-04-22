@@ -363,7 +363,7 @@ const priceSchema = reactive<FormSchema[]>([
     colProps: { span: 24 }
   },
   {
-    field: 'batch_energy_price',
+    field: 'batch_flash',
     component: 'InputNumber' as const,
     label: '能量单价',
     componentProps: {
@@ -374,11 +374,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '能量单价是必填项' },
-        createCostPriceValidator('batch_energy_price', '能量单价')
+        createCostPriceValidator('batch_flash', '能量单价')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.batch_energy_price
+          const costPrice = computedCostPrices.value.batch_flash
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
