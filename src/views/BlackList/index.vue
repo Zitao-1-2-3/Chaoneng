@@ -5,7 +5,6 @@
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchBlackListData"
-        :action-column="actionColumn"
         :fetch-del-api="deleteBlackListItemAction"
         :show-add-button="true"
         @add="handleAdd"
@@ -37,25 +36,17 @@
 
 <script setup lang="tsx">
 import { ref, reactive } from 'vue'
-import { ElButton, ElMessage, ElDialog, ElForm, ElFormItem, ElInput } from 'element-plus'
+import { ElButton, ElDialog, ElForm, ElFormItem, ElInput } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
-// import { useI18n } from '@/hooks/web/useI18n' //  按需保留或移除
 import type { TableColumn } from '@/components/Table'
-import type { FormSchema } from '@/components/Form' // 只导入 FormSchema
-import type { FormRules as ElementPlusFormRules } from 'element-plus' // 从 element-plus 导入 FormRules
-import { formatToDateTime } from '@/utils/dateUtil' // 确保导入
-// 从API文件导入类型和函数
+import type { FormSchema } from '@/components/Form'
+import type { FormRules as ElementPlusFormRules } from 'element-plus'
+import { formatToDateTime } from '@/utils/dateUtil'
 import { v1GetBlackList, v1CreateBlackList, v1DeleteBlackList } from '@/api/black_list'
 import type { BlackListItemV1, BlackListParamsV1 } from '@/api/black_list/types'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
-
-// const { t } = useI18n() // 按需保留或移除
-
-// ----- 模拟 API 实现 (应放在 /api/blacklist.ts) -----
-// [REMOVED MOCK APIs and related variables like mockBlacklistDB, nextId]
-// ----- API 和类型定义结束 -----
 
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const currentRowForDelete = ref<BlackListItemV1 | null>(null)
@@ -86,32 +77,32 @@ const columns: TableColumn[] = [
   },
   {
     field: 'describe',
-    label: '描述'
+    label: '描述',
+    minWidth: 150
   },
   {
     field: 'created_at',
     label: '创建时间',
     sortable: 'custom',
     width: 180,
-    formatter: (row: BlackListItemV1) => formatToDateTime(row.created_at)
-  }
-]
-
-const actionColumn: TableColumn = {
-  field: 'action',
-  label: '操作',
-  width: 100,
-  fixed: 'right',
-  slots: {
-    default: (data: { row: BlackListItemV1 }) => {
-      return (
-        <BaseButton type="danger" onClick={() => handleDeleteConfirmation(data.row)}>
-          删除
-        </BaseButton>
-      )
+    formatter: (row: BlackListItemV1) => formatToDateTime(row.created_at * 1000)
+  },
+  {
+    field: 'action',
+    label: '操作',
+    width: 100,
+    fixed: 'right',
+    slots: {
+      default: (data: { row: BlackListItemV1 }) => {
+        return (
+          <BaseButton type="danger" onClick={() => handleDeleteConfirmation(data.row)}>
+            删除
+          </BaseButton>
+        )
+      }
     }
   }
-}
+]
 
 const searchSchema: FormSchema[] = [
   {
@@ -133,8 +124,12 @@ const fetchBlackListData = async (params: {
   try {
     const queryParams: BlackListParamsV1 = {
       current_page: Number(params.current_page) || 1,
-      page_size: Number(params.page_size) || 10,
-      address: params.address || undefined
+      page_size: Number(params.page_size) || 10
+    }
+
+    // 处理地址搜索
+    if (params.address) {
+      queryParams.address = params.address
     }
 
     // 处理排序参数
@@ -151,7 +146,6 @@ const fetchBlackListData = async (params: {
       }
     }
 
-    // 使用新接口 v1GetBlackList
     const res = await v1GetBlackList(queryParams)
 
     if (res.code === '000000' && res.data) {
@@ -177,7 +171,6 @@ const fetchBlackListData = async (params: {
 const deleteBlackListItemAction = async () => {
   if (currentRowForDelete.value && currentRowForDelete.value.id) {
     try {
-      // 使用新接口 v1DeleteBlackList，传递 id 和 address
       await v1DeleteBlackList({
         id: currentRowForDelete.value.id,
         address: currentRowForDelete.value.address
@@ -212,7 +205,6 @@ const submitAdd = async () => {
   if (!newAddressFormRef.value) return
   try {
     await newAddressFormRef.value.validate()
-    // 使用新接口 v1CreateBlackList
     await v1CreateBlackList({
       address: newAddressForm.address,
       describe: newAddressForm.describe

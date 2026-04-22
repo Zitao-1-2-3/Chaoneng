@@ -330,7 +330,7 @@ export function useBotConfigV1() {
         if (siteRes && siteRes.data) {
           // 更新表单中的H5配置数据
           const updatedH5Config = {
-            h5_url: siteRes.data.name || '',
+            url: siteRes.data.url || '',
             customer_service_account: siteRes.data.tg_admin || '',
             h5_enable: siteRes.data.status === 1 ? 1 : 0
           }

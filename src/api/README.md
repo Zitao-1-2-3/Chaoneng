@@ -157,3 +157,45 @@ DepositDetailV1 {
 
 - 类型定义按用途分类（列表、详情、支付交易）
 - 响应类型匹配axios拦截器处理后的结构
+
+---
+
+## 5. 代理端黑名单列表 (black_list)
+
+### 相关文件
+
+- **类型定义**：`bot-frontend/src/api/black_list/types.ts`
+- **API接口**：`bot-frontend/src/api/black_list/index.ts`
+- **页面组件**：`bot-frontend/src/views/BlackList/index.vue`
+
+### 主要数据类型
+
+#### 列表响应
+
+```typescript
+BlackListResponseV1 {
+  list: BlackListItemV1[]
+  pager: Pager
+}
+```
+
+#### 列表项
+
+```typescript
+BlackListItemV1 {
+  id: number                    // 黑名单ID
+  created_at: number            // 创建时间（Unix时间戳-秒）
+  updated_at: number            // 更新时间（Unix时间戳-秒）
+  agent_id: number              // 代理ID
+  address: string               // 地址
+  describe: string              // 描述
+  agent_name: string            // 代理名称
+}
+```
+
+### 重构说明
+
+- 时间字段统一为 Unix 时间戳（秒）
+- 操作列集成到 columns 数组中，避免过滤时丢失
+- 清理未使用的注释和导入
+- 优化参数处理逻辑

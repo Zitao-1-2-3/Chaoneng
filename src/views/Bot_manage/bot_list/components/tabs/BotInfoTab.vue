@@ -14,7 +14,7 @@
       <ElRow :gutter="20">
         <ElCol :span="8">
           <ElFormItem label="地址：">
-            <ElInput v-model="h5Config.h5_url" placeholder="请输入H5地址" disabled />
+            <ElInput v-model="h5Config.url" placeholder="请输入H5地址" disabled />
           </ElFormItem>
         </ElCol>
         <ElCol :span="8">
@@ -60,7 +60,7 @@ const { required } = useValidator()
 // H5配置数据
 const h5Config = ref({
   h5_enable: 0,
-  h5_url: '',
+  url: '',
   customer_service_account: ''
 })
 
@@ -73,7 +73,7 @@ const fetchSiteDetail = async (botId: number) => {
     const res = await v1GetSiteDetail(botId)
     if (res && res.data) {
       // 更新H5配置数据
-      h5Config.value.h5_url = res.data.name || ''
+      h5Config.value.url = res.data.url || ''
       h5Config.value.customer_service_account = res.data.tg_admin || ''
       // status: 1-启用，2-禁用，转换为 h5_enable: 1-启用，0-禁用
       h5Config.value.h5_enable = res.data.status === 1 ? 1 : 0
@@ -225,7 +225,7 @@ defineExpose({
 
       // 设置H5配置数据（如果有传入）
       if (data.h5_enable !== undefined) h5Config.value.h5_enable = data.h5_enable
-      if (data.h5_url !== undefined) h5Config.value.h5_url = data.h5_url
+      if (data.url !== undefined) h5Config.value.url = data.url
       if (data.customer_service_account !== undefined) {
         h5Config.value.customer_service_account = data.customer_service_account
       }

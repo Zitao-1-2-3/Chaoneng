@@ -7,7 +7,7 @@ export type SiteListParams = {
   current_page?: number // 当前页码
   page_size?: number // 每页数量
   keyword?: string // 关键字（搜索）
-  name?: string // 站点名称（搜索）
+  url?: string // 站点URL（搜索）
   status?: number // 状态：1-启用，2-禁用
   order?: string // 排序字段，格式：'column ASC' 或 'column DESC'，多字段用逗号隔开
 }
@@ -20,7 +20,7 @@ export type SiteListItem = {
   agent_id: number // 代理ID
   created_at: string // 创建时间
   updated_at: string // 更新时间
-  name: string // 站点名称
+  url: string // 站点URL
   describe: string // 描述
   status: number // 状态：1-启用，2-禁用
   tg_admin: string // TG管理员
@@ -52,7 +52,7 @@ export type SiteDetail = {
   agent_id: number // 代理ID
   created_at: string // 创建时间
   updated_at: string // 更新时间
-  name: string // 站点名称
+  url: string // 站点URL
   describe: string // 描述
   status: number // 状态：1-启用，2-禁用
   tg_admin: string // TG管理员

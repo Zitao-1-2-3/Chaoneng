@@ -14,11 +14,12 @@ export interface Pager {
  * 黑名单列表查询参数 - 新接口 v1
  */
 export interface BlackListParamsV1 {
-  address?: string // 地址
-  agent_id?: number // 代理ID
   current_page?: number // 当前页码
-  keyword?: string // 关键字
   page_size?: number // 每页大小
+  address?: string // 地址
+  keyword?: string // 关键字
+  agent_id?: number // 代理ID
+  order?: string // 排序参数（例如：created_at ASC）
 }
 
 /**
@@ -26,12 +27,12 @@ export interface BlackListParamsV1 {
  */
 export interface BlackListItemV1 {
   id: number // 黑名单ID
-  address: string // 地址
+  created_at: number // 创建时间（Unix时间戳-秒）
+  updated_at: number // 更新时间（Unix时间戳-秒）
   agent_id: number // 代理ID
-  agent_name: string // 代理名称
-  created_at: string // 创建时间
-  updated_at: string // 更新时间
+  address: string // 地址
   describe: string // 描述
+  agent_name: string // 代理名称
 }
 
 /**
