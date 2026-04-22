@@ -7,6 +7,7 @@ import { usePermissionStoreWithOut } from '@/store/modules/permission'
 import { usePageLoading } from '@/hooks/web/usePageLoading'
 import { NO_REDIRECT_WHITE_LIST } from '@/constants'
 import { useUserStoreWithOut } from '@/store/modules/user'
+import { ElMessage } from 'element-plus'
 
 const { start, done } = useNProgress()
 
@@ -20,6 +21,39 @@ router.beforeEach(async (to, from, next) => {
   const userStore = useUserStoreWithOut()
 
   if (userStore.getUserInfo) {
+    // 双重检查：同时验证 Pinia store 和 localStorage
+    const storeExpiredAt = userStore.getTokenExpiredAt
+
+    // 从 localStorage 读取原始数据进行二次验证
+    let localExpiredAt: number | null = null
+    try {
+      const localStorageData = localStorage.getItem('user')
+      if (localStorageData) {
+        const userData = JSON.parse(localStorageData)
+        localExpiredAt = userData.tokenExpiredAt
+      }
+    } catch (e) {
+      console.error('[路由守卫] localStorage 数据解析失败:', e)
+    }
+
+    // 使用两者中较早的过期时间（更严格的验证）
+    // 如果 store 和 localStorage 不一致，说明可能被篡改，使用更严格的值
+    const expiredAt =
+      storeExpiredAt && localExpiredAt
+        ? Math.min(storeExpiredAt, localExpiredAt)
+        : storeExpiredAt || localExpiredAt
+
+    if (expiredAt) {
+      const now = Math.floor(Date.now() / 1000) // 当前时间（秒）
+      if (now >= expiredAt) {
+        console.log('[路由守卫] Token已过期，自动退出登录')
+        ElMessage.warning('登录已过期，请重新登录')
+        userStore.logout()
+        next(`/login?redirect=${to.path}`)
+        return
+      }
+    }
+
     if (to.path === '/login') {
       next({ path: '/' })
     } else {

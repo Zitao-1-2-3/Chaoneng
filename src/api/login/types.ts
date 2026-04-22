@@ -84,7 +84,11 @@ export interface PhoneCodeParams {
 
 export interface LoginResponse {
   code: string
-  data: string // token
+  data: {
+    token: string // token字符串
+    expirated_at?: number // token过期时间（Unix时间戳-秒）- 注意：后端拼写为 expirated_at
+    expired_at?: number // 兼容正确拼写
+  }
   msg: string
   trace: {
     destIp: string

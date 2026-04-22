@@ -2,19 +2,17 @@
 import { reactive, ref, watch, onMounted, unref, computed } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useI18n } from '@/hooks/web/useI18n'
-import { ElCheckbox, ElLink, ElTabs, ElTabPane, ElInput, ElButton } from 'element-plus'
+import { ElCheckbox, ElLink, ElTabs, ElTabPane } from 'element-plus'
 import { useForm } from '@/hooks/web/useForm'
-import { loginApi, getTestRoleApi, getAdminRoleApi } from '@/api/login'
+import { getTestRoleApi, getAdminRoleApi } from '@/api/login'
 import { useAppStore } from '@/store/modules/app'
 import { usePermissionStore } from '@/store/modules/permission'
 import { useRouter } from 'vue-router'
 import type { RouteLocationNormalizedLoaded, RouteRecordRaw } from 'vue-router'
-import { UserType } from '@/api/login/types'
 import { useValidator } from '@/hooks/web/useValidator'
-import { Icon } from '@/components/Icon'
 import { useUserStore } from '@/store/modules/user'
 import { BaseButton } from '@/components/Button'
-import { isManagementSystem } from '@/utils/system' // <-- 导入
+import { isManagementSystem } from '@/utils/system'
 import {
   passwordLoginApi,
   verifyCodeLoginApi,
@@ -24,9 +22,9 @@ import {
   getUserInfoApi
 } from '@/api/login'
 import { ElMessage } from 'element-plus'
-import { routePreloader } from '@/utils/preloadRoutes' // 导入预加载工具
+import { routePreloader } from '@/utils/preloadRoutes'
 
-const { required, email, phone, noChinese } = useValidator()
+const { required, phone, noChinese } = useValidator()
 
 const emit = defineEmits(['to-register'])
 
@@ -116,8 +114,7 @@ const sendCode = async () => {
 const schema = computed(() => {
   return loginType.value === 'account' ? accountSchema : phoneSchema
 })
-const handleTabChange = (tab: string) => {
-  // loginType.value = tab
+const handleTabChange = () => {
   clearForm()
 }
 
@@ -393,8 +390,6 @@ const phoneSchema = reactive<FormSchema[]>([
   }
 ])
 
-const iconSize = 30
-
 const remember = ref(userStore.getRememberMe)
 
 const initLoginInfo = () => {
@@ -415,10 +410,6 @@ const { formRegister, formMethods } = useForm()
 const { getFormData, getElFormExpose, setValues } = formMethods
 
 const loading = ref(false)
-
-const iconColor = '#999'
-
-const hoverColor = 'var(--el-color-primary)'
 
 const redirect = ref<string>('')
 
@@ -479,8 +470,37 @@ const signIn = async () => {
           }
           userStore.setRememberMe(unref(remember))
 
-          // 设置Token
-          userStore.setToken(res.data)
+          // 设置Token和过期时间
+          console.log('[登录] 后端响应:', res)
+
+          // 提取token和过期时间
+          let token
+          let expiredAt
+
+          // 判断 res.data 的类型
+          if (typeof res.data === 'string') {
+            // 后端直接返回字符串token（旧格式）
+            token = res.data
+            expiredAt = undefined
+          } else if (res.data && typeof res.data === 'object') {
+            // 后端返回对象（新格式）
+            token = res.data.token
+            // 注意：后端字段名拼写为 expirated_at（错误拼写），同时兼容正确拼写 expired_at
+            expiredAt = res.data.expirated_at || res.data.expired_at
+          } else {
+            console.error('[登录] 后端返回的数据格式异常:', res.data)
+            token = ''
+            expiredAt = undefined
+          }
+
+          console.log('[登录] Token 已保存')
+          if (expiredAt) {
+            console.log('[登录] 过期时间:', new Date(expiredAt * 1000).toLocaleString('zh-CN'))
+          }
+
+          // 保存到store
+          userStore.setToken(token)
+          userStore.setTokenExpiredAt(expiredAt)
 
           // 获取用户信息（运营端需要先获取权限）
           if (!isManagement) {

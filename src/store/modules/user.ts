@@ -12,6 +12,7 @@ interface UserState {
   userInfo?: UserType
   tokenKey: string
   token: string
+  tokenExpiredAt?: number // Token 过期时间（Unix 时间戳-秒）
   roleRouters?: string[] | AppCustomRouteRecordRaw[]
   rememberMe: boolean
   loginInfo?: UserLoginType
@@ -23,6 +24,7 @@ export const useUserStore = defineStore('user', {
       userInfo: undefined,
       tokenKey: 'Authorization',
       token: '',
+      tokenExpiredAt: undefined,
       roleRouters: undefined,
       // 记住我
       rememberMe: true,
@@ -35,6 +37,9 @@ export const useUserStore = defineStore('user', {
     },
     getToken(): string {
       return this.token
+    },
+    getTokenExpiredAt(): number | undefined {
+      return this.tokenExpiredAt
     },
     getUserInfo(): UserType | undefined {
       return this.userInfo
@@ -58,6 +63,9 @@ export const useUserStore = defineStore('user', {
     },
     setToken(token: string) {
       this.token = token
+    },
+    setTokenExpiredAt(expiredAt?: number) {
+      this.tokenExpiredAt = expiredAt
     },
     setUserInfo(userInfo?: UserType) {
       this.userInfo = userInfo
@@ -89,6 +97,7 @@ export const useUserStore = defineStore('user', {
 
       // 清除用户信息
       this.setToken('')
+      this.setTokenExpiredAt(undefined)
       this.setUserInfo(undefined)
       this.setRoleRouters([])
 
