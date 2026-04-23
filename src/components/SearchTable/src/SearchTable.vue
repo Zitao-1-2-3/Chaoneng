@@ -55,17 +55,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, useSlots, PropType, watch, unref } from 'vue'
+import { computed, onMounted, useSlots, PropType, watch, unref } from 'vue'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
-import { useI18n } from '@/hooks/web/useI18n'
 import { Search } from '@/components/Search'
 import { Table } from '@/components/Table'
 import { BaseButton } from '@/components/Button'
 import { FormSchema } from '@/components/Form'
 import { TableColumn } from '@/components/Table'
-import { ElAlert, ElEmpty, ElButton } from 'element-plus'
 
-const { t } = useI18n()
 const slots = useSlots()
 
 const props = defineProps({
@@ -200,11 +197,6 @@ const doDelete = async (row: Recordable) => {
   const result = await handleDelete(row)
   emit('delete', row, result)
   return result
-}
-
-// 重新加载
-const reload = async () => {
-  await tableMethods.getList()
 }
 
 // 计算所有插槽名
