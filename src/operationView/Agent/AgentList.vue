@@ -513,7 +513,7 @@ const columns = computed<TableColumn[]>(() => [
   {
     field: 'price_id',
     label: '代理等级',
-    minWidth: '200px',
+    minWidth: '150px',
     slots: {
       header: () => {
         // 批量修改模式下，表头只显示下拉选择框
@@ -533,7 +533,7 @@ const columns = computed<TableColumn[]>(() => [
                 onChange={(value: number) => handleBatchPriceLevelChange(value)}
                 size="small"
                 placeholder="选择等级"
-                style="width: 120px"
+                style="width: 100px"
               >
                 {BATCH_AGENT_LEVEL_OPTIONS.map((option) => (
                   <ElOption key={option.value} label={option.label} value={option.value} />
