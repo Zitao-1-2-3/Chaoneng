@@ -17,6 +17,9 @@ import { createStyleImportPlugin, ElementPlusResolve } from 'vite-plugin-style-i
 import UnoCSS from 'unocss/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vitejs.dev/config/
 const root = process.cwd()
@@ -49,6 +52,24 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         }
       }),
       VueJsx(),
+      AutoImport({
+        imports: ['vue', 'vue-router', 'pinia'],
+        resolvers: [ElementPlusResolver()],
+        dts: 'types/auto-imports.d.ts',
+        eslintrc: {
+          enabled: true,
+          filepath: './.eslintrc-auto-import.json'
+        }
+      }),
+      Components({
+        resolvers: [
+          ElementPlusResolver({
+            importStyle: 'css'
+          })
+        ],
+        dts: 'types/components.d.ts',
+        dirs: ['src/components']
+      }),
       ServerUrlCopy(),
       progress(),
       env.VITE_USE_ALL_ELEMENT_PLUS_STYLE === 'false'
