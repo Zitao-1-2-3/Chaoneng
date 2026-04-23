@@ -554,6 +554,10 @@ onActivated(() => {
   width: 100%;
 }
 
+.agent-card :deep(.el-card__body) {
+  padding: 8px;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -583,31 +587,41 @@ onActivated(() => {
 
 .value-text {
   display: inline-block;
-  min-width: 80px;
+  max-width: 100px;
+  min-width: 60px;
   padding: 0 8px;
   font-size: 14px;
   font-weight: 500;
   color: var(--el-text-color-primary);
   text-align: center;
+  flex-shrink: 0;
 }
 
 .price-items-grid {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(180px, 1fr));
   gap: 12px;
   contain: layout;
 }
 
 .row-first {
-  display: grid;
-  grid-template-columns: minmax(180px, 200px) minmax(400px, 1fr) minmax(180px, 200px);
-  gap: 12px;
+  display: contents;
+}
+
+.row-first > .price-item-card:nth-child(1) {
+  grid-column: 1 / 2;
+}
+
+.row-first > .price-item-card:nth-child(2) {
+  grid-column: 2 / 5;
+}
+
+.row-first > .price-item-card:nth-child(3) {
+  grid-column: 5 / 6;
 }
 
 .row-second {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(140px, 1fr));
-  gap: 12px;
+  display: contents;
 }
 
 .price-item-card {
@@ -634,6 +648,8 @@ onActivated(() => {
   flex-direction: column;
   gap: 6px;
   flex: 1;
+  align-items: center;
+  justify-content: center;
 }
 
 .item-content.time-grid {
@@ -643,8 +659,10 @@ onActivated(() => {
 }
 
 .item-content.single-input {
+  flex-direction: row;
   justify-content: center;
   align-items: center;
+  gap: 8px;
 }
 
 .time-row {
@@ -665,16 +683,19 @@ onActivated(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 :deep(.el-input-number) {
-  width: 100%;
+  width: auto;
   max-width: 140px;
+  flex: 1;
 }
 
 :deep(.el-input-number--small) {
-  width: 100%;
+  width: auto;
   max-width: 120px;
+  flex: 1;
 }
 
 :deep(.el-input-number--small .el-input__inner) {
