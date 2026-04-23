@@ -1,4 +1,4 @@
-import { Layout, getParentLayout } from '@/utils/routerHelper'
+import { Layout } from '@/utils/routerHelper'
 // import { useI18n } from '@/hooks/web/useI18n' // Assuming t() is not directly used here, otherwise uncomment
 
 // Rely on global AppRouteRecordRaw type
@@ -119,14 +119,6 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '收款配置',
             buttonList: ['add', 'edit', 'delete']
-          }
-        },
-        {
-          path: 'BotPrice',
-          component: () => import('@/operationView/Marketing/BotPrice.vue'),
-          name: 'BotPrice',
-          meta: {
-            title: '机器人价格配置'
           }
         },
         {

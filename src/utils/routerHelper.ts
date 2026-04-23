@@ -107,6 +107,8 @@ export const generateRoutesByServer = (routes: AppCustomRouteRecordRaw[]): AppRo
       const component = route.component as string
       if (!comModule && !component.includes('#')) {
         console.error(`未找到${route.component}.vue文件或${route.component}.tsx文件，请创建`)
+        // 跳过组件文件不存在的路由
+        continue
       } else {
         // 动态加载路由文件，可根据实际情况进行自定义逻辑
         data.component =

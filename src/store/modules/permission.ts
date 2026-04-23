@@ -93,6 +93,20 @@ export const usePermissionStore = defineStore('permission', {
             routerMap = baseDynamicRoutes
           }
 
+          // 过滤掉已删除的路由（黑名单机制）
+          const routeBlacklist = ['BotPrice'] // 路由名称黑名单
+          const filterBlacklistedRoutes = (routes: AppRouteRecordRaw[]): AppRouteRecordRaw[] => {
+            return routes
+              .filter((route) => !routeBlacklist.includes(route.name as string))
+              .map((route) => {
+                if (route.children && route.children.length > 0) {
+                  route.children = filterBlacklistedRoutes(route.children)
+                }
+                return route
+              })
+          }
+          routerMap = filterBlacklistedRoutes(routerMap)
+
           const finalAddRouters = routerMap.concat([
             {
               path: '/:path(.*)*',
