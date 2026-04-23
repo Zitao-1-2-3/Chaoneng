@@ -17,6 +17,9 @@ import { createStyleImportPlugin, ElementPlusResolve } from 'vite-plugin-style-i
 import UnoCSS from 'unocss/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vitejs.dev/config/
 const root = process.cwd()
@@ -36,7 +39,8 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
   console.log('Current VITE_SYSTEM_TYPE:', env.VITE_SYSTEM_TYPE)
   console.log('Current VITE_TRONSCAN_URL:', env.VITE_TRONSCAN_URL)
   return {
-    base: env.VITE_SYSTEM_TYPE === 'Management' ? '/management' : '/operation',
+    base:
+      env.VITE_BASE_PATH || (env.VITE_SYSTEM_TYPE === 'Management' ? '/management' : '/operation'),
     plugins: [
       codeInspectorPlugin({
         bundler: 'vite'
@@ -48,6 +52,26 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         }
       }),
       VueJsx(),
+      // 自动导入 Vue API
+      AutoImport({
+        imports: ['vue', 'vue-router', 'pinia'],
+        resolvers: [ElementPlusResolver()],
+        dts: 'types/auto-imports.d.ts',
+        eslintrc: {
+          enabled: true,
+          filepath: './.eslintrc-auto-import.json'
+        }
+      }),
+      // 自动导入组件
+      Components({
+        resolvers: [
+          ElementPlusResolver({
+            importStyle: 'css'
+          })
+        ],
+        dts: 'types/components.d.ts',
+        dirs: ['src/components']
+      }),
       ServerUrlCopy(),
       progress(),
       env.VITE_USE_ALL_ELEMENT_PLUS_STYLE === 'false'
@@ -68,7 +92,8 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
           })
         : undefined,
       EslintPlugin({
-        cache: false,
+        cache: true,
+        cacheLocation: 'node_modules/.cache/eslint',
         failOnWarning: false,
         failOnError: false,
         include: ['src/**/*.vue', 'src/**/*.ts', 'src/**/*.tsx'] // 检查的文件
@@ -141,11 +166,14 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         // 拆包
         output: {
           manualChunks: {
-            'vue-chunks': ['vue', 'vue-router', 'pinia', 'vue-i18n'],
+            'vue-vendor': ['vue', 'vue-router', 'pinia'],
+            'vue-i18n': ['vue-i18n'],
             'element-plus': ['element-plus'],
-            'wang-editor': ['@wangeditor/editor', '@wangeditor/editor-for-vue'],
-            echarts: ['echarts', 'echarts-wordcloud'],
-            vendor: ['axios', 'qs', 'dayjs', 'lodash-es']
+            'element-icons': ['@element-plus/icons-vue'],
+            editor: ['@wangeditor/editor', '@wangeditor/editor-for-vue'],
+            echarts: ['echarts'],
+            'echarts-wordcloud': ['echarts-wordcloud'],
+            utils: ['axios', 'qs', 'dayjs', 'lodash-es', 'nprogress']
           }
         }
       },
@@ -210,14 +238,28 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         'vue-types',
         'pinia',
         'pinia-plugin-persistedstate',
+        'element-plus/es',
         'element-plus/es/locale/lang/zh-cn',
         'element-plus/es/locale/lang/en',
+        'element-plus/es/components/base/style/css',
+        'element-plus/es/components/button/style/css',
+        'element-plus/es/components/input/style/css',
+        'element-plus/es/components/form/style/css',
+        'element-plus/es/components/form-item/style/css',
+        'element-plus/es/components/table/style/css',
+        'element-plus/es/components/dialog/style/css',
+        'element-plus/es/components/message/style/css',
+        'element-plus/es/components/message-box/style/css',
         '@iconify/iconify',
         '@iconify/vue',
         '@vueuse/core',
         'axios',
         'qs',
         'echarts',
+        'echarts/core',
+        'echarts/charts',
+        'echarts/components',
+        'echarts/renderers',
         'echarts-wordcloud',
         'qrcode',
         '@wangeditor/editor',
@@ -225,11 +267,14 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         'vue-json-pretty',
         '@zxcvbn-ts/core',
         'dayjs',
+        'dayjs/locale/zh-cn',
         'cropperjs',
         'lodash-es',
         'nprogress',
         'vue-i18n',
-        'mitt'
+        'mitt',
+        'crypto-es',
+        'animate.css'
       ],
       // 强制预构建，避免首次访问时的延迟
       force: false
