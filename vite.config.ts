@@ -146,7 +146,6 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
             'vue-vendor': ['vue', 'vue-router', 'pinia'],
             'vue-i18n': ['vue-i18n'],
             'element-plus': ['element-plus'],
-            'element-icons': ['@element-plus/icons-vue'],
             editor: ['@wangeditor/editor', '@wangeditor/editor-for-vue'],
             echarts: ['echarts'],
             'echarts-wordcloud': ['echarts-wordcloud'],
