@@ -1,11 +1,9 @@
-const fetch = require('node-fetch')
-
 const API_BASE_URL = 'http://47.84.135.181:8888'
 
 exports.handler = async (event, context) => {
   const path = event.path.replace('/.netlify/functions/api', '')
   const apiUrl = `${API_BASE_URL}${path}`
-  
+
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -51,7 +49,7 @@ exports.handler = async (event, context) => {
     }
   } catch (error) {
     console.error('API Proxy Error:', error)
-    
+
     return {
       statusCode: 500,
       headers: {
