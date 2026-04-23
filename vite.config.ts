@@ -150,7 +150,11 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
     },
     esbuild: {
       pure: env.VITE_DROP_CONSOLE === 'true' ? ['console.log'] : undefined,
-      drop: env.VITE_DROP_DEBUGGER === 'true' ? ['debugger'] : undefined
+      drop: env.VITE_DROP_DEBUGGER === 'true' ? ['debugger'] : undefined,
+      // 生产环境移除 console 和 debugger
+      ...(isBuild && {
+        drop: ['console', 'debugger']
+      })
     },
     build: {
       target: 'es2015',
@@ -158,6 +162,8 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
       sourcemap: env.VITE_SOURCEMAP === 'true',
       // 提高chunk大小警告阈值
       chunkSizeWarningLimit: 1000,
+      // 禁用 brotli 大小报告，加快构建
+      reportCompressedSize: false,
       // brotliSize: false,
       rollupOptions: {
         plugins: env.VITE_USE_BUNDLE_ANALYZER === 'true' ? [visualizer()] : undefined,
@@ -176,14 +182,16 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
       },
       cssCodeSplit: !(env.VITE_USE_CSS_SPLIT === 'false'),
       cssTarget: ['chrome31'],
-      // 启用 minify 压缩
-      minify: 'terser',
-      terserOptions: {
-        compress: {
-          drop_console: env.VITE_DROP_CONSOLE === 'true',
-          drop_debugger: env.VITE_DROP_DEBUGGER === 'true'
-        }
-      }
+      // 使用 esbuild 压缩，比 terser 快 20-40 倍
+      minify: 'esbuild'
+      // 如果需要更好的压缩率，可以用 terser，但会慢很多
+      // minify: 'terser',
+      // terserOptions: {
+      //   compress: {
+      //     drop_console: env.VITE_DROP_CONSOLE === 'true',
+      //     drop_debugger: env.VITE_DROP_DEBUGGER === 'true'
+      //   }
+      // }
     },
     server: {
       port: env.VITE_SYSTEM_TYPE === 'Management' ? 4010 : 4011,

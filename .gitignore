@@ -9,3 +9,9 @@ stats.html
 .idea
 .env.base
 deploy.sh
+测试
+
+# Auto-generated files
+types/auto-imports.d.ts
+types/components.d.ts
+.eslintrc-auto-import.json

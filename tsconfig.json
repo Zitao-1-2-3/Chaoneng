@@ -32,6 +32,6 @@
       "vite-plugin-svg-icons/client"
     ]
   },
-  "include": ["src", "types/**/*.d.ts", "mock/**/*.ts"]
+  "include": ["src", "types/**/*.d.ts", "mock/**/*.ts", ".eslintrc-auto-import.json"]
   // "exclude": ["dist", "node_modules"]
 }

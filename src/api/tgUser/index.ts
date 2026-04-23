@@ -127,6 +127,68 @@ export const v1GetInlineButtonList = (params: {
   })
 }
 
+// ========== v2 接口（运营端） ==========
+
+/**
+ * 获取群发消息列表 - 运营端 v2
+ * GET /v2/bot/reply/msg/list
+ */
+export const v2GetMassSendList = (
+  params: MassSendListParamsV1
+): Promise<IResponse<MassSendListResponseV1>> => {
+  return request.get({
+    url: '/v2/bot/reply/msg/list',
+    params
+  })
+}
+
+/**
+ * 删除群发消息 - 运营端 v2
+ * POST /v2/bot/reply/msg/delete/{id}
+ */
+export const v2DeleteMassSend = (id: number): Promise<IResponse> => {
+  return request.post({
+    url: `/v2/bot/reply/msg/delete/${id}`
+  })
+}
+
+/**
+ * 给指定的tg用户群发信息 - 运营端 v2
+ * POST /v2/bot/group_msg
+ */
+export const v2SendGroupMessage = (data: SendGroupMessageParamsV1): Promise<IResponse> => {
+  return request.post({
+    url: '/v2/bot/group_msg',
+    data
+  })
+}
+
+/**
+ * 给指定的tg用户发信息 - 运营端 v2
+ * POST /v2/bot/reply/send_msg
+ */
+export const v2SendMessage = (data: SendMessageParamsV1): Promise<IResponse> => {
+  return request.post({
+    url: '/v2/bot/reply/send_msg',
+    data
+  })
+}
+
+/**
+ * 获取内联按钮列表 - 运营端 v2
+ * GET /v2/bot/menu/list
+ */
+export const v2GetInlineButtonList = (params: {
+  menu_type: number
+  current_page?: number
+  page_size?: number
+}): Promise<IResponse<any>> => {
+  return request.get({
+    url: '/v2/bot/menu/list',
+    params
+  })
+}
+
 // ========== 旧接口 ==========
 
 /**
