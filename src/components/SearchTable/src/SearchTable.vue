@@ -61,14 +61,13 @@ import { Search } from '@/components/Search'
 import { Table } from '@/components/Table'
 import { BaseButton } from '@/components/Button'
 import { FormSchema } from '@/components/Form'
-import { TableColumn } from '@/components/Table'
 
 const slots = useSlots()
 
 const props = defineProps({
   // 表格列配置
   columns: {
-    type: Array as PropType<TableColumn[]>,
+    type: Array as PropType<any[]>,
     required: true
   },
   // 搜索表单配置
@@ -123,7 +122,7 @@ const props = defineProps({
   },
   // 操作列配置
   actionColumn: {
-    type: Object as PropType<TableColumn>,
+    type: Object as PropType<any>,
     default: undefined
   }
 })
