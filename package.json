@@ -89,6 +89,7 @@
     "@vitejs/plugin-vue-jsx": "^4.1.1",
     "autoprefixer": "^10.4.20",
     "chalk": "^5.4.1",
+    "code-inspector-plugin": "^1.5.1",
     "consola": "^3.3.3",
     "cross-env": "^7.0.3",
     "eslint": "^9.17.0",

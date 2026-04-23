@@ -4,9 +4,11 @@ import type { UserConfig, ConfigEnv } from 'vite'
 import Vue from '@vitejs/plugin-vue'
 import VueJsx from '@vitejs/plugin-vue-jsx'
 import progress from 'vite-plugin-progress'
+// @ts-expect-error - vite-plugin-eslint 类型定义问题
 import EslintPlugin from 'vite-plugin-eslint'
 import { ViteEjsPlugin } from 'vite-plugin-ejs'
 import { viteMockServe } from 'vite-plugin-mock'
+// @ts-expect-error - vite-plugin-purge-icons 类型定义问题
 import PurgeIcons from 'vite-plugin-purge-icons'
 import ServerUrlCopy from 'vite-plugin-url-copy'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
@@ -14,6 +16,7 @@ import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import { createStyleImportPlugin, ElementPlusResolve } from 'vite-plugin-style-import'
 import UnoCSS from 'unocss/vite'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { codeInspectorPlugin } from 'code-inspector-plugin'
 
 // https://vitejs.dev/config/
 const root = process.cwd()
@@ -35,6 +38,9 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
   return {
     base: env.VITE_SYSTEM_TYPE === 'Management' ? '/management' : '/operation',
     plugins: [
+      codeInspectorPlugin({
+        bundler: 'vite'
+      }),
       Vue({
         script: {
           // 开启defineModel
