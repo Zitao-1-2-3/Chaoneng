@@ -8,7 +8,8 @@ import qs from 'qs'
 // import { useAppStore } from '@/store/modules/app' // Keep app store if used elsewhere, remove if not
 // import { useSystemStore } from '@/store/modules/system'
 
-export const PATH_URL = (window as any).APP_CONFIG?.API_BASE_URL || import.meta.env.VITE_API_BASE_PATH
+export const PATH_URL =
+  (window as any).APP_CONFIG?.API_BASE_URL || import.meta.env.VITE_API_BASE_PATH
 
 const abortControllerMap: Map<string, AbortController> = new Map()
 

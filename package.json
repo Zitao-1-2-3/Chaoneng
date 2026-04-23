@@ -131,7 +131,8 @@
     "vite-plugin-style-import": "2.0.0",
     "vite-plugin-svg-icons": "^2.0.1",
     "vite-plugin-url-copy": "^1.1.4",
-    "vue-tsc": "^2.2.0"
+    "vue-tsc": "^2.2.0",
+    "whatwg-url": "^16.0.1"
   },
   "packageManager": "pnpm@9.15.3",
   "engines": {
