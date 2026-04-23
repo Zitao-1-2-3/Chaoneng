@@ -8,19 +8,14 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-  NODE_ENV = "production"
 
 [context.production]
   command = "pnpm install && pnpm build:management"
   publish = "dist-management"
-  [context.production.environment]
-    NODE_ENV = "production"
 
 [context.develop]
   command = "pnpm install && pnpm build:management"
   publish = "dist-management"
-  [context.develop.environment]
-    NODE_ENV = "development"
 
 [context.branch-deploy]
   command = "pnpm install && pnpm build:management"
