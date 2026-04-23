@@ -40,6 +40,8 @@
         :type="messageDialogType"
         :user="currentAccount"
         :bot-list="botsForDialog"
+        :custom-title="messageDialogCustomTitle"
+        :is-single-user="isSingleUserMode"
         @success="handleMessageSent"
       />
 
@@ -140,6 +142,8 @@ const currentAccountId = ref<number | string | null>(null)
 // 消息发送相关
 const messageDialogVisible = ref(false)
 const messageDialogType = ref<'single' | 'mass'>('single')
+const messageDialogCustomTitle = ref('') // 自定义弹窗标题
+const isSingleUserMode = ref(false) // 是否为单个用户模式
 const massSendRecordDialogVisible = ref(false)
 
 // 新增：余额记录弹窗可见状态
@@ -245,12 +249,18 @@ const columns = computed(() => {
       fixed: 'right',
       slots: {
         default: ({ row }) => {
-          // 判断是否为H5用户（有username字段且不为空）
-          const isH5User = row.username && row.username !== '-'
+          // 判断是否为H5用户（tg_user_id 为 0 或不存在）
+          const isH5User = !row.tg_user_id || row.tg_user_id === 0
+          // 判断是否为机器人用户（tg_user_id 存在且不为 0）
+          const isBotUser = row.tg_user_id && row.tg_user_id !== 0
 
           return (
             <div>
-              <BaseButton type="primary" onClick={() => openSendMessageDialog(row)}>
+              <BaseButton
+                type="primary"
+                disabled={!isBotUser}
+                onClick={() => openSendMessageDialog(row)}
+              >
                 发送消息
               </BaseButton>
               <BaseButton
@@ -457,13 +467,18 @@ const handlePasswordChangeSuccess = () => {
 // 发送消息相关
 const openSendMessageDialog = (row: any) => {
   currentAccount.value = row
-  messageDialogType.value = 'single'
+  // 统一使用群发消息布局（包含机器人选择、接受用户类型、上传图片等字段）
+  messageDialogType.value = 'mass'
+  messageDialogCustomTitle.value = '发送消息' // 设置自定义标题为"发送消息"
+  isSingleUserMode.value = true // 设置为单个用户模式（机器人信息只读）
   messageDialogVisible.value = true
 }
 
 // 打开群发消息弹窗
 const openMassSendDialog = () => {
   messageDialogType.value = 'mass'
+  messageDialogCustomTitle.value = '' // 不设置自定义标题，使用默认的"群发消息"
+  isSingleUserMode.value = false // 设置为群发模式（机器人可选择）
   messageDialogVisible.value = true
 }
 
@@ -528,7 +543,7 @@ const handleExport = async () => {
 }
 
 // SearchTable ready事件处理
-function onSearchTableReady(instance) {
+function onSearchTableReady(instance: any) {
   // 只在没有 query 参数时才自动加载
   const query = route.query
   if (!query.bot_id && !query.tg_id) {

@@ -79,11 +79,11 @@ export const v1DeleteMassSend = (id: number): Promise<IResponse> => {
 
 /**
  * 给指定的tg用户群发信息 - 新接口 v1
- * POST /v1/bot/reply/send_group_msg
+ * POST /v1/bot/group_msg
  */
 export const v1SendGroupMessage = (data: SendGroupMessageParamsV1): Promise<IResponse> => {
   return request.post({
-    url: `${TWO_BASE_URL}send_group_msg`,
+    url: '/v1/bot/group_msg',
     data
   })
 }

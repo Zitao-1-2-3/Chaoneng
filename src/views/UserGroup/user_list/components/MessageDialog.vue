@@ -1,12 +1,5 @@
 <template>
   <Dialog v-model="dialogVisible" :title="dialogTitle">
-    <Descriptions
-      v-if="props.type === 'single' && props.user"
-      :data="props.user"
-      :schema="userDescriptionSchema"
-      title="用户信息"
-      class="mb-20px"
-    />
     <Form :schema="formSchema" @register="messageFormRegister" />
     <template #footer>
       <div class="flex justify-end">
@@ -15,12 +8,53 @@
       </div>
     </template>
   </Dialog>
+
+  <!-- 图片预览 -->
   <ElImageViewer
-    v-if="showImageViewer"
+    v-if="showImageViewer && previewFileType === 'image'"
     :url-list="imageViewerSrcList"
     @close="showImageViewer = false"
     :initial-index="0"
   />
+
+  <!-- 视频预览（模仿图片查看器样式） -->
+  <Teleport to="body">
+    <div
+      v-if="showVideoViewer && previewFileType === 'video'"
+      class="el-image-viewer__wrapper"
+      style="z-index: 3000"
+      @click.self="closeVideoViewer"
+    >
+      <div class="el-image-viewer__mask" @click="closeVideoViewer"></div>
+
+      <!-- 关闭按钮 -->
+      <span class="el-image-viewer__btn el-image-viewer__close" @click="closeVideoViewer">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+          <path
+            fill="currentColor"
+            d="M764.288 214.592 512 466.88 259.712 214.592a31.936 31.936 0 0 0-45.12 45.12L466.752 512 214.528 764.224a31.936 31.936 0 1 0 45.12 45.184L512 557.184l252.288 252.288a31.936 31.936 0 0 0 45.12-45.12L557.12 512.064l252.288-252.352a31.936 31.936 0 1 0-45.12-45.184z"
+          />
+        </svg>
+      </span>
+
+      <!-- 视频容器 -->
+      <div
+        class="el-image-viewer__canvas"
+        style="display: flex; align-items: center; justify-content: center"
+      >
+        <video
+          v-if="videoPreviewUrl"
+          :src="videoPreviewUrl"
+          controls
+          autoplay
+          style="max-width: 90vw; max-height: 90vh; outline: none"
+          @click.stop
+        >
+          您的浏览器不支持视频播放
+        </video>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="tsx">
@@ -35,13 +69,11 @@ import {
 } from 'element-plus'
 import type { UploadUserFile } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
-import { Descriptions } from '@/components/Descriptions'
-import type { DescriptionsSchema } from '@/components/Descriptions'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
-import { v1SendGroupMessage, v1SendMessage, v1GetInlineButtonList } from '@/api/tgUser'
-import { uploadImage as uploadAPI } from '@/api/utils/upload'
+import { v1SendGroupMessage, v1GetInlineButtonList } from '@/api/tgUser'
+import { uploadFile as uploadAPI } from '@/api/utils/upload' // 使用新的 /v1/file 接口支持图片和视频
 import type { MenuItem } from '@/api/menu_list/types'
 import { useRouter } from 'vue-router'
 import { BaseButton } from '@/components/Button'
@@ -53,8 +85,8 @@ const props = defineProps({
     default: false
   },
   type: {
-    type: String as () => 'single' | 'mass',
-    default: 'single'
+    type: String as () => 'mass' | 'single',
+    default: 'mass'
   },
   user: {
     type: Object as () => Record<string, any>,
@@ -63,6 +95,16 @@ const props = defineProps({
   botList: {
     type: Array as () => Array<{ label: string; value: number | string }>,
     default: () => []
+  },
+  // 新增：自定义标题
+  customTitle: {
+    type: String,
+    default: ''
+  },
+  // 新增：是否为单个用户发送（机器人信息只读）
+  isSingleUser: {
+    type: Boolean,
+    default: false
   }
 })
 console.log('props', props)
@@ -78,66 +120,117 @@ const dialogVisible = computed({
 
 const router = useRouter()
 
-const dialogTitle = computed(() => (props.type === 'single' ? '发送消息' : '群发消息'))
+const dialogTitle = computed(() => {
+  // 如果有自定义标题，优先使用自定义标题
+  if (props.customTitle) {
+    return props.customTitle
+  }
+  // 否则默认使用"群发消息"
+  return '群发消息'
+})
 
 const checkList = ref<(number | string)[]>([])
 const menuList = ref<MenuItem[]>([])
 const currentFilterType = ref<'user_custom' | 'all_user'>('user_custom')
 
-// 新增：图片上传相关状态
+// 新增：文件上传相关状态（支持图片和视频）
 const fileListRef = ref<UploadUserFile[]>([])
 const fileToUpload = ref<File | null>(null) // 只保存 File
 
 const showImageViewer = ref(false)
 const imageViewerSrcList = ref<string[]>([])
+const showVideoViewer = ref(false)
+const videoPreviewUrl = ref('')
+const previewFileType = ref<'image' | 'video'>('image')
+
+// 关闭视频预览
+const closeVideoViewer = () => {
+  showVideoViewer.value = false
+  // 清理 object URL 避免内存泄漏
+  if (videoPreviewUrl.value.startsWith('blob:')) {
+    URL.revokeObjectURL(videoPreviewUrl.value)
+  }
+  videoPreviewUrl.value = ''
+}
+
+// 判断文件类型
+const getFileType = (file: File | UploadUserFile): 'image' | 'video' => {
+  const fileName = file.name || ''
+  const fileType = (file as File).type || (file as UploadUserFile).raw?.type || ''
+
+  if (fileType.startsWith('video/') || /\.(mp4|avi|mov|wmv|flv|mkv)$/i.test(fileName)) {
+    return 'video'
+  }
+  return 'image'
+}
 
 const handlePreview = (uploadFile: UploadUserFile) => {
-  if (uploadFile.url) {
-    imageViewerSrcList.value = [uploadFile.url]
-    showImageViewer.value = true
-  } else if (uploadFile.raw) {
-    // Fallback if url is not present, create an object URL
-    // ElUpload usually provides 'url' for previewable files
-    const objectURL = URL.createObjectURL(uploadFile.raw)
-    imageViewerSrcList.value = [objectURL]
-    showImageViewer.value = true
-    // Note: Manually created object URLs should ideally be revoked when no longer needed
-    // For simplicity here, we rely on ElUpload providing the URL or the browser handling GC.
+  const fileType = getFileType(uploadFile)
+  previewFileType.value = fileType
+
+  if (fileType === 'video') {
+    // 视频预览
+    if (uploadFile.url) {
+      videoPreviewUrl.value = uploadFile.url
+      showVideoViewer.value = true
+    } else if (uploadFile.raw) {
+      const objectURL = URL.createObjectURL(uploadFile.raw)
+      videoPreviewUrl.value = objectURL
+      showVideoViewer.value = true
+    } else {
+      ElMessage.warning('无法预览视频，缺少视频URL')
+    }
   } else {
-    ElMessage.warning('无法预览图片，缺少图片URL')
+    // 图片预览
+    if (uploadFile.url) {
+      imageViewerSrcList.value = [uploadFile.url]
+      showImageViewer.value = true
+    } else if (uploadFile.raw) {
+      const objectURL = URL.createObjectURL(uploadFile.raw)
+      imageViewerSrcList.value = [objectURL]
+      showImageViewer.value = true
+    } else {
+      ElMessage.warning('无法预览文件，缺少文件URL')
+    }
   }
 }
 
-// 文件选择变化
+// 文件选择变化（支持图片和视频）
 const handleFileChange = (_file: UploadUserFile, fileList: UploadUserFile[]) => {
   if (fileList.length > 1) {
-    ElMessage.warning('只能上传一张图片')
+    ElMessage.warning('只能上传一个文件')
     fileListRef.value = [fileList[fileList.length - 1]]
     fileToUpload.value = fileList[fileList.length - 1].raw || null
   } else if (fileList.length === 1) {
-    fileToUpload.value = fileList[0].raw || null
-    fileListRef.value = [fileList[0]]
+    const uploadFile = fileList[0]
+    fileToUpload.value = uploadFile.raw || null
+
+    // 为文件生成预览URL
+    if (uploadFile.raw) {
+      const fileType = getFileType(uploadFile.raw)
+
+      if (fileType === 'video') {
+        // 视频文件：生成 blob URL 用于预览
+        const blobUrl = URL.createObjectURL(uploadFile.raw)
+        uploadFile.url = blobUrl
+      }
+      // 图片文件会自动生成预览，不需要特殊处理
+    }
+
+    fileListRef.value = [uploadFile]
   } else {
     fileToUpload.value = null
     fileListRef.value = []
   }
 }
 
-// 移除图片
+// 移除文件
 const handleImageRemove = () => {
   fileToUpload.value = null
   fileListRef.value = []
-  ElMessage.info('图片已移除')
+  ElMessage.info('文件已移除')
   return true
 }
-
-// 用户信息 Descriptions 配置
-const userDescriptionSchema = computed<DescriptionsSchema[]>(() => [
-  { field: 'bot_user_name', label: '机器人名称' },
-  { field: 'bot_first_name', label: '机器人用户名' },
-  { field: 'tg_user_name', label: 'TG用户昵称' },
-  { field: 'tg_user_id', label: 'TG用户ID' }
-])
 
 // 表单相关
 const { formRegister: messageFormRegister, formMethods } = useForm()
@@ -189,31 +282,69 @@ const formSchema = computed<FormSchema[]>(() => {
     },
     {
       field: 'image_upload_control',
-      label: '上传图片',
+      label: '上传图片/视频',
       colProps: { span: 24 },
       formItemProps: {
         slots: {
           default: () => (
-            <ElUpload
-              action="#"
-              listType="picture-card"
-              limit={1}
-              accept="image/png, image/jpeg, image/gif"
-              autoUpload={false}
-              fileList={fileListRef.value}
-              onPreview={handlePreview}
-              onChange={handleFileChange}
-              onRemove={handleImageRemove}
-              onExceed={() => ElMessage.warning('最多只能上传一张图片')}
-              show-file-list={true}
-            >
-              {<BaseButton type="primary">选择图片</BaseButton>}
-            </ElUpload>
+            <div class="flex flex-col gap-2">
+              <ElUpload
+                action="#"
+                listType="picture-card"
+                limit={1}
+                accept="image/png,image/jpeg,image/gif,video/mp4,video/avi,video/mov,video/quicktime"
+                autoUpload={false}
+                fileList={fileListRef.value}
+                onPreview={handlePreview}
+                onChange={handleFileChange}
+                onRemove={handleImageRemove}
+                onExceed={() => ElMessage.warning('最多只能上传一个文件')}
+                show-file-list={true}
+                v-slots={{
+                  file: ({ file }: { file: UploadUserFile }) => {
+                    const fileType = getFileType(file)
+                    if (fileType === 'video' && file.url) {
+                      // 视频文件显示视频第一帧作为缩略图
+                      return (
+                        <div
+                          style="position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #000; overflow: hidden; cursor: pointer;"
+                          onClick={() => handlePreview(file)}
+                        >
+                          <video
+                            src={file.url}
+                            style="width: 100%; height: 100%; object-fit: cover;"
+                            muted
+                            preload="metadata"
+                          />
+                          {/* 播放图标覆盖层 */}
+                          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
+                            <svg
+                              style="width: 48px; height: 48px; color: rgba(255,255,255,0.9); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));"
+                              viewBox="0 0 1024 1024"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path
+                                fill="currentColor"
+                                d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm0 832a384 384 0 0 0 0-768 384 384 0 0 0 0 768zm-48-247.616L668.608 512 464 375.616v272.768zm10.624-342.656 249.472 166.336a48 48 0 0 1 0 79.872L474.624 718.272A48 48 0 0 1 400 678.336V345.6a48 48 0 0 1 74.624-39.936z"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      )
+                    }
+                    // 图片文件使用默认显示
+                    return null
+                  }
+                }}
+              >
+                {<BaseButton type="primary">选择文件</BaseButton>}
+              </ElUpload>
+              <p class="text-gray-500 text-sm m-0">
+                支持图片（PNG、JPEG、GIF）和视频（MP4、AVI、MOV），最多上传一个文件
+              </p>
+            </div>
           )
         }
-      },
-      hidden: () => {
-        return props.type === 'single'
       }
     },
     {
@@ -259,13 +390,20 @@ const formSchema = computed<FormSchema[]>(() => {
     const massSpecificSchemaItems: FormSchema[] = [
       {
         field: 'bot_id',
-        component: 'Select',
-        label: '选择机器人',
+        component: props.isSingleUser ? 'Input' : 'Select', // 单个用户时使用 Input，群发时使用 Select
+        label: '机器人',
         colProps: { span: 12 },
-        componentProps: {
-          options: props.botList,
-          placeholder: '请选择机器人'
-        },
+        componentProps: props.isSingleUser
+          ? {
+              // 单个用户模式：只读文本框
+              disabled: true,
+              placeholder: '当前机器人'
+            }
+          : {
+              // 群发模式：下拉选择框
+              options: props.botList,
+              placeholder: '请选择机器人'
+            },
         formItemProps: {
           rules: [required('请选择机器人')]
         }
@@ -276,6 +414,7 @@ const formSchema = computed<FormSchema[]>(() => {
         label: '接受用户',
         value: 'user_custom',
         colProps: { span: 12 },
+        hidden: props.isSingleUser, // 单个用户模式下隐藏
         componentProps: {
           options: [
             { label: '自定义', value: 'user_custom' },
@@ -301,13 +440,20 @@ const formSchema = computed<FormSchema[]>(() => {
       massSpecificSchemaItems.push({
         field: 'user_list',
         component: 'Input',
-        label: 'TG用户id列表',
+        label: props.isSingleUser ? 'TG用户ID' : 'TG用户id列表', // 单个用户模式改标签
         colProps: { span: 24 },
-        componentProps: {
-          type: 'textarea',
-          rows: 3,
-          placeholder: '请输入TG用户id，多个用英文逗号隔开'
-        },
+        componentProps: props.isSingleUser
+          ? {
+              // 单个用户模式：单行输入框，不可编辑
+              disabled: true,
+              placeholder: '当前用户TG ID'
+            }
+          : {
+              // 群发模式：多行文本框
+              type: 'textarea',
+              rows: 3,
+              placeholder: '请输入TG用户id，多个用英文逗号隔开'
+            },
         formItemProps: {
           rules: [
             {
@@ -342,10 +488,22 @@ watch(
       fileToUpload.value = null
       fileListRef.value = []
 
-      if (props.type === 'mass') {
+      // 如果是单个用户模式，自动填充机器人信息和用户ID
+      if (props.isSingleUser && props.user) {
+        currentFilterType.value = 'user_custom' // 固定为自定义
+
+        // 从 botList 中查找当前用户的机器人信息
+        const botInfo = props.botList.find((bot) => String(bot.value) === String(props.user.bot_id))
+        if (botInfo) {
+          // 设置机器人 ID 和显示文本，以及用户ID
+          await formMethods.setValues({
+            bot_id: botInfo.label, // 显示机器人名称
+            filter_type: 'user_custom', // 固定为自定义
+            user_list: String(props.user.tg_user_id) // 自动填充当前用户的TG ID
+          })
+        }
+      } else {
         currentFilterType.value = 'user_custom'
-      } else if (props.type === 'single') {
-        // Handle prefill for single message if needed in the future
       }
     } else {
       menuList.value = []
@@ -378,29 +536,29 @@ const handleSubmit = async () => {
     const formData = await formMethods.getFormData()
     submitting.value = true
 
-    // 先上传图片
-    let imageUrl = ''
+    // 先上传文件（图片或视频）
+    let fileUrl = ''
     if (fileToUpload.value) {
       const formDataObj = new FormData()
       formDataObj.append('file', fileToUpload.value)
       try {
         const res = await uploadAPI(formDataObj)
-        console.log('图片上传响应:', res)
+        console.log('文件上传响应:', res)
 
-        // 从返回值中获取 filename
+        // 从返回值中获取 filename 并拼接完整URL
         if (res && res.data && res.data.filename) {
           // 使用当前浏览器的域名拼接 filename
           const browserOrigin = window.location.origin
-          imageUrl = `${browserOrigin}/${res.data.filename}`
-          console.log('拼接后的图片URL:', imageUrl)
+          fileUrl = `${browserOrigin}/${res.data.filename}`
+          console.log('拼接后的文件URL:', fileUrl)
         } else {
-          ElMessage.error('图片上传失败，未返回文件名')
+          ElMessage.error('文件上传失败，未返回文件名')
           submitting.value = false
           return
         }
       } catch (error: any) {
-        console.error('图片上传错误:', error)
-        ElMessage.error('图片上传失败: ' + (error?.message || '请重试'))
+        console.error('文件上传错误:', error)
+        ElMessage.error('文件上传失败: ' + (error?.message || '请重试'))
         submitting.value = false
         return
       }
@@ -422,63 +580,63 @@ const handleSubmit = async () => {
     console.log('keyboards (纯数字数组):', keyboards)
 
     try {
-      if (props.type === 'single') {
-        // 使用新接口 v1SendMessage
-        const apiParams: any = {
-          user_id: props.user?.id,
-          content: formData.content
-        }
-        if (keyboards.length > 0) {
-          apiParams.keyboards = keyboards
-        }
-        // 注意：单个消息发送接口不支持图片，如果有图片需求需要确认后端接口
-        await v1SendMessage(apiParams)
+      // 确定实际的 bot_id
+      let actualBotId: number
+      if (props.isSingleUser && props.user) {
+        // 单个用户模式：使用用户的 bot_id
+        actualBotId = Number(props.user.bot_id)
       } else {
-        // 群发 - 使用新接口 v1SendGroupMessage
-        const apiParams: any = {
-          bot_id: Number(formData.bot_id),
-          receive_type: formData.filter_type,
-          content: formData.content
-        }
+        // 群发模式：使用表单选择的 bot_id
+        actualBotId = Number(formData.bot_id)
+      }
 
-        if (keyboards.length > 0) {
-          apiParams.keyboards = keyboards
-        }
-        if (imageUrl) {
-          apiParams.image = imageUrl
-        }
+      // 群发 - 使用新接口 v1SendGroupMessage
+      const apiParams: any = {
+        bot_id: actualBotId,
+        content: formData.content
+      }
 
-        if (formData.filter_type === 'user_custom') {
-          if (formData.user_list) {
-            const tgUserIdsArray = formData.user_list
-              .split(',')
-              .map((id) => Number(id.trim()))
-              .filter((id) => !isNaN(id) && id !== 0)
-            if (tgUserIdsArray.length > 0) {
-              apiParams.tg_user_ids = tgUserIdsArray
-            } else {
-              ElMessage.error('自定义用户列表解析后为空或格式不正确，请检查输入')
-              submitting.value = false
-              return
-            }
+      // 添加内联按钮（如果有）
+      if (keyboards.length > 0) {
+        apiParams.keyboards = keyboards
+      }
+
+      // 添加文件URL（图片或视频）
+      if (fileUrl) {
+        apiParams.file_url = fileUrl
+      }
+
+      // 添加接收用户列表
+      if (formData.filter_type === 'user_custom') {
+        if (formData.user_list) {
+          const tgUserIdsArray = formData.user_list
+            .split(',')
+            .map((id: string) => Number(id.trim()))
+            .filter((id: number) => !isNaN(id) && id !== 0)
+          if (tgUserIdsArray.length > 0) {
+            apiParams.tg_user_ids = tgUserIdsArray
           } else {
-            // 这个分支理论上会被表单校验的 validator 阻止，但作为保险
-            ElMessage.error('自定义用户时，TG用户id列表不能为空')
+            ElMessage.error('自定义用户列表解析后为空或格式不正确，请检查输入')
             submitting.value = false
             return
           }
+        } else {
+          // 这个分支理论上会被表单校验的 validator 阻止，但作为保险
+          ElMessage.error('自定义用户时，TG用户id列表不能为空')
+          submitting.value = false
+          return
         }
-        // 对于非 'user_custom' 类型，tg_user_ids 不需要传递
-
-        await v1SendGroupMessage(apiParams)
       }
+      // 对于 'all_user' 类型，不传递 tg_user_ids，表示发送给所有用户
+
+      await v1SendGroupMessage(apiParams)
 
       emit('success')
-      ElMessage.success(`${props.type === 'single' ? '消息' : '群发消息'}发送成功`)
+      ElMessage.success('发送消息请求成功')
       dialogVisible.value = false
     } catch (error: any) {
-      console.error('消息发送失败:', error)
-      const errorMsg = error?.response?.data?.msg || error?.message || '消息发送失败，请重试'
+      console.error('发送消息请求失败:', error)
+      const errorMsg = error?.response?.data?.msg || error?.message || '发送消息请求失败，请重试'
       ElMessage.error(errorMsg)
     } finally {
       submitting.value = false
@@ -492,3 +650,63 @@ onMounted(() => {
   // }
 })
 </script>
+
+<style scoped>
+/* 视频预览器样式 - 模仿 ElImageViewer */
+.el-image-viewer__wrapper {
+  position: fixed;
+  inset: 0;
+}
+
+.el-image-viewer__mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  opacity: 0.5;
+}
+
+.el-image-viewer__btn {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+  color: #fff;
+  cursor: pointer;
+  background-color: #606266;
+  border-radius: 50%;
+  opacity: 0.8;
+  box-sizing: border-box;
+  user-select: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.el-image-viewer__btn:hover {
+  opacity: 1;
+}
+
+.el-image-viewer__close {
+  top: 40px;
+  right: 40px;
+  width: 44px;
+  height: 44px;
+}
+
+.el-image-viewer__close svg {
+  width: 24px;
+  height: 24px;
+}
+
+.el-image-viewer__canvas {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+</style>

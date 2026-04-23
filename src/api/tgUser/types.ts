@@ -140,14 +140,14 @@ export interface DeleteMassSendParamsV1 {
 
 /**
  * 群发消息请求参数 - 新接口 v1
+ * POST /v1/bot/group_msg
  */
 export interface SendGroupMessageParamsV1 {
   bot_id: number // 机器人ID（必填）
   content: string // 消息内容（必填）
-  image?: string // 图片URL（可选）
-  keyboards?: any[] // 键盘按钮（可选）
-  receive_type: string // 接收类型（必填，如 "user_custom", "all_user", "one_user"）
-  tg_user_ids?: number[] // TG用户ID列表（可选，当 receive_type 为 "user_custom" 时必填）
+  file_url?: string // 文件URL（可选，图片或视频）
+  keyboards?: number[] // 内联按钮ID数组（可选）
+  tg_user_ids?: number[] // TG用户ID列表（可选，指定接收用户）
 }
 
 /**
