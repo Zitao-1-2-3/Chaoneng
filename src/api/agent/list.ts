@@ -20,8 +20,9 @@ export interface AgentQueryParams {
 export interface AgentItem {
   id: number
   username: string // 代理名称
-  email: string // 邮箱
+  email: string | null // 邮箱
   role_id: number // 角色ID
+  price_id?: number // 代理等级 (1:一级代理, 2:二级代理, 3:三级代理)
   status: number // 状态 (1:启用, 2:禁用)
   gift_bandwidth: boolean // 是否赠送带宽
   trx_balance: string // TRX余额
@@ -62,6 +63,7 @@ export interface AddAgentPayload {
   username: string // 代理名称
   email: string // 邮箱
   password: string // 登录密码
+  price_id?: number // 代理等级 (1:一级代理, 2:二级代理, 3:三级代理)
   gift_bandwidth?: boolean // 是否赠送带宽 (true:赠送, false:不赠送)
   status?: number // 状态 (1:启用, 2:禁用)
 }
@@ -75,6 +77,17 @@ export interface UpdateAgentPayload {
   password?: string // 登录密码 (留空不修改)
   gift_bandwidth?: boolean // 是否赠送带宽 (true:赠送, false:不赠送)
   status?: number // 状态
+  price_id?: number // 代理等级 (1:一级代理, 2:二级代理, 3:三级代理)
+}
+
+/**
+ * 批量更新代理参数
+ */
+export interface BatchUpdateAgentPayload {
+  ids: number[] // 代理ID数组
+  gift_bandwidth?: boolean // 是否赠送带宽 (true:赠送, false:不赠送)
+  price_id?: number // 代理等级 (1:一级代理, 2:二级代理, 3:三级代理)
+  status?: number // 状态 (1:启用, 2:禁用)
 }
 
 /**
@@ -123,6 +136,13 @@ export const addAgentApi = (data: AddAgentPayload): Promise<IResponse> => {
  */
 export const updateAgentApi = (data: UpdateAgentPayload): Promise<IResponse> => {
   return request.post({ url: '/v2/manage/agent/update', data })
+}
+
+/**
+ * 批量更新代理
+ */
+export const batchUpdateAgentApi = (data: BatchUpdateAgentPayload): Promise<IResponse> => {
+  return request.post({ url: '/v2/manage/agent/update/batch', data })
 }
 
 /**

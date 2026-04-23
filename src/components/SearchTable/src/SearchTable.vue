@@ -44,6 +44,7 @@
       @register="tableRegister"
       :scrollbar-always-on="true"
       @sort-change="handleSortChange"
+      @selection-change="handleSelectionChange"
       v-bind="tableProps"
     >
       <template v-for="item in slotKeys" :key="item" #[item]="data">
@@ -138,7 +139,8 @@ const emit = defineEmits([
   'update:searchParams',
   'error',
   'loaded',
-  'ready'
+  'ready',
+  'selection-change'
 ])
 
 // 使用hook
@@ -285,6 +287,11 @@ const handleSortChange = (data: { column: any; prop: string; order: string }) =>
 
   // 重新加载数据
   tableMethods.getList()
+}
+
+// 处理表格选择变化
+const handleSelectionChange = (selection: any[]) => {
+  emit('selection-change', selection)
 }
 </script>
 

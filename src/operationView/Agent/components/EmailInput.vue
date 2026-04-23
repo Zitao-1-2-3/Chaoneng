@@ -1,20 +1,19 @@
 <template>
-  <div class="email-input-wrapper">
-    <el-autocomplete
-      v-model="emailInput"
-      :fetch-suggestions="querySearch"
-      placeholder="请输入邮箱"
-      class="email-autocomplete"
-      @select="handleSelect"
-      @input="handleInput"
-      @blur="handleBlur"
-      clearable
-    >
-      <template #default="{ item }">
-        <div class="suggestion-item">{{ item.value }}</div>
-      </template>
-    </el-autocomplete>
-  </div>
+  <el-autocomplete
+    v-model="emailInput"
+    :fetch-suggestions="querySearch"
+    placeholder="请输入邮箱"
+    class="email-autocomplete"
+    @select="handleSelect"
+    @input="handleInput"
+    @blur="handleBlur"
+    clearable
+    style="width: 100%"
+  >
+    <template #default="{ item }">
+      <div class="suggestion-item">{{ item.value }}</div>
+    </template>
+  </el-autocomplete>
 </template>
 
 <script setup lang="ts">
@@ -101,12 +100,16 @@ const handleBlur = () => {
 </script>
 
 <style scoped>
-.email-input-wrapper {
-  width: 100%;
+.email-autocomplete {
+  width: 100% !important;
 }
 
-.email-autocomplete {
-  width: 100%;
+.email-autocomplete :deep(.el-input) {
+  width: 100% !important;
+}
+
+.email-autocomplete :deep(.el-input__wrapper) {
+  width: 100% !important;
 }
 
 .suggestion-item {

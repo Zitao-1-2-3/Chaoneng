@@ -7,10 +7,18 @@
         :searchSchema="searchSchema"
         :fetchDataApi="getAgentList"
         @search="handleSearch"
+        @selection-change="handleSelectionChange"
         :show-add-button="false"
       >
         <template #leftToolbar>
           <BaseButton type="primary" @click="handleAddAgent">新增代理</BaseButton>
+          <template v-if="!isBatchEditMode">
+            <BaseButton type="warning" @click="handleBatchEdit">批量修改</BaseButton>
+          </template>
+          <template v-else>
+            <BaseButton type="success" @click="handleBatchSave">保存</BaseButton>
+            <BaseButton @click="handleBatchCancel">取消</BaseButton>
+          </template>
         </template>
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -32,8 +40,16 @@
 </template>
 
 <script setup lang="tsx">
-import { ref } from 'vue'
-import { ElTag, ElMessage, ElMessageBox } from 'element-plus'
+import { ref, nextTick, reactive, computed } from 'vue'
+import {
+  ElMessage,
+  ElSelect,
+  ElOption,
+  ElSwitch,
+  ElAutocomplete,
+  ElForm,
+  ElFormItem
+} from 'element-plus'
 import { SearchTable } from '@/components/SearchTable'
 import { FormSchema } from '@/components/Form'
 import { TableColumn } from '@/components/Table'
@@ -41,10 +57,9 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import {
   getAgentListApi,
   updateAgentApi,
-  exportAgentListApi,
+  batchUpdateAgentApi,
   type AgentItem,
-  type UpdateAgentPayload,
-  type AgentQueryParams
+  type UpdateAgentPayload
 } from '@/api/agent/list'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
@@ -58,6 +73,51 @@ const searchTableRef = ref<InstanceType<typeof SearchTable>>()
 const agentFormRef = ref<InstanceType<typeof AgentForm>>()
 const rechargeDialogVisible = ref(false)
 const currentAccount = ref<AgentItem>()
+
+// 批量修改状态
+const isBatchEditMode = ref(false)
+const selectedAgentIds = ref<number[]>([])
+const batchPriceId = ref<number>(0) // 0 表示未选择
+
+// 联系方式编辑状态
+const editingEmailId = ref<number | null>(null)
+const editingEmailValue = ref('')
+const emailFormData = reactive({ email: '' })
+const emailFormRef = ref()
+let autoExitTimer: ReturnType<typeof setTimeout> | null = null
+
+// 邮箱验证规则
+const emailRules = {
+  email: [
+    {
+      validator: (_rule: any, value: any, callback: any) => {
+        if (!value) {
+          callback()
+          return
+        }
+        const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+        if (!emailRegex.test(value)) {
+          callback(new Error('请输入正确的邮箱格式'))
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ]
+}
+
+// 常用邮箱后缀
+const EMAIL_SUFFIXES = [
+  '@qq.com',
+  '@gmail.com',
+  '@163.com',
+  '@126.com',
+  '@sina.com',
+  '@outlook.com',
+  '@hotmail.com',
+  '@yahoo.com'
+]
 
 // 导出
 const handleExport = async () => {
@@ -86,6 +146,7 @@ const handleExport = async () => {
       const list = (res.data.list || []).map((item: any) => ({
         联系方式: item.email || '-',
         代理名称: item.username || '-',
+        代理等级: getAgentLevelText(item.price_id),
         机器人数量: item.bot_count ?? 0,
         总用户数: item.user_count ?? 0,
         TRX余额: item.trx_balance || '-',
@@ -114,10 +175,53 @@ const STATUS_OPTIONS = [
   { label: '禁用', value: 2 }
 ] as const
 
-const STATUS_CONFIG = {
-  1: { text: '启用', type: 'success' as const },
-  2: { text: '禁用', type: 'danger' as const }
-} as const
+// 代理等级选项（用于批量修改表头下拉框）
+const BATCH_AGENT_LEVEL_OPTIONS = [
+  { label: '选择等级', value: 0 },
+  { label: '一级代理', value: 1 },
+  { label: '二级代理', value: 2 },
+  { label: '三级代理', value: 3 }
+]
+
+// 代理等级选项（用于表格单元格下拉框）
+const AGENT_LEVEL_OPTIONS = [
+  { label: '一级代理', value: 1 },
+  { label: '二级代理', value: 2 },
+  { label: '三级代理', value: 3 }
+]
+
+// 代理等级映射
+const AGENT_LEVEL_MAP: Record<number, string> = {
+  1: '一级代理',
+  2: '二级代理',
+  3: '三级代理'
+}
+
+// 辅助函数：构建更新代理的 payload
+const buildUpdatePayload = (
+  id: number | string,
+  row: AgentItem,
+  updates: Partial<UpdateAgentPayload>
+): UpdateAgentPayload => ({
+  id,
+  email: row.email || undefined,
+  gift_bandwidth: row.gift_bandwidth,
+  status: row.status,
+  price_id: row.price_id,
+  ...updates
+})
+
+// 辅助函数：重置批量修改状态
+const resetBatchEditState = () => {
+  isBatchEditMode.value = false
+  selectedAgentIds.value = []
+  batchPriceId.value = 0
+}
+
+// 辅助函数：获取代理等级文本
+const getAgentLevelText = (priceId?: number): string => {
+  return priceId ? AGENT_LEVEL_MAP[priceId] || '未设置' : '未设置'
+}
 
 // API 调用
 const getAgentList = async (params?: any) => {
@@ -169,14 +273,7 @@ const getAgentList = async (params?: any) => {
 
 const updateAgentStatus = async (id: number | string, status: number, row: AgentItem) => {
   try {
-    // 发送完整的代理信息，避免后端重置其他字段
-    const payload: UpdateAgentPayload = {
-      id,
-      email: row.email,
-      gift_bandwidth: row.gift_bandwidth, // 保持原值
-      status
-    }
-    await updateAgentApi(payload)
+    await updateAgentApi(buildUpdatePayload(id, row, { status }))
     handleSuccessMessage(status === 1 ? '启用成功' : '禁用成功')
     searchTableRef.value?.reload()
   } catch (error) {
@@ -184,9 +281,145 @@ const updateAgentStatus = async (id: number | string, status: number, row: Agent
   }
 }
 
+// 更新代理等级
+const updateAgentLevel = async (id: number | string, priceId: number, row: AgentItem) => {
+  try {
+    await updateAgentApi(buildUpdatePayload(id, row, { price_id: priceId }))
+    handleSuccessMessage('代理等级更新成功')
+    searchTableRef.value?.reload()
+  } catch (error) {
+    handleErrorMessage(error, '更新代理等级失败')
+  }
+}
+
+// 更新是否赠送带宽
+const updateGiftBandwidth = async (id: number | string, giftBandwidth: boolean, row: AgentItem) => {
+  try {
+    await updateAgentApi(buildUpdatePayload(id, row, { gift_bandwidth: giftBandwidth }))
+    handleSuccessMessage(giftBandwidth ? '已开启赠送带宽' : '已关闭赠送带宽')
+    searchTableRef.value?.reload()
+  } catch (error) {
+    handleErrorMessage(error, '更新赠送带宽状态失败')
+    searchTableRef.value?.reload()
+  }
+}
+
+// 联系方式编辑相关函数
+const handleEmailDoubleClick = (row: AgentItem) => {
+  // 清除之前的定时器
+  if (autoExitTimer) {
+    clearTimeout(autoExitTimer)
+    autoExitTimer = null
+  }
+
+  editingEmailId.value = row.id
+  editingEmailValue.value = row.email || ''
+  emailFormData.email = row.email || ''
+
+  // 下一帧自动聚焦到输入框
+  nextTick(() => {
+    const autocomplete = document.querySelector(
+      '.email-edit-wrapper .el-autocomplete input'
+    ) as HTMLInputElement
+    if (autocomplete) {
+      autocomplete.focus()
+      // 将光标移到末尾
+      autocomplete.setSelectionRange(autocomplete.value.length, autocomplete.value.length)
+    }
+  })
+}
+
+// el-autocomplete 的查询建议函数
+const queryEmailSuggestions = (queryString: string, cb: (suggestions: any[]) => void) => {
+  if (!queryString) {
+    cb([])
+    return
+  }
+
+  // 如果已经包含 @，只返回当前输入
+  if (queryString.includes('@')) {
+    cb([{ value: queryString }])
+    return
+  }
+
+  // 根据输入的前缀生成建议列表
+  const suggestions = EMAIL_SUFFIXES.map((suffix) => ({
+    value: queryString + suffix
+  }))
+
+  cb(suggestions)
+}
+
+// 处理选择建议
+const handleSelectSuggestion = (item: { value: string }) => {
+  editingEmailValue.value = item.value
+  emailFormData.email = item.value
+}
+
+// 输入时更新值
+const handleEmailInput = (value: string) => {
+  editingEmailValue.value = value
+  emailFormData.email = value
+
+  // 清除自动退出定时器(用户正在输入)
+  if (autoExitTimer) {
+    clearTimeout(autoExitTimer)
+    autoExitTimer = null
+  }
+
+  // 检查邮箱格式
+  const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  const isValidEmail = !value || emailRegex.test(value)
+
+  // 如果格式错误，启动5秒自动退出定时器
+  if (!isValidEmail) {
+    autoExitTimer = setTimeout(() => {
+      editingEmailId.value = null
+      autoExitTimer = null
+    }, 5000)
+  }
+}
+
+const handleEmailBlur = async (row: AgentItem) => {
+  // 延迟关闭,以便点击建议时能触发
+  setTimeout(async () => {
+    // 验证表单
+    try {
+      await emailFormRef.value?.validate()
+    } catch (error) {
+      // 验证失败,不保存
+      return
+    }
+
+    // 如果值没有变化,直接取消编辑
+    if (emailFormData.email === (row.email || '')) {
+      editingEmailId.value = null
+      return
+    }
+
+    // 更新邮箱
+    try {
+      await updateAgentApi(
+        buildUpdatePayload(row.id, row, { email: emailFormData.email || undefined })
+      )
+      handleSuccessMessage('联系方式更新成功')
+      editingEmailId.value = null
+      searchTableRef.value?.reload()
+    } catch (error) {
+      handleErrorMessage(error, '更新联系方式失败')
+      editingEmailId.value = null
+    }
+  }, 200)
+}
+
 // 处理搜索
 const handleSearch = () => {
   // SearchTable 组件会自动处理搜索逻辑
+}
+
+// 处理表格选择变化
+const handleSelectionChange = (selection: AgentItem[]) => {
+  selectedAgentIds.value = selection.map((item) => item.id)
 }
 
 // 表单配置
@@ -223,16 +456,114 @@ const searchSchema = ref<FormSchema[]>([
 ])
 
 // 表格列配置
-const columns = ref<TableColumn[]>([
+const columns = computed<TableColumn[]>(() => [
+  // 批量修改模式下的复选框列
+  {
+    field: 'selection',
+    label: '',
+    type: 'selection',
+    width: '55px',
+    align: 'center',
+    headerAlign: 'center',
+    hidden: !isBatchEditMode.value
+  },
   {
     field: 'email',
     label: '联系方式',
-    formatter: (row: AgentItem) => row.email || '-'
+    minWidth: '200px',
+    formatter: (row: AgentItem) => {
+      const isEditing = editingEmailId.value === row.id
+      if (isEditing) {
+        return (
+          <div class="email-edit-wrapper">
+            <ElForm ref={emailFormRef} model={emailFormData} rules={emailRules}>
+              <ElFormItem prop="email">
+                <ElAutocomplete
+                  modelValue={emailFormData.email}
+                  onInput={(val: string) => handleEmailInput(val)}
+                  fetchSuggestions={queryEmailSuggestions}
+                  clearable
+                  onSelect={handleSelectSuggestion}
+                  onBlur={() => handleEmailBlur(row)}
+                  style="width: 100%"
+                >
+                  {{
+                    default: ({ item }: { item: { value: string } }) => (
+                      <div class="suggestion-item">{item.value}</div>
+                    )
+                  }}
+                </ElAutocomplete>
+              </ElFormItem>
+            </ElForm>
+          </div>
+        )
+      }
+      return (
+        <div class="email-display" onDblclick={() => handleEmailDoubleClick(row)}>
+          {row.email || '-'}
+        </div>
+      )
+    }
   },
   {
     field: 'username',
     label: '代理名称',
     formatter: (row: AgentItem) => row.username || '-'
+  },
+  {
+    field: 'price_id',
+    label: '代理等级',
+    minWidth: '200px',
+    slots: {
+      header: () => {
+        // 批量修改模式下，表头只显示下拉选择框
+        if (isBatchEditMode.value) {
+          return (
+            <div
+              style="display: flex; align-items: center; justify-content: center;"
+              onClick={(e: Event) => {
+                // 只阻止点击 div 本身时的排序，不阻止下拉框的点击
+                if ((e.target as HTMLElement).tagName === 'DIV') {
+                  e.stopPropagation()
+                }
+              }}
+            >
+              <ElSelect
+                modelValue={batchPriceId.value}
+                onChange={(value: number) => handleBatchPriceLevelChange(value)}
+                size="small"
+                placeholder="选择等级"
+                style="width: 120px"
+              >
+                {BATCH_AGENT_LEVEL_OPTIONS.map((option) => (
+                  <ElOption key={option.value} label={option.label} value={option.value} />
+                ))}
+              </ElSelect>
+            </div>
+          )
+        }
+        return <span>代理等级</span>
+      }
+    },
+    formatter: (row: AgentItem) => {
+      // 批量修改模式下，单元格只显示文本
+      if (isBatchEditMode.value) {
+        return getAgentLevelText(row.price_id)
+      }
+      // 正常模式下，显示下拉选择框
+      return (
+        <ElSelect
+          modelValue={row.price_id || 1}
+          onChange={(value: number) => updateAgentLevel(row.id, value, row)}
+          size="small"
+          style="width: 120px"
+        >
+          {AGENT_LEVEL_OPTIONS.map((option) => (
+            <ElOption key={option.value} label={option.label} value={option.value} />
+          ))}
+        </ElSelect>
+      )
+    }
   },
   {
     field: 'bot_count',
@@ -263,17 +594,33 @@ const columns = ref<TableColumn[]>([
   {
     field: 'gift_bandwidth',
     label: '是否赠送带宽',
+    minWidth: '120px',
     formatter: (row: AgentItem) => {
-      return row.gift_bandwidth ? '赠送' : '不赠送'
+      return (
+        <ElSwitch
+          modelValue={row.gift_bandwidth}
+          onChange={(value: boolean) => updateGiftBandwidth(row.id, value, row)}
+          activeText="赠送"
+          inactiveText="不赠送"
+          inline-prompt
+        />
+      )
     }
   },
   {
     field: 'status',
     label: '状态',
+    minWidth: '100px',
     formatter: (row: AgentItem) => {
-      const config = STATUS_CONFIG[row.status as keyof typeof STATUS_CONFIG]
-      if (!config) return <ElTag>未知</ElTag>
-      return <ElTag type={config.type}>{config.text}</ElTag>
+      return (
+        <ElSwitch
+          modelValue={row.status === 1}
+          onChange={(value: boolean) => updateAgentStatus(row.id, value ? 1 : 2, row)}
+          activeText="启用"
+          inactiveText="禁用"
+          inline-prompt
+        />
+      )
     }
   },
   {
@@ -286,32 +633,20 @@ const columns = ref<TableColumn[]>([
     field: 'action',
     label: '操作',
     minWidth: '200px',
+    fixed: 'right',
     formatter: (row: AgentItem) => renderActionButtons(row)
   }
 ])
 
 // 渲染操作按钮
 const renderActionButtons = (row: AgentItem) => {
-  const isEnabled = row.status === 1
-  const statusAction = {
-    text: isEnabled ? '禁用' : '启用',
-    type: (isEnabled ? 'danger' : 'success') as 'danger' | 'success',
-    status: isEnabled ? 2 : 1
-  }
-
   return (
     <div class="action-buttons">
       <BaseButton type="primary" onClick={() => handleEditAgent(row)}>
-        编辑
+        修改密码
       </BaseButton>
       <BaseButton type="primary" onClick={() => handleRecharge(row)}>
         充值
-      </BaseButton>
-      <BaseButton
-        type={statusAction.type}
-        onClick={() => handleUpdateStatus(row.id, statusAction.status, statusAction.text, row)}
-      >
-        {statusAction.text}
       </BaseButton>
     </div>
   )
@@ -322,13 +657,52 @@ const handleAddAgent = () => {
   agentFormRef.value?.openDialog('add')
 }
 
+const handleBatchEdit = () => {
+  resetBatchEditState()
+  isBatchEditMode.value = true
+}
+
+const handleBatchSave = async () => {
+  if (!selectedAgentIds.value.length) {
+    ElMessage.warning('请先选择要修改的代理')
+    return
+  }
+
+  if (batchPriceId.value === 0) {
+    ElMessage.warning('请选择要修改的代理等级')
+    return
+  }
+
+  try {
+    await batchUpdateAgentApi({
+      ids: selectedAgentIds.value,
+      price_id: batchPriceId.value
+    })
+    handleSuccessMessage(`成功修改 ${selectedAgentIds.value.length} 个代理的等级`)
+    resetBatchEditState()
+    searchTableRef.value?.reload()
+  } catch (error) {
+    handleErrorMessage(error, '批量修改代理等级失败')
+  }
+}
+
+const handleBatchCancel = () => {
+  resetBatchEditState()
+}
+
+// 批量修改代理等级（只保存选择）
+const handleBatchPriceLevelChange = (priceId: number) => {
+  batchPriceId.value = priceId
+}
+
 const handleEditAgent = (row: AgentItem) => {
   const editData = {
     id: row.id,
     username: row.username,
-    email: row.email,
-    gift_bandwidth: row.gift_bandwidth ? 1 : 0,
-    status: row.status
+    email: row.email || undefined,
+    status: row.status,
+    gift_bandwidth: row.gift_bandwidth ? 1 : 0, // 保留用于编辑时保持原值
+    price_id: row.price_id // 保留用于编辑时保持原值
   }
   agentFormRef.value?.openDialog('edit', editData)
 }
@@ -336,24 +710,6 @@ const handleEditAgent = (row: AgentItem) => {
 const handleRecharge = (row: AgentItem) => {
   currentAccount.value = row
   rechargeDialogVisible.value = true
-}
-
-const handleUpdateStatus = async (
-  id: number | string,
-  status: number,
-  actionText: string,
-  row: AgentItem
-) => {
-  try {
-    await ElMessageBox.confirm(`确定要${actionText}该代理吗？`, '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-    await updateAgentStatus(id, status, row)
-  } catch {
-    // 用户取消操作
-  }
 }
 
 const handleRechargeSuccess = (amount: number) => {
@@ -383,5 +739,38 @@ const handleAgentError = (error: { type: 'add' | 'edit'; error: any }) => {
 
 .action-buttons .el-button {
   margin: 0;
+}
+
+/* 联系方式编辑样式 */
+.email-display {
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.email-display:hover {
+  background-color: #f5f7fa;
+}
+
+.email-edit-wrapper {
+  width: 100%;
+}
+
+.email-edit-wrapper .el-form {
+  margin: 0;
+}
+
+.email-edit-wrapper .el-form-item {
+  margin-bottom: 0;
+}
+
+.email-edit-wrapper .el-autocomplete {
+  width: 100%;
+}
+
+.suggestion-item {
+  padding: 4px 0;
+  font-size: 14px;
 }
 </style>
