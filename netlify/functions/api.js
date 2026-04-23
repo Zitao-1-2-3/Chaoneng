@@ -2,7 +2,13 @@ const API_BASE_URL = 'http://47.84.135.181:8888'
 
 exports.handler = async (event, context) => {
   const path = event.path.replace('/.netlify/functions/api', '')
-  const apiUrl = `${API_BASE_URL}${path}`
+
+  // 构建完整的 URL,包括查询参数
+  let apiUrl = `${API_BASE_URL}${path}`
+  if (event.queryStringParameters && Object.keys(event.queryStringParameters).length > 0) {
+    const queryString = new URLSearchParams(event.queryStringParameters).toString()
+    apiUrl += `?${queryString}`
+  }
 
   if (event.httpMethod === 'OPTIONS') {
     return {
