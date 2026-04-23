@@ -49,26 +49,6 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
         }
       }),
       VueJsx(),
-      // 自动导入 Vue API
-      AutoImport({
-        imports: ['vue', 'vue-router', 'pinia'],
-        resolvers: [ElementPlusResolver()],
-        dts: 'types/auto-imports.d.ts',
-        eslintrc: {
-          enabled: true,
-          filepath: './.eslintrc-auto-import.json'
-        }
-      }),
-      // 自动导入组件
-      Components({
-        resolvers: [
-          ElementPlusResolver({
-            importStyle: 'css'
-          })
-        ],
-        dts: 'types/components.d.ts',
-        dirs: ['src/components']
-      }),
       ServerUrlCopy(),
       progress(),
       env.VITE_USE_ALL_ELEMENT_PLUS_STYLE === 'false'
