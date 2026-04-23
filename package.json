@@ -104,6 +104,7 @@
     "less": "^4.2.1",
     "lint-staged": "^15.3.0",
     "mockjs": "^1.1.0",
+    "node-fetch": "2",
     "plop": "^4.0.1",
     "postcss": "^8.4.49",
     "postcss-html": "^1.7.0",
