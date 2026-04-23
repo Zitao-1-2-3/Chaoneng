@@ -11,14 +11,29 @@
                 最后更新：{{ formatTime(agent.id) }}
               </el-text>
             </div>
-            <el-button
-              type="primary"
-              size="default"
-              :disabled="!hasChanges(agent.id)"
-              @click="handleSave(agent.id)"
-            >
-              修改
-            </el-button>
+            <div class="header-actions">
+              <!-- 查看模式：显示"修改"按钮 -->
+              <el-button
+                v-if="!editModeMap[agent.id]"
+                type="primary"
+                size="default"
+                @click="handleEdit(agent.id)"
+              >
+                修改
+              </el-button>
+              <!-- 编辑模式：显示"保存"和"取消"按钮 -->
+              <template v-else>
+                <el-button size="default" @click="handleCancel(agent.id)"> 取消 </el-button>
+                <el-button
+                  type="primary"
+                  size="default"
+                  :disabled="!hasChanges(agent.id)"
+                  @click="handleSave(agent.id)"
+                >
+                  保存
+                </el-button>
+              </template>
+            </div>
           </div>
         </template>
 
@@ -32,6 +47,7 @@
                 <div class="time-row">
                   <span class="time-label">65k</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].hosting_65k"
                     :precision="2"
                     :step="0.1"
@@ -39,11 +55,13 @@
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].hosting_65k }}</span>
                   <span class="unit">TRX</span>
                 </div>
                 <div class="time-row">
                   <span class="time-label">131k</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].hosting_131k"
                     :precision="2"
                     :step="0.1"
@@ -51,6 +69,7 @@
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].hosting_131k }}</span>
                   <span class="unit">TRX</span>
                 </div>
               </div>
@@ -63,6 +82,7 @@
                 <div class="time-row">
                   <span class="time-label">1小时</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].time_1h"
                     :precision="2"
                     :step="0.1"
@@ -70,11 +90,13 @@
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].time_1h }}</span>
                   <span class="unit">TRX</span>
                 </div>
                 <div class="time-row">
                   <span class="time-label">1天</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].time_1d"
                     :precision="2"
                     :step="0.1"
@@ -82,11 +104,13 @@
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].time_1d }}</span>
                   <span class="unit">TRX</span>
                 </div>
                 <div class="time-row">
                   <span class="time-label">3天</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].time_3d"
                     :precision="2"
                     :step="0.1"
@@ -94,11 +118,13 @@
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].time_3d }}</span>
                   <span class="unit">TRX</span>
                 </div>
                 <div class="time-row">
                   <span class="time-label">7天</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].time_7d"
                     :precision="2"
                     :step="0.1"
@@ -106,11 +132,13 @@
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].time_7d }}</span>
                   <span class="unit">TRX</span>
                 </div>
                 <div class="time-row">
                   <span class="time-label">15天</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].time_15d"
                     :precision="2"
                     :step="0.1"
@@ -118,11 +146,13 @@
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].time_15d }}</span>
                   <span class="unit">TRX</span>
                 </div>
                 <div class="time-row">
                   <span class="time-label">30天</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="formDataMap[agent.id].time_30d"
                     :precision="2"
                     :step="0.1"
@@ -130,6 +160,7 @@
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].time_30d }}</span>
                   <span class="unit">TRX</span>
                 </div>
               </div>
@@ -142,27 +173,31 @@
                 <div class="time-row">
                   <span class="time-label">TRX→USDT</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="getTrx2UsdtDisplay(agent.id).value"
                     :precision="2"
-                    :step="0.1"
+                    :step="1"
                     :min="0"
                     :max="100"
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ getTrx2UsdtDisplay(agent.id).value }}</span>
                   <span class="unit">%</span>
                 </div>
                 <div class="time-row">
                   <span class="time-label">USDT→TRX</span>
                   <el-input-number
+                    v-if="editModeMap[agent.id]"
                     v-model="getUsdt2TrxDisplay(agent.id).value"
                     :precision="2"
-                    :step="0.1"
+                    :step="1"
                     :min="0"
                     :max="100"
                     size="small"
                     controls-position="right"
                   />
+                  <span v-else class="value-text">{{ getUsdt2TrxDisplay(agent.id).value }}</span>
                   <span class="unit">%</span>
                 </div>
               </div>
@@ -176,6 +211,7 @@
               <div class="item-title">闪租</div>
               <div class="item-content single-input">
                 <el-input-number
+                  v-if="editModeMap[agent.id]"
                   v-model="formDataMap[agent.id].flash"
                   :precision="2"
                   :step="0.1"
@@ -183,6 +219,7 @@
                   size="small"
                   controls-position="right"
                 />
+                <span v-else class="value-text">{{ formDataMap[agent.id].flash }}</span>
                 <span class="unit">TRX</span>
               </div>
             </div>
@@ -192,6 +229,7 @@
               <div class="item-title">按笔数</div>
               <div class="item-content single-input">
                 <el-input-number
+                  v-if="editModeMap[agent.id]"
                   v-model="formDataMap[agent.id].stroke"
                   :precision="2"
                   :step="0.1"
@@ -199,7 +237,8 @@
                   size="small"
                   controls-position="right"
                 />
-                <span class="unit">TRX/笔</span>
+                <span v-else class="value-text">{{ formDataMap[agent.id].stroke }}</span>
+                <span class="unit">TRX</span>
               </div>
             </div>
 
@@ -208,13 +247,15 @@
               <div class="item-title">首次激活</div>
               <div class="item-content single-input">
                 <el-input-number
-                  v-model="formDataMap[agent.id].flash"
+                  v-if="editModeMap[agent.id]"
+                  v-model="formDataMap[agent.id].active"
                   :precision="2"
                   :step="0.1"
                   :min="0"
                   size="small"
                   controls-position="right"
                 />
+                <span v-else class="value-text">{{ formDataMap[agent.id].active }}</span>
                 <span class="unit">TRX</span>
               </div>
             </div>
@@ -224,6 +265,7 @@
               <div class="item-title">批量下单</div>
               <div class="item-content single-input">
                 <el-input-number
+                  v-if="editModeMap[agent.id]"
                   v-model="formDataMap[agent.id].batch_flash"
                   :precision="2"
                   :step="0.1"
@@ -231,6 +273,7 @@
                   size="small"
                   controls-position="right"
                 />
+                <span v-else class="value-text">{{ formDataMap[agent.id].batch_flash }}</span>
                 <span class="unit">TRX</span>
               </div>
             </div>
@@ -240,6 +283,7 @@
               <div class="item-title">机器人价格</div>
               <div class="item-content single-input">
                 <el-input-number
+                  v-if="editModeMap[agent.id]"
                   v-model="formDataMap[agent.id].bot_fee"
                   :precision="2"
                   :step="0.1"
@@ -247,6 +291,7 @@
                   size="small"
                   controls-position="right"
                 />
+                <span v-else class="value-text">{{ formDataMap[agent.id].bot_fee }}</span>
                 <span class="unit">TRX</span>
               </div>
             </div>
@@ -260,14 +305,17 @@
 <script setup lang="tsx">
 import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage } from 'element-plus'
-import { v2GetSystemPrice, v2UpdateSystemPrice } from '@/api/marketing/agent_price'
-import type { V2SystemPriceResponse } from '@/api/marketing/agent_price_types'
+import { v2GetPriceList, v2UpdateSystemPrice } from '@/api/marketing/agent_price'
+import type { V1PriceListResponse } from '@/api/marketing/agent_price_types'
 
 // 加载状态
 const loading = ref(false)
 
 // 代理价格列表数据
-const priceList = ref<V2SystemPriceResponse[]>([])
+const priceList = ref<V1PriceListResponse[]>([])
+
+// 编辑模式映射 - 记录每个代理是否处于编辑模式
+const editModeMap = reactive<Record<number, boolean>>({})
 
 // 获取代理级别名称
 const getAgentLevelName = (id: number) => {
@@ -329,6 +377,7 @@ const hasChanges = (agentId: number) => {
   if (!original || !formData) return false
 
   return (
+    Number(formData.active) !== Number(original.active) ||
     Number(formData.time_1h) !== Number(original.time_1h) ||
     Number(formData.time_1d) !== Number(original.time_1d) ||
     Number(formData.time_3d) !== Number(original.time_3d) ||
@@ -344,6 +393,38 @@ const hasChanges = (agentId: number) => {
     Number(formData.bot_fee) !== Number(original.bot_fee) ||
     Number(formData.batch_flash) !== Number(original.batch_flash || 0)
   )
+}
+
+// 进入编辑模式
+const handleEdit = (agentId: number) => {
+  editModeMap[agentId] = true
+}
+
+// 取消编辑
+const handleCancel = (agentId: number) => {
+  // 恢复原始数据
+  const original = priceList.value.find((item) => item.id === agentId)
+  if (original) {
+    formDataMap[agentId] = {
+      active: Number(original.active),
+      time_1h: Number(original.time_1h),
+      time_1d: Number(original.time_1d),
+      time_3d: Number(original.time_3d),
+      time_7d: Number(original.time_7d),
+      time_15d: Number(original.time_15d),
+      time_30d: Number(original.time_30d),
+      stroke: Number(original.stroke),
+      flash: Number(original.flash),
+      hosting_65k: Number(original.hosting_65k),
+      hosting_131k: Number(original.hosting_131k),
+      trx_2_usdt: Number(original.trx_2_usdt),
+      usdt_2_trx: Number(original.usdt_2_trx),
+      bot_fee: Number(original.bot_fee),
+      batch_flash: Number(original.batch_flash || 0)
+    }
+  }
+  // 退出编辑模式
+  editModeMap[agentId] = false
 }
 
 // 格式化时间
@@ -365,14 +446,20 @@ const formatTime = (agentId: number) => {
 const loadPriceData = async () => {
   loading.value = true
   try {
-    const res = await v2GetSystemPrice()
+    const res = await v2GetPriceList({
+      current_page: 1,
+      order: 'created_at ASC',
+      page_size: 3
+    })
 
-    // 假设后端返回数组或单个对象，统一处理为数组
-    const dataArray = Array.isArray(res.data) ? res.data : [res.data]
-    priceList.value = dataArray
+    // 后端返回的数据在 data.list 中
+    priceList.value = res.data.list || []
 
     // 为每个代理级别初始化表单数据
-    dataArray.forEach((item) => {
+    priceList.value.forEach((item) => {
+      // 初始化编辑模式为 false
+      editModeMap[item.id] = false
+
       formDataMap[item.id] = {
         active: Number(item.active),
         time_1h: Number(item.time_1h),
@@ -429,6 +516,8 @@ const handleSave = async (agentId: number) => {
     })
 
     ElMessage.success('保存成功')
+    // 退出编辑模式
+    editModeMap[agentId] = false
     // 重新加载数据
     await loadPriceData()
   } catch (error) {
@@ -477,6 +566,11 @@ onActivated(() => {
   gap: 16px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .agent-level {
   font-size: 18px;
   font-weight: 600;
@@ -485,6 +579,16 @@ onActivated(() => {
 
 .update-time {
   font-size: 13px;
+}
+
+.value-text {
+  display: inline-block;
+  min-width: 80px;
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--el-text-color-primary);
+  text-align: center;
 }
 
 .price-items-grid {

@@ -2,6 +2,8 @@ import request from '@/axios'
 import type {
   AddPriceParams,
   UpdatePriceParams,
+  V1PriceListParams,
+  V1PriceListResponseData,
   V2SystemPriceResponse,
   V2UpdateSystemPriceParams
 } from './agent_price_types'
@@ -11,8 +13,19 @@ import type {
 // 主分支
 const BASE_URL = '/v2/system/'
 
+// 获取价格列表 - v2
+// GET /v2/price/list
+export const v2GetPriceList = (
+  params?: V1PriceListParams
+): Promise<{ data: V1PriceListResponseData }> => {
+  return request.get({
+    url: '/v2/price/list',
+    params
+  })
+}
+
 // 获取系统价格参数 - 新接口 v2
-// GET /v2/system/price
+// GET /v2/system/price (无请求参数)
 export const v2GetSystemPrice = (): Promise<{ data: V2SystemPriceResponse }> => {
   return request.get({ url: `${BASE_URL}price` })
 }
