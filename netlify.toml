@@ -1,7 +1,7 @@
 # Netlify 部署配置
 
 [build]
-  command = "pnpm install && pnpm build:management"
+  command = "pnpm install --prod=false && pnpm build:management"
   publish = "dist-management"
   functions = "netlify/functions"
 
@@ -9,21 +9,22 @@
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
   VITE_BASE_PATH = "/"
+  NODE_ENV = "production"
 
 [context.production]
-  command = "pnpm install && pnpm build:management"
+  command = "pnpm install --prod=false && pnpm build:management"
   publish = "dist-management"
   [context.production.environment]
     NODE_ENV = "production"
 
 [context.develop]
-  command = "pnpm install && pnpm build:management"
+  command = "pnpm install --prod=false && pnpm build:management"
   publish = "dist-management"
   [context.develop.environment]
     NODE_ENV = "development"
 
 [context.branch-deploy]
-  command = "pnpm install && pnpm build:management"
+  command = "pnpm install --prod=false && pnpm build:management"
   publish = "dist-management"
 
 [[redirects]]
