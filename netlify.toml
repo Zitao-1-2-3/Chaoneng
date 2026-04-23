@@ -28,24 +28,29 @@
   publish = "dist-management"
 
 [[redirects]]
-  from = "/v3/*"
+  from = "/management/v3/*"
   to = "/.netlify/functions/api/v3/:splat"
   status = 200
   force = true
 
 [[redirects]]
-  from = "/v2/*"
+  from = "/management/v2/*"
   to = "/.netlify/functions/api/v2/:splat"
   status = 200
   force = true
 
 [[redirects]]
-  from = "/v1/*"
+  from = "/management/v1/*"
   to = "/.netlify/functions/api/v1/:splat"
   status = 200
   force = true
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/management/*"
+  to = "/management/index.html"
   status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/management/:splat"
+  status = 301
