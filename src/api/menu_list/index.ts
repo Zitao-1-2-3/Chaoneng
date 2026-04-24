@@ -46,6 +46,26 @@ export const v1UpdateMenu = (data: UpdateMenuParamsV1): Promise<IResponse> => {
   })
 }
 
+// ========== v2 接口（运营端） ==========
+
+const BASE_URL_V2 = '/v2/bot/menu/'
+
+export const v2GetMenuList = (params: MenuListParamsV1): Promise<IResponse<MenuListResponseV1>> => {
+  return request.get({ url: `${BASE_URL_V2}list`, params })
+}
+
+export const v2AddMenu = (data: AddMenuParamsV1): Promise<IResponse> => {
+  return request.post({ url: `${BASE_URL_V2}add`, data })
+}
+
+export const v2UpdateMenu = (data: UpdateMenuParamsV1): Promise<IResponse> => {
+  return request.post({ url: `${BASE_URL_V2}update`, data })
+}
+
+export const v2DeleteMenuApi = (id: number) => {
+  return request.delete({ url: `/v2/bot/menu/delete/${id}` })
+}
+
 // ========== 旧接口 ==========
 
 // 新增的参数类型
@@ -101,7 +121,7 @@ export const saveMenuApi = (data: Partial<UpdateBotMenuParam>) => {
   }
 }
 
-// 获取内联回调操作指令列表
+// 获取内联回调操作指令列表 - 仅管理端使用
 export const getCallBackListApi = () => {
   return request.get({ url: '/v1/bot/operate-command/list' })
 }

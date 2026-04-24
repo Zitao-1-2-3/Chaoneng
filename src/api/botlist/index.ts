@@ -20,6 +20,15 @@ import type {
 // ========== 新接口 v1 ==========
 
 const BASE_URL = '/v1/bot/'
+const BASE_URL_V2 = '/v2/bot/'
+
+/**
+ * 分页获取机器人列表 - 运营端 v2
+ * GET /v2/bot/list
+ */
+export const v2GetBotList = (params: BotListParams): Promise<IResponse<BotListResponse>> => {
+  return request.get({ url: `${BASE_URL_V2}list`, params })
+}
 
 /**
  * 分页获取机器人列表 - 新接口 v1

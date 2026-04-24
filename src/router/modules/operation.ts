@@ -185,6 +185,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '用户列表'
           }
+        },
+        {
+          path: 'message_list',
+          component: () => import('@/operationView/Agent/MessageList/index.vue'),
+          name: 'AgentMessageList',
+          meta: {
+            title: '消息列表'
+          }
         }
       ]
     },

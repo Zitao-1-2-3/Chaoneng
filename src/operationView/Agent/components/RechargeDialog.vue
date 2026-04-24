@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, reactive, nextTick, defineProps, defineEmits } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { ElButton, ElMessage } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
@@ -29,7 +29,6 @@ import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { rechargeTrxApi } from '@/api/agent/list'
 
-const formRef = ref<InstanceType<typeof Form>>()
 const props = defineProps({
   visible: {
     type: Boolean,

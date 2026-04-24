@@ -162,21 +162,3 @@ export const exportAgentListApi = (params: AgentQueryParams): Promise<IResponse<
     responseType: 'blob'
   })
 }
-
-// ==================== 旧接口（已废弃，保留参考） ====================
-
-/**
- * /**
- * 更新代理状态参数
- */
-// export interface UpdateAgentStatusPayload {
-//   id: number | string // 代理ID
-//   status: number // 状态 (1:启用, 2:禁用)
-// }
-//  * 更新代理状态（旧接口，已废弃）
-//  * @deprecated 请使用 updateAgentApi 代替
-//  * 说明：此接口与 updateAgentApi 使用相同的 URL，建议统一使用 updateAgentApi
-//  */
-// export const updateAgentStatusApi = (data: UpdateAgentStatusPayload): Promise<IResponse> => {
-//   return request.post({ url: '/v2/manage/agent/update', data })
-// }

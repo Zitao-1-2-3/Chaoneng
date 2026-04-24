@@ -9,6 +9,9 @@
     </template>
   </Dialog>
 
+  <!-- 内联按钮管理弹窗 -->
+  <InlineButtonDialog v-model="inlineButtonDialogVisible" @success="fetchMenuList" />
+
   <!-- 图片预览 -->
   <ElImageViewer
     v-if="showImageViewer && previewFileType === 'image'"
@@ -75,9 +78,9 @@ import { useValidator } from '@/hooks/web/useValidator'
 import { v2SendGroupMessage, v2GetInlineButtonList } from '@/api/tgUser'
 import { uploadFileV2 as uploadAPI } from '@/api/utils/upload' // 使用 v2 版本的上传接口
 import type { MenuItem } from '@/api/menu_list/types'
-import { useRouter } from 'vue-router'
 import { BaseButton } from '@/components/Button'
 import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
+import InlineButtonDialog from '../MessageList/components/InlineButtonDialog.vue'
 
 const props = defineProps({
   modelValue: {
@@ -118,8 +121,6 @@ const dialogVisible = computed({
   set: (value) => emit('update:modelValue', value)
 })
 
-const router = useRouter()
-
 const dialogTitle = computed(() => {
   // 如果有自定义标题，优先使用自定义标题
   if (props.customTitle) {
@@ -132,6 +133,9 @@ const dialogTitle = computed(() => {
 const checkList = ref<(number | string)[]>([])
 const menuList = ref<MenuItem[]>([])
 const currentFilterType = ref<'user_custom' | 'all_user'>('user_custom')
+
+// 内联按钮管理弹窗
+const inlineButtonDialogVisible = ref(false)
 
 // 新增：文件上传相关状态（支持图片和视频）
 const fileListRef = ref<UploadUserFile[]>([])
@@ -360,8 +364,14 @@ const formSchema = computed<FormSchema[]>(() => {
           default: () => {
             return (
               <div class="flex flex-col gap-2 w-full">
-                <BaseButton link type="primary" plain onClick={goToMenu} class="self-start">
-                  去菜单管理添加
+                <BaseButton
+                  link
+                  type="primary"
+                  plain
+                  onClick={openInlineButtonDialog}
+                  class="self-start"
+                >
+                  编辑内联按钮
                 </BaseButton>
                 {menuList.value.length > 0 ? (
                   <ElCheckboxGroup v-model={checkList.value} class="flex flex-wrap gap-2">
@@ -375,7 +385,7 @@ const formSchema = computed<FormSchema[]>(() => {
                   </ElCheckboxGroup>
                 ) : (
                   <p class="text-gray-500 text-sm m-0">
-                    暂无可用的内联按钮，请先前往菜单管理添加。
+                    暂无可用的内联按钮，请先点击上方按钮添加。
                   </p>
                 )}
               </div>
@@ -517,9 +527,9 @@ const handleCancel = () => {
   dialogVisible.value = false
 }
 
-const goToMenu = () => {
-  router.push('/bot_manage/menu_list')
-  dialogVisible.value = false
+// 打开内联按钮管理弹窗
+const openInlineButtonDialog = () => {
+  inlineButtonDialogVisible.value = true
 }
 
 // 提交消息

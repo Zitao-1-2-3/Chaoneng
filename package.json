@@ -37,6 +37,7 @@
   "dependencies": {
     "@iconify/iconify": "^3.1.1",
     "@iconify/vue": "^4.3.0",
+    "@types/video.js": "^7.3.58",
     "@vueuse/core": "^12.3.0",
     "@wangeditor/editor": "^5.1.23",
     "@wangeditor/editor-for-vue": "^5.1.10",
@@ -59,6 +60,7 @@
     "qrcode": "^1.5.4",
     "qs": "^6.13.1",
     "url": "^0.11.4",
+    "video.js": "^8.23.7",
     "vue": "3.5.13",
     "vue-draggable-plus": "^0.6.0",
     "vue-i18n": "11.0.1",

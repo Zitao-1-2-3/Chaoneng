@@ -100,6 +100,14 @@ const managementRoutes: AppRouteRecordRaw[] = [
         meta: {
           title: '用户列表'
         }
+      },
+      {
+        path: 'message_list',
+        component: () => import('@/views/UserGroup/message_list/index.vue'),
+        name: 'MessageList',
+        meta: {
+          title: '消息列表'
+        }
       }
     ]
   },

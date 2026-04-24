@@ -310,6 +310,10 @@ const handleSearch = (_params) => {
   // 搜索处理逻辑
 }
 
+onMounted(() => {
+  searchTableRef.value?.reload()
+})
+
 // 处理导出
 const handleExport = async () => {
   try {
@@ -355,10 +359,6 @@ const handleExport = async () => {
     handleErrorMessage(error, '导出失败')
   }
 }
-// 页面加载时自动查询
-onMounted(() => {
-  searchTableRef.value?.reload()
-})
 </script>
 
 <style scoped>
