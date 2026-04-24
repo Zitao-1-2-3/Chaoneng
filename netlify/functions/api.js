@@ -23,10 +23,14 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const headers = {
-      'Content-Type': event.headers['content-type'] || 'application/json'
+    const headers = {}
+
+    // 复制 Content-Type (对于 multipart/form-data 很重要,包含 boundary)
+    if (event.headers['content-type']) {
+      headers['Content-Type'] = event.headers['content-type']
     }
 
+    // 复制 Authorization
     if (event.headers.authorization) {
       headers['Authorization'] = event.headers.authorization
     }
@@ -36,8 +40,16 @@ exports.handler = async (event, context) => {
       headers: headers
     }
 
+    // 处理请求体
     if (event.body) {
-      fetchOptions.body = event.body
+      // 如果是 base64 编码的二进制数据 (如文件上传)
+      if (event.isBase64Encoded) {
+        // 将 base64 字符串转换为 Buffer
+        fetchOptions.body = Buffer.from(event.body, 'base64')
+      } else {
+        // 普通文本数据
+        fetchOptions.body = event.body
+      }
     }
 
     const response = await fetch(apiUrl, fetchOptions)
