@@ -9,6 +9,12 @@
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
 
+[functions]
+  # 增加函数请求体大小限制到 10MB
+  included_files = ["netlify/functions/**"]
+  # 注意: Netlify Functions 免费版最大支持 6MB 同步请求
+  # 如果需要更大文件，考虑使用后台函数或直接上传到对象存储
+
 [context.production]
   command = "pnpm install && pnpm build:management"
   publish = "dist-management"
@@ -20,6 +26,25 @@
 [context.branch-deploy]
   command = "pnpm install && pnpm build:management"
   publish = "dist-management"
+
+# 代理静态文件访问（图片、视频等）- 必须放在 API 路由之前
+[[redirects]]
+  from = "/v1/files/*"
+  to = "http://47.84.135.181:8888/v1/files/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/v2/files/*"
+  to = "http://47.84.135.181:8888/v2/files/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/files/*"
+  to = "http://47.84.135.181:8888/files/:splat"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/v3/*"
