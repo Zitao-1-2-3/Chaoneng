@@ -9,14 +9,37 @@
         :showAddButton="false"
         ref="searchTableRef"
         @ready="onSearchTableReady"
+        :table-props="{
+          rowKey: 'id',
+          highlightCurrentRow: false,
+          reserveSelection: false
+        }"
       >
         <template #searchButtons>
-          <BaseButton type="primary" @click="handleExport">
+          <BaseButton type="primary" @click="handleExport" style="margin-right: 10px">
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
+          <BaseButton type="primary" @click="openMassSendDialog()" style="margin-right: 10px"
+            >群发消息</BaseButton
+          >
+          <BaseButton type="success" @click="openMassSendRecordDialog()">群发记录</BaseButton>
         </template>
       </SearchTable>
+
+      <!-- 发送消息弹窗 -->
+      <MessageDialog
+        v-model="messageDialogVisible"
+        :type="messageDialogType"
+        :user="currentAccount"
+        :bot-list="botsForDialog"
+        :custom-title="messageDialogCustomTitle"
+        :is-single-user="isSingleUserMode"
+        @success="handleMessageSent"
+      />
+
+      <!-- 群发记录弹窗 -->
+      <MassSendRecordDialog v-model="massSendRecordDialogVisible" :bot-list="botOptions" />
     </ContentWrap>
   </div>
 </template>
@@ -36,9 +59,21 @@ import { getAgentBotListApi } from '@/api/agent/bot'
 import { useRoute, useRouter } from 'vue-router'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import MessageDialog from './components/MessageDialog.vue'
+import MassSendRecordDialog from './components/MassSendRecordDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+// 当前选中账户
+const currentAccount = ref<any>({})
+
+// 消息发送相关
+const messageDialogVisible = ref(false)
+const messageDialogType = ref<'single' | 'mass'>('single')
+const messageDialogCustomTitle = ref('') // 自定义弹窗标题
+const isSingleUserMode = ref(false) // 是否为单个用户模式
+const massSendRecordDialogVisible = ref(false)
 
 // 机器人下拉options，全部string类型
 const isBotListLoaded = ref(false)
@@ -74,6 +109,11 @@ const fetchBotList = async () => {
     isBotListLoaded.value = true
   }
 }
+
+// 为弹窗准备的机器人列表 (不包含"全部")
+const botsForDialog = computed(() => {
+  return botOptions.value.filter((option) => option.value !== '')
+})
 
 // 当前选择的来源
 const selectedSource = ref<number | string>('')
@@ -172,6 +212,30 @@ const columns = computed(() => {
       width: 180,
       sortable: 'custom',
       formatter: (row) => (row.update_time ? formatToDateTime(row.update_time * 1000) : '-')
+    },
+    {
+      field: 'action',
+      label: '操作',
+      width: 150,
+      fixed: 'right',
+      slots: {
+        default: ({ row }) => {
+          // 判断是否为机器人用户（有 tg_id 且不为空）
+          const isBotUser = row.tg_id && row.tg_id !== 0
+
+          return (
+            <div>
+              <BaseButton
+                type="primary"
+                disabled={!isBotUser}
+                onClick={() => openSendMessageDialog(row)}
+              >
+                发送消息
+              </BaseButton>
+            </div>
+          )
+        }
+      }
     }
   ]
 
@@ -352,8 +416,40 @@ const openBotList = (botId: number) => {
   })
 }
 
-function onSearchTableReady(instance) {
+function onSearchTableReady(instance: any) {
   instance.reload()
+}
+
+// 发送消息相关
+const openSendMessageDialog = (row: any) => {
+  currentAccount.value = {
+    ...row,
+    bot_id: row.tg_bot_id, // 使用 tg_bot_id 作为 bot_id
+    tg_user_id: row.tg_id // 使用 tg_id 作为 tg_user_id
+  }
+  // 统一使用群发消息布局（包含机器人选择、接受用户类型、上传图片等字段）
+  messageDialogType.value = 'mass'
+  messageDialogCustomTitle.value = '发送消息' // 设置自定义标题为"发送消息"
+  isSingleUserMode.value = true // 设置为单个用户模式（机器人信息只读）
+  messageDialogVisible.value = true
+}
+
+// 打开群发消息弹窗
+const openMassSendDialog = () => {
+  messageDialogType.value = 'mass'
+  messageDialogCustomTitle.value = '' // 不设置自定义标题，使用默认的"群发消息"
+  isSingleUserMode.value = false // 设置为群发模式（机器人可选择）
+  messageDialogVisible.value = true
+}
+
+// 打开群发记录弹窗
+const openMassSendRecordDialog = () => {
+  massSendRecordDialogVisible.value = true
+}
+
+// 消息发送成功处理
+const handleMessageSent = () => {
+  messageDialogVisible.value = false
 }
 
 // 处理导出
