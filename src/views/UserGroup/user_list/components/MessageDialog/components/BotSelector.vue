@@ -1,10 +1,6 @@
 <template>
   <div class="bot-selector">
-    <ElFormItem
-      :label="label"
-      :prop="fieldName"
-      :rules="required ? [{ required: true, message: '请选择机器人', trigger: 'change' }] : []"
-    >
+    <ElFormItem :label="label" :prop="fieldName" :rules="validationRules">
       <!-- 单个用户模式：只读输入框 -->
       <ElInput v-if="isSingleUser" :model-value="displayValue" disabled placeholder="当前机器人" />
       <!-- 群发模式：下拉选择框，支持多选 -->
@@ -12,9 +8,10 @@
         v-else
         :model-value="modelValue"
         @update:model-value="handleChange"
-        placeholder="请选择机器人"
+        placeholder="请选择机器人（可多选）"
         multiple
         collapse-tags
+        :max-collapse-tags="1"
         collapse-tags-tooltip
         clearable
         style="width: 100%"
@@ -37,7 +34,7 @@ interface BotOption {
 const props = defineProps({
   modelValue: {
     type: [Number, String, Array] as PropType<number | string | (number | string)[]>,
-    default: undefined
+    default: () => [] // 改为返回空数组的函数
   },
   botList: {
     type: Array as PropType<BotOption[]>,
@@ -62,6 +59,40 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'change'])
+
+// 自定义验证规则：支持数组和单个值
+const validationRules = computed(() => {
+  if (!props.required) return []
+  return [
+    {
+      required: true,
+      validator: (_rule: any, value: any, callback: any) => {
+        console.log(
+          'BotSelector validation - value:',
+          value,
+          'type:',
+          Array.isArray(value) ? 'array' : typeof value
+        )
+
+        // 如果是数组，检查数组长度
+        if (Array.isArray(value)) {
+          if (value.length === 0) {
+            callback(new Error('请选择至少一个机器人'))
+          } else {
+            callback()
+          }
+        }
+        // 如果是单个值，检查是否为空
+        else if (value === undefined || value === null || value === '') {
+          callback(new Error('请选择机器人'))
+        } else {
+          callback()
+        }
+      },
+      trigger: ['change', 'blur']
+    }
+  ]
+})
 
 // 单个用户模式下的显示值
 const displayValue = computed(() => {

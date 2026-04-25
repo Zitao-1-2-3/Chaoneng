@@ -1,21 +1,134 @@
 <template>
   <Dialog v-model="dialogVisible" title="内联按钮管理" width="1200px">
     <div class="inline-button-container">
-      <!-- 搜索表格 -->
-      <SearchTable
-        :columns="columns"
-        :search-schema="searchSchema"
-        :fetch-data-api="fetchMenuList"
-        :fetch-del-api="deleteMenu"
-        :action-column="actionColumn"
-        ref="searchTableRef"
-        @add="handleAdd"
-      />
+      <!-- 添加按钮 -->
+      <div class="mb-4">
+        <ElButton type="success" @click="handleAdd">添加</ElButton>
+      </div>
+
+      <!-- 表格 -->
+      <ElTable :data="tableData" border stripe v-loading="loading">
+        <ElTableColumn
+          prop="text"
+          label="内联按钮名称"
+          min-width="120"
+          align="center"
+          header-align="center"
+        />
+        <ElTableColumn
+          prop="inner_value"
+          label="内联内容"
+          min-width="200"
+          show-overflow-tooltip
+          align="center"
+          header-align="center"
+        />
+        <ElTableColumn
+          prop="inner_type"
+          label="分类"
+          width="100"
+          align="center"
+          header-align="center"
+        >
+          <template #default>
+            <ElTag type="primary">URL链接</ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn prop="status" label="状态" width="100" align="center" header-align="center">
+          <template #default="{ row }">
+            <ElTag :type="row.status === 1 ? 'success' : 'danger'">
+              {{ row.status === 1 ? '启用' : '禁用' }}
+            </ElTag>
+          </template>
+        </ElTableColumn>
+        <ElTableColumn
+          prop="created_at"
+          label="创建时间"
+          width="180"
+          align="center"
+          header-align="center"
+        >
+          <template #default="{ row }">
+            {{ formatTimestamp(row.created_at) }}
+          </template>
+        </ElTableColumn>
+        <ElTableColumn
+          prop="updated_at"
+          label="更新时间"
+          width="180"
+          align="center"
+          header-align="center"
+        >
+          <template #default="{ row }">
+            {{ formatTimestamp(row.updated_at) }}
+          </template>
+        </ElTableColumn>
+        <ElTableColumn label="操作" width="180" fixed="right" align="center" header-align="center">
+          <template #default="{ row }">
+            <ElButton type="primary" size="small" @click="handleEdit(row)">编辑</ElButton>
+            <ElButton type="danger" size="small" @click="handleDelete(row)">删除</ElButton>
+          </template>
+        </ElTableColumn>
+      </ElTable>
+
+      <!-- 分页 - 左对齐 -->
+      <div class="flex justify-start mt-4">
+        <ElPagination
+          v-model:current-page="pagination.currentPage"
+          v-model:page-size="pagination.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="pagination.total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
 
       <!-- 表单弹窗 -->
       <Dialog v-model="formDialogVisible" :title="formDialogTitle" width="600px">
         <!-- 表单内容 -->
-        <Form ref="formRef" :schema="formSchema" @register="formRegister" />
+        <ElForm
+          ref="formRef"
+          :model="formData"
+          :rules="formRules"
+          label-width="120px"
+          style="padding: 10px 0"
+        >
+          <ElFormItem label="内联按钮名称" prop="menu_name" style="margin-bottom: 18px">
+            <ElInput v-model="formData.menu_name" placeholder="请输入内联按钮名称" />
+          </ElFormItem>
+          <ElFormItem label="内联类型" prop="inner_type" style="margin-bottom: 18px">
+            <ElSelect
+              v-model="formData.inner_type"
+              placeholder="请选择内联类型"
+              disabled
+              style="width: 100%"
+            >
+              <ElOption label="URL链接" value="url" />
+            </ElSelect>
+          </ElFormItem>
+          <ElFormItem label="链接地址" prop="inner_value" style="margin-bottom: 18px">
+            <div style="width: 100%">
+              <ElInput v-model="formData.inner_value" placeholder="请输入链接地址" />
+              <div style=" margin-top: 4px; font-size: 12px;color: #999">
+                例如：https://www.123456789.com
+              </div>
+            </div>
+          </ElFormItem>
+          <ElFormItem label="状态" prop="status" style="margin-bottom: 0">
+            <ElSwitch
+              v-model="formData.status"
+              :active-value="1"
+              :inactive-value="2"
+              inline-prompt
+              active-text="启用"
+              inactive-text="禁用"
+              style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+            />
+          </ElFormItem>
+        </ElForm>
         <template #footer>
           <div class="flex justify-end">
             <ElButton @click="formDialogVisible = false">取消</ElButton>
@@ -28,22 +141,35 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, h, reactive, watch } from 'vue'
-import { ElMessage, ElButton, ElTag } from 'element-plus'
+import { ref, reactive, watch } from 'vue'
+import {
+  ElMessage,
+  ElButton,
+  ElTag,
+  ElTable,
+  ElTableColumn,
+  ElPagination,
+  ElMessageBox,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElSelect,
+  ElOption,
+  ElSwitch
+} from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
-import { SearchTable } from '@/components/SearchTable'
-import { BaseButton } from '@/components/Button'
-import { Form } from '@/components/Form'
-import { useForm } from '@/hooks/web/useForm'
-import type { TableColumn } from '@/components/Table'
-import type { FormSchema } from '@/components/Form'
-import { v2GetMenuList, v2AddMenu, v2UpdateMenu, v2DeleteMenuApi } from '@/api/menu_list'
-import type { MenuListParamsV1, AddMenuParamsV1, UpdateMenuParamsV1 } from '@/api/menu_list/types'
-import { useValidator } from '@/hooks/web/useValidator'
-
-const { required } = useValidator()
-const { formRegister, formMethods } = useForm()
-const { getElFormExpose } = formMethods
+import {
+  v2GetInnerButtonList,
+  v2CreateInnerButton,
+  v2UpdateInnerButton,
+  v2DeleteInnerButton
+} from '@/api/menu_list'
+import type {
+  CreateInnerButtonParams,
+  InnerButtonItem,
+  UpdateInnerButtonParams
+} from '@/api/menu_list/types'
 
 // Props
 const props = defineProps<{
@@ -53,6 +179,7 @@ const props = defineProps<{
 // Emits
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
+  success: []
 }>()
 
 // 弹窗显示状态
@@ -69,317 +196,219 @@ watch(
 // 监听dialogVisible变化，同步到父组件
 watch(dialogVisible, (val) => {
   emit('update:modelValue', val)
+  if (val) {
+    fetchData()
+  }
 })
 
-// SearchTable引用
-const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
+// 表格数据
+const tableData = ref<InnerButtonItem[]>([])
+const allData = ref<InnerButtonItem[]>([])
+const loading = ref(false)
 
-// 添加formValues来跟踪表单值（运营端固定为URL类型）
-const formValues = reactive<{
-  inner_type: string
-  inner_value: string
-  [key: string]: any
-}>({
-  inner_type: 'url',
-  inner_value: ''
+// 分页
+const pagination = reactive({
+  currentPage: 1,
+  pageSize: 10,
+  total: 0
 })
 
-// 表单配置
-const formSchema = reactive<FormSchema[]>([
-  {
-    field: 'menu_name',
-    component: 'Input' as const,
-    label: '内联按钮名称',
-    componentProps: {
-      placeholder: '请输入内联按钮名称'
-    },
-    formItemProps: {
-      rules: required('内联按钮名称不能为空')
-    }
-  },
-  {
-    field: 'order_num',
-    component: 'InputNumber' as const,
-    label: '排序',
-    componentProps: {
-      placeholder: '请输入排序',
-      min: 0
-    },
-    formItemProps: {
-      rules: required('排序不能为空')
-    }
-  },
-  {
-    field: 'status',
-    component: 'Switch' as const,
-    label: '状态',
-    value: 1,
-    componentProps: {
-      activeValue: 1,
-      inactiveValue: 2
-    },
-    formItemProps: {
-      rules: required('状态不能为空')
-    }
-  },
-  {
-    field: 'inner_type',
-    component: 'Select' as const,
-    label: '内联类型',
-    value: 'url',
-    componentProps: {
-      options: [{ label: 'URL链接', value: 'url' }],
-      placeholder: '请选择内联类型',
-      disabled: true // 运营端只支持URL，禁用选择
-    },
-    formItemProps: {
-      rules: required('内联类型不能为空')
-    }
-  },
-  {
-    field: 'inner_value',
-    component: 'Input' as const,
-    label: '链接地址',
-    componentProps: {
-      placeholder: '请输入链接地址',
-      remark: () => (
-        <>
-          <p>例如：https://www.123456789.com</p>
-        </>
-      )
-    },
-    formItemProps: {
-      rules: required('链接地址不能为空')
-    }
-  }
-])
-
-// 表格列配置
-const columns: TableColumn[] = [
-  {
-    field: 'menu_name',
-    label: '内联按钮名称'
-  },
-  {
-    field: 'text',
-    label: '使用功能',
-    formatter: (row: any) => row.inner_value || '-'
-  },
-  {
-    field: 'status',
-    label: '状态',
-    slots: {
-      default: (data: any) => {
-        const statusMap = {
-          1: { label: '启用', type: 'success' },
-          2: { label: '禁用', type: 'danger' }
-        }
-        const status = statusMap[data.row.status] || { label: '-', type: 'info' }
-        return h(
-          ElTag,
-          {
-            type: status.type
-          },
-          () => status.label
-        )
-      }
-    }
-  }
-]
-
-// 操作列配置
-const actionColumn = {
-  field: 'action',
-  label: '操作',
-  width: 200,
-  slots: {
-    default: (data: any) => {
-      const row = data.row
-      return (
-        <>
-          <BaseButton type="primary" onClick={() => handleEdit(row)}>
-            编辑
-          </BaseButton>
-          <BaseButton type="danger" onClick={() => handleDelete(row)}>
-            删除
-          </BaseButton>
-        </>
-      )
-    }
-  }
-}
-
-// 搜索表单配置
-const searchSchema: FormSchema[] = [
-  {
-    field: 'menu_name',
-    component: 'Input' as const,
-    label: '菜单名称',
-    componentProps: {
-      placeholder: '请输入菜单名称'
-    }
-  }
-]
-
-// API 封装
-const fetchMenuList = async (params: any) => {
-  try {
-    const queryParams: MenuListParamsV1 = {
-      current_page: Number(params.current_page) || 1,
-      page_size: Number(params.page_size) || 10,
-      keyword: params.menu_name || undefined,
-      menu_type: 2, // 固定为内联按钮类型
-      status: params.status || undefined
-    }
-
-    const response = await v2GetMenuList(queryParams)
-
-    if (response.code === '000000' && response.data) {
-      const list = response.data.list || []
-      return {
-        list,
-        totalCount: response.data.pager?.total || 0
-      }
-    }
-
-    return { list: [], totalCount: 0 }
-  } catch (error) {
-    ElMessage.error('获取内联按钮列表失败')
-    return { list: [], totalCount: 0 }
-  }
-}
-
-const deleteMenu = async (): Promise<boolean> => {
-  const row = searchTableRef.value?.currentRow
-  if (row && row.id) {
-    try {
-      const res = await v2DeleteMenuApi(row.id)
-      if (res.code === '000000') {
-        ElMessage.success('删除成功')
-        return true
-      }
-      ElMessage.error('删除失败')
-      return false
-    } catch (error) {
-      ElMessage.error('删除内联按钮失败')
-      return false
-    }
-  } else {
-    ElMessage.warning('删除失败：数据不完整')
-    return false
-  }
+// 时间戳格式化函数
+const formatTimestamp = (timestamp: number): string => {
+  if (!timestamp) return '-'
+  const date = new Date(timestamp * 1000) // 转换为毫秒
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const seconds = String(date.getSeconds()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
 }
 
 // 表单相关
 const formDialogVisible = ref(false)
 const formDialogTitle = ref('添加内联按钮')
+const formRef = ref<FormInstance>()
+
+// 表单数据
+const formData = reactive({
+  id: undefined as number | undefined,
+  menu_name: '',
+  inner_type: 'url' as const,
+  inner_value: '',
+  order_num: 0,
+  status: 1
+})
+
+// 表单验证规则
+const formRules: FormRules = {
+  menu_name: [{ required: true, message: '内联按钮名称不能为空', trigger: 'blur' }],
+  inner_type: [{ required: true, message: '内联类型不能为空', trigger: 'change' }],
+  inner_value: [
+    { required: true, message: '链接地址不能为空', trigger: 'blur' },
+    {
+      validator: (_rule, value, callback) => {
+        if (value) {
+          // URL 验证
+          const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+          if (!urlPattern.test(value)) {
+            callback(new Error('请输入有效的URL地址'))
+          } else {
+            callback()
+          }
+        } else {
+          callback()
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  status: [{ required: true, message: '状态不能为空', trigger: 'change' }]
+}
+
+// 获取数据
+const fetchData = async () => {
+  loading.value = true
+  try {
+    const response = await v2GetInnerButtonList()
+    if (response.code === '000000' && response.data) {
+      allData.value = response.data || []
+      applyPagination()
+    } else {
+      allData.value = []
+      tableData.value = []
+      pagination.total = 0
+    }
+  } catch (error) {
+    console.error('获取内联按钮列表失败:', error)
+    ElMessage.error('获取内联按钮列表失败')
+    allData.value = []
+    tableData.value = []
+    pagination.total = 0
+  } finally {
+    loading.value = false
+  }
+}
+
+// 应用分页
+const applyPagination = () => {
+  // 更新总数
+  pagination.total = allData.value.length
+
+  // 分页
+  const startIndex = (pagination.currentPage - 1) * pagination.pageSize
+  const endIndex = startIndex + pagination.pageSize
+  tableData.value = allData.value.slice(startIndex, endIndex)
+}
+
+// 分页变化
+const handleSizeChange = () => {
+  pagination.currentPage = 1
+  applyPagination()
+}
+
+const handleCurrentChange = () => {
+  applyPagination()
+}
+
+// 删除
+const handleDelete = async (row: InnerButtonItem) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这个内联按钮吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    const res = await v2DeleteInnerButton(row.id)
+    if (res.code === '000000') {
+      ElMessage.success('删除成功')
+      fetchData()
+      emit('success')
+    } else {
+      ElMessage.error('删除失败')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除内联按钮失败')
+    }
+  }
+}
 
 // 事件处理
 const handleAdd = () => {
   formDialogVisible.value = true
   formDialogTitle.value = '添加内联按钮'
 
-  // 重置表单（运营端固定为URL类型）
-  const defaultValues = {
+  // 重置表单
+  Object.assign(formData, {
+    id: undefined,
     menu_name: '',
     inner_type: 'url',
     inner_value: '',
     order_num: 0,
     status: 1
-  }
+  })
 
-  // 更新本地响应式数据
-  Object.assign(formValues, defaultValues)
-
-  // 设置表单值
-  formMethods.setValues(defaultValues)
+  formRef.value?.resetFields()
 }
 
-const handleEdit = (row: any) => {
+const handleEdit = (row: InnerButtonItem) => {
   formDialogVisible.value = true
   formDialogTitle.value = '编辑内联按钮'
 
-  // 运营端只支持URL类型
-  const editValues = {
-    id: row.id,
-    menu_name: row.menu_name,
-    order_num: row.order_num,
-    status: row.status,
-    inner_type: 'url',
-    inner_value: row.inner_value || ''
-  }
-
-  // 更新本地响应式数据
-  Object.assign(formValues, editValues)
-
   // 设置表单值
-  formMethods.setValues(editValues)
-}
-
-const handleDelete = (row: any) => {
-  if (searchTableRef.value) {
-    searchTableRef.value.delete(row)
-  }
+  Object.assign(formData, {
+    id: row.id,
+    menu_name: row.text,
+    inner_type: row.inner_type,
+    inner_value: row.inner_value || '',
+    status: 1 // 默认启用，因为接口返回的数据没有 status 字段
+  })
 }
 
 const handleFormSubmit = async () => {
+  if (!formRef.value) return
+
   try {
-    const formRef = await getElFormExpose()
+    await formRef.value.validate()
 
-    // 使用Promise方式处理表单验证
-    try {
-      // 添加非空检查
-      if (!formRef) {
-        ElMessage.error('表单实例获取失败')
-        return
+    // 判断是添加还是更新
+    if (formData.id) {
+      // 更新操作（运营端固定为URL类型）
+      const updateParams: UpdateInnerButtonParams = {
+        id: formData.id,
+        text: formData.menu_name,
+        inner_type: 'url',
+        inner_value: formData.inner_value
       }
 
-      await formRef.validate()
-
-      // 校验通过后获取表单数据
-      const values = await formMethods.getFormData()
-
-      // 判断是添加还是更新
-      if (values.id) {
-        // 更新操作（运营端固定为URL类型）
-        const updateParams: UpdateMenuParamsV1 = {
-          id: values.id,
-          menu_name: values.menu_name,
-          menu_type: 2, // 固定为内联按钮
-          order_num: values.order_num,
-          status: values.status,
-          inner_type: 'url',
-          inner_value: values.inner_value
-        }
-
-        await v2UpdateMenu(updateParams)
-        ElMessage.success('更新成功')
-      } else {
-        // 添加操作（运营端固定为URL类型）
-        const addParams: AddMenuParamsV1 = {
-          menu_name: values.menu_name,
-          menu_type: 2, // 固定为内联按钮
-          order_num: values.order_num,
-          status: values.status,
-          inner_type: 'url',
-          inner_value: values.inner_value
-        }
-
-        await v2AddMenu(addParams)
-        ElMessage.success('添加成功')
+      await v2UpdateInnerButton(updateParams)
+      ElMessage.success('更新成功')
+    } else {
+      // 添加操作 - 使用新的创建接口（运营端固定为URL类型）
+      const createParams: CreateInnerButtonParams = {
+        id: 0, // 创建时ID为0
+        text: formData.menu_name,
+        inner_type: 'url',
+        inner_value: formData.inner_value
       }
 
-      formDialogVisible.value = false
-
-      // 刷新列表
-      searchTableRef.value?.reload()
-    } catch (validationError) {
-      console.error('表单验证失败:', validationError)
-      ElMessage.error('表单验证失败，请检查填写内容')
+      await v2CreateInnerButton(createParams)
+      ElMessage.success('添加成功')
     }
-  } catch (error) {
-    console.error('保存失败:', error)
-    ElMessage.error('保存失败')
+
+    formDialogVisible.value = false
+
+    // 刷新列表
+    fetchData()
+    emit('success')
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('保存失败:', error)
+      ElMessage.error('保存失败')
+    }
   }
 }
 

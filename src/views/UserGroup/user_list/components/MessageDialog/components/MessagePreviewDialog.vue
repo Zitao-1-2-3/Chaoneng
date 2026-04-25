@@ -1,59 +1,103 @@
 <template>
   <Dialog v-model="visible" title="消息预览" width="650px">
-    <div class="message-preview-container">
+    <div class="message-preview-wrapper">
       <!-- 机器人信息 -->
       <div
         v-if="previewData.botName || (previewData.botNames && previewData.botNames.length > 0)"
-        class="preview-item"
+        class="preview-info-item"
       >
-        <div class="item-label">发送机器人</div>
-        <div v-if="previewData.botNames && previewData.botNames.length > 0" class="item-value">
-          <div v-for="(name, index) in previewData.botNames" :key="index" class="bot-name-item">
+        <div class="info-label">发送机器人</div>
+        <div v-if="previewData.botNames && previewData.botNames.length > 0" class="info-value">
+          <div v-for="(name, index) in previewData.botNames" :key="index" class="bot-name-tag">
             {{ name }}
           </div>
         </div>
-        <div v-else class="item-value">{{ previewData.botName }}</div>
+        <div v-else class="info-value">{{ previewData.botName }}</div>
       </div>
 
       <!-- 接收用户信息 -->
-      <div v-if="previewData.recipientInfo" class="preview-item">
-        <div class="item-label">接收用户</div>
-        <div class="item-value">{{ previewData.recipientInfo }}</div>
+      <div v-if="previewData.recipientInfo" class="preview-info-item">
+        <div class="info-label">接收用户</div>
+        <div class="info-value">{{ previewData.recipientInfo }}</div>
       </div>
 
-      <!-- 消息内容 -->
-      <div v-if="previewData.content" class="preview-item">
-        <div class="item-label">消息内容</div>
-        <div class="item-value content-box">{{ previewData.content }}</div>
-      </div>
+      <!-- Telegram 风格消息预览 -->
+      <div class="telegram-preview-section">
+        <div class="section-label">消息预览：</div>
+        <div class="telegram-message-container">
+          <!-- 如果有文件，遍历显示 -->
+          <template v-if="previewData.files && previewData.files.length > 0">
+            <div
+              v-for="(file, index) in previewData.files"
+              :key="`file-${index}`"
+              class="telegram-message-card"
+            >
+              <!-- 图片/视频 -->
+              <div class="telegram-media-container">
+                <template v-if="file.type === 'video'">
+                  <video
+                    :src="file.url"
+                    class="telegram-media-content"
+                    muted
+                    preload="metadata"
+                    disablePictureInPicture
+                    controlslist="nodownload noremoteplayback"
+                  ></video>
+                  <div class="telegram-video-icon">▶</div>
+                </template>
+                <template v-else>
+                  <img :src="file.url" class="telegram-media-content" alt="图片" />
+                </template>
+              </div>
 
-      <!-- 图片/视频预览 -->
-      <div v-if="previewData.files && previewData.files.length > 0" class="preview-item">
-        <div class="item-label">文件 ({{ previewData.files.length }})</div>
-        <div class="files-container">
-          <div v-for="(file, index) in previewData.files" :key="index" class="file-item">
-            <!-- 图片预览 -->
-            <img v-if="file.type === 'image'" :src="file.url" class="file-image" alt="图片" />
-            <!-- 视频预览 -->
-            <div v-else-if="file.type === 'video'" class="file-video">
-              <video :src="file.url" class="video-element" muted></video>
-              <div class="video-icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path fill="currentColor" d="M8 5v14l11-7z" />
-                </svg>
+              <!-- 只在最后一个文件上显示文字内容和内联按钮 -->
+              <template v-if="index === previewData.files.length - 1">
+                <!-- 文字内容 -->
+                <div v-if="previewData.content" class="telegram-message-text">
+                  {{ previewData.content }}
+                </div>
+
+                <!-- 内联按钮 -->
+                <div
+                  v-if="previewData.buttons && previewData.buttons.length > 0"
+                  class="telegram-inline-buttons"
+                >
+                  <div
+                    v-for="(button, btnIndex) in previewData.buttons"
+                    :key="btnIndex"
+                    class="telegram-inline-button"
+                  >
+                    {{ button.text }}
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+
+          <!-- 如果没有文件，只显示文字和按钮 -->
+          <template v-else>
+            <div class="telegram-message-card text-only">
+              <!-- 文字内容 -->
+              <div v-if="previewData.content" class="telegram-message-text">
+                {{ previewData.content }}
+              </div>
+              <div v-else class="telegram-message-text empty">无文字内容</div>
+
+              <!-- 内联按钮 -->
+              <div
+                v-if="previewData.buttons && previewData.buttons.length > 0"
+                class="telegram-inline-buttons"
+              >
+                <div
+                  v-for="(button, btnIndex) in previewData.buttons"
+                  :key="btnIndex"
+                  class="telegram-inline-button"
+                >
+                  {{ button.text }}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 内联按钮预览 -->
-      <div v-if="previewData.buttons && previewData.buttons.length > 0" class="preview-item">
-        <div class="item-label">内联按钮 ({{ previewData.buttons.length }})</div>
-        <div class="buttons-container">
-          <div v-for="(button, index) in previewData.buttons" :key="index" class="button-item">
-            {{ button.text }}
-          </div>
+          </template>
         </div>
       </div>
     </div>
@@ -114,173 +158,149 @@ const handleCancel = () => {
 </script>
 
 <style scoped>
-.message-preview-container {
+.message-preview-wrapper {
   max-height: 65vh;
   padding: 8px 4px;
   overflow-y: auto;
 }
 
-/* 预览项 */
-.preview-item {
-  margin-bottom: 24px;
+/* 信息项样式 */
+.preview-info-item {
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #ebeef5;
 }
 
-.preview-item:last-child {
-  margin-bottom: 0;
-}
-
-.item-label {
-  display: flex;
-  margin-bottom: 10px;
-  font-size: 14px;
+.info-label {
+  margin-bottom: 8px;
+  font-size: 13px;
   font-weight: 600;
-  color: #303133;
-  align-items: center;
-}
-
-.item-label::before {
-  display: inline-block;
-  width: 3px;
-  height: 14px;
-  margin-right: 8px;
-  background: #409eff;
-  border-radius: 2px;
-  content: '';
-}
-
-.item-value {
-  padding-left: 11px;
-  font-size: 14px;
-  line-height: 1.6;
   color: #606266;
 }
 
-/* 机器人名称列表 */
-.bot-name-item {
-  padding: 6px 12px;
-  margin-bottom: 8px;
+.info-value {
   font-size: 14px;
   color: #303133;
-  background: #f0f9ff;
-  border-left: 3px solid #409eff;
+}
+
+.bot-name-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #409eff;
+  background: #ecf5ff;
   border-radius: 4px;
 }
 
-.bot-name-item:last-child {
-  margin-bottom: 0;
+/* Telegram 预览区域 */
+.telegram-preview-section {
+  margin-top: 24px;
 }
 
-/* 消息内容框 */
-.content-box {
-  min-height: 60px;
-  padding: 14px 16px;
-  line-height: 1.8;
+.section-label {
+  margin-bottom: 12px;
+  font-size: 14px;
+  font-weight: 600;
   color: #303133;
-  word-break: break-word;
-  white-space: pre-wrap;
-  background: #f8f9fa;
-  border: 1px solid #e4e7ed;
+}
+
+/* Telegram 消息容器 */
+.telegram-message-container {
+  display: flex;
+  min-height: 200px;
+  padding: 20px;
+  background: #f5f7fa;
   border-radius: 8px;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
 }
 
-/* 文件容器 */
-.files-container {
-  display: grid;
-  max-width: 100%;
-  padding-left: 11px;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-}
-
-.file-item {
+.telegram-message-card {
   position: relative;
   width: 100%;
-  padding-bottom: 100%;
+  max-width: 100%;
+  margin-bottom: 8px;
   overflow: hidden;
-  background: #f5f7fa;
-  border-radius: 6px;
-  box-shadow: 0 1px 6px rgb(0 0 0 / 8%);
-  transition: all 0.3s ease;
+  background: #dcf8c6;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+  align-self: center;
 }
 
-.file-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 10px rgb(0 0 0 / 12%);
-}
-
-.file-image,
-.file-video {
-  position: absolute;
-  top: 0;
-  left: 0;
+.telegram-message-card.text-only {
+  /* 与有文件时保持相同宽度 */
   width: 100%;
-  height: 100%;
+  max-width: 100%;
+  align-self: center;
 }
 
-.file-image {
-  object-fit: cover;
-}
-
-.file-video {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.telegram-media-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
   background: #000;
+  border-radius: 8px 8px 0 0;
 }
 
-.video-element {
+.telegram-media-content {
+  display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 400px;
   object-fit: cover;
 }
 
-.video-icon {
+.telegram-video-icon {
   position: absolute;
   top: 50%;
   left: 50%;
-  display: flex;
-  width: 44px;
-  height: 44px;
+  font-size: 40px;
+  color: white;
+  text-shadow: 0 0 8px rgb(0 0 0 / 80%);
   pointer-events: none;
-  background: rgb(0 0 0 / 65%);
-  border: 2px solid rgb(255 255 255 / 90%);
-  border-radius: 50%;
   transform: translate(-50%, -50%);
-  backdrop-filter: blur(4px);
-  align-items: center;
-  justify-content: center;
 }
 
-.video-icon svg {
-  width: 20px;
-  height: 20px;
-  margin-left: 2px;
-  color: #fff;
+.telegram-message-text {
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #000;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
-/* 按钮容器 */
-.buttons-container {
+.telegram-message-text.empty {
+  font-style: italic;
+  color: #909399;
+}
+
+.telegram-inline-buttons {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding-left: 11px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 8px;
 }
 
-.button-item {
-  padding: 10px 18px;
+.telegram-inline-button {
+  width: 100%;
+  padding: 8px 12px;
   font-size: 14px;
   font-weight: 500;
-  color: #fff;
+  color: #08c;
+  text-align: center;
   cursor: default;
-  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  background: #fff;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
-  box-shadow: 0 2px 8px rgb(64 158 255 / 25%);
-  transition: all 0.3s ease;
+  transition: background-color 0.2s;
 }
 
-.button-item:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgb(64 158 255 / 35%);
+.telegram-inline-button:hover {
+  background: #f5f5f5;
 }
 
 /* 底部按钮 */
@@ -291,20 +311,20 @@ const handleCancel = () => {
 }
 
 /* 滚动条样式 */
-.message-preview-container::-webkit-scrollbar {
+.message-preview-wrapper::-webkit-scrollbar {
   width: 6px;
 }
 
-.message-preview-container::-webkit-scrollbar-thumb {
+.message-preview-wrapper::-webkit-scrollbar-thumb {
   background-color: rgb(0 0 0 / 15%);
   border-radius: 3px;
 }
 
-.message-preview-container::-webkit-scrollbar-thumb:hover {
+.message-preview-wrapper::-webkit-scrollbar-thumb:hover {
   background-color: rgb(0 0 0 / 25%);
 }
 
-.message-preview-container::-webkit-scrollbar-track {
+.message-preview-wrapper::-webkit-scrollbar-track {
   background-color: transparent;
 }
 </style>

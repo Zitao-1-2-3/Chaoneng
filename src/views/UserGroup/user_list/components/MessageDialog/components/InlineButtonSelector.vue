@@ -12,7 +12,7 @@
           class="flex flex-wrap gap-2"
         >
           <ElCheckbox v-for="menu in menuList" :key="menu.id" :label="menu.id">
-            {{ menu.menu_name }}
+            {{ menu.text }}
           </ElCheckbox>
         </ElCheckboxGroup>
         <p v-else class="text-gray-500 text-sm m-0">暂无可用的内联按钮，请先前往菜单管理添加。</p>
@@ -25,7 +25,7 @@
 import { type PropType } from 'vue'
 import { ElFormItem, ElCheckboxGroup, ElCheckbox } from 'element-plus'
 import { BaseButton } from '@/components/Button'
-import type { MenuItem } from '@/api/menu_list/types'
+import type { InnerButtonItem } from '@/api/menu_list/types'
 
 defineProps({
   modelValue: {
@@ -33,7 +33,7 @@ defineProps({
     default: () => []
   },
   menuList: {
-    type: Array as PropType<MenuItem[]>,
+    type: Array as PropType<InnerButtonItem[]>,
     default: () => []
   }
 })

@@ -51,6 +51,26 @@ export interface MenuListResponseV1 {
 }
 
 /**
+ * 内联按钮项（简化版）
+ */
+export interface InnerButtonItem {
+  id: number // 按钮ID
+  agent_id: number // 代理ID
+  created_at: number // 创建时间（Unix时间戳）
+  updated_at: number // 更新时间（Unix时间戳）
+  inner_type: string // 内联类型 url/call
+  inner_value: string // 内联值
+  text: string // 按钮文本
+  status?: number // 状态：1=启用，2=禁用
+}
+
+/**
+ * 内联按钮列表响应（无分页）
+ * GET /v1/message/inner_button
+ */
+export type InnerButtonListResponse = InnerButtonItem[]
+
+/**
  * 添加机器人菜单请求参数 - 新接口 v1
  */
 export interface AddMenuParamsV1 {
@@ -75,6 +95,34 @@ export interface UpdateMenuParamsV1 {
   menu_type: number // 菜单类型（必填）
   order_num: number // 排序（必填）
   status: number // 状态（必填）
+}
+
+/**
+ * 创建内联按钮请求参数
+ * POST /v1/message/inner_button
+ */
+export interface CreateInnerButtonParams {
+  agent_id?: number // 代理ID（可选）
+  created_at?: string // 创建时间（可选）
+  id?: number // 按钮ID（可选，创建时为0）
+  inner_type: string // 内联类型 url/call
+  inner_value: string // 内联值
+  text: string // 按钮文本
+  updated_at?: string // 更新时间（可选）
+}
+
+/**
+ * 更新内联按钮请求参数
+ * PUT /v1/message/inner_button
+ */
+export interface UpdateInnerButtonParams {
+  agent_id?: number // 代理ID（可选）
+  created_at?: string // 创建时间（可选）
+  id: number // 按钮ID（必填）
+  inner_type: string // 内联类型 url/call
+  inner_value: string // 内联值
+  text: string // 按钮文本
+  updated_at?: string // 更新时间（可选）
 }
 
 // ========== 旧类型定义 ==========

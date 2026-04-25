@@ -3,6 +3,7 @@
     <ElForm
       ref="formRef"
       :model="formData"
+      :rules="formRules"
       label-width="120px"
       style="max-height: 70vh; padding-right: 10px; overflow-y: auto"
     >
@@ -11,9 +12,10 @@
         <ElCol :span="12">
           <!-- 机器人选择器 -->
           <BotSelector
-            v-model="formData.bot_id"
+            v-model="formData.bot_ids"
             :bot-list="botList"
             :is-single-user="isSingleUser"
+            field-name="bot_ids"
             @change="handleBotChange"
           />
         </ElCol>
@@ -38,6 +40,7 @@
         :is-multiple-bots="isMultipleBots"
         :show-filter-type="false"
         :show-user-list="true"
+        :selected-bot-id="selectedBotIdForUserList"
       />
 
       <!-- 消息内容编辑器 -->
@@ -57,6 +60,76 @@
         :menu-list="menuList"
         @edit="openInlineButtonDialog"
       />
+
+      <!-- 高级设置 -->
+      <ElDivider content-position="left">
+        <span class="text-sm text-gray-600">高级设置</span>
+      </ElDivider>
+
+      <!-- 发送周期和发送时间 -->
+      <ElRow :gutter="20">
+        <ElCol :span="12">
+          <ElFormItem label="发送周期">
+            <template #label>
+              <ElTooltip content="设置消息重复发送的周期，0表示只发送一次" placement="top">
+                <span class="cursor-help">发送周期 <span class="text-primary">ⓘ</span></span>
+              </ElTooltip>
+            </template>
+            <ElInputNumber
+              v-model="formData.period"
+              :min="0"
+              :max="8760"
+              placeholder="小时数"
+              controls-position="right"
+              class="period-input-center"
+              style="width: 100%"
+            >
+              <template #suffix>
+                <span class="text-gray-400 text-xs">小时</span>
+              </template>
+            </ElInputNumber>
+          </ElFormItem>
+        </ElCol>
+        <ElCol :span="12">
+          <ElFormItem label="发送时间">
+            <template #label>
+              <ElTooltip content="选择消息发送的具体时间，不选择则立即发送" placement="top">
+                <span class="cursor-help">发送时间 <span class="text-primary">ⓘ</span></span>
+              </ElTooltip>
+            </template>
+            <ElDatePicker
+              v-model="formData.sent_at"
+              type="datetime"
+              placeholder="选择发送时间"
+              format="YYYY-MM-DD HH:mm:ss"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              style="width: 100%"
+              :clearable="true"
+              :disabled-date="(time) => time.getTime() < Date.now()"
+            />
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
+
+      <!-- 删除上次消息 -->
+      <ElFormItem label="删除上次消息">
+        <template #label>
+          <ElTooltip content="是否删除上一次发送的消息" placement="top">
+            <span class="cursor-help">删除上次消息 <span class="text-primary">ⓘ</span></span>
+          </ElTooltip>
+        </template>
+        <ElSwitch
+          v-model="formData.delete_sent"
+          :active-value="true"
+          :inactive-value="false"
+          active-text="是"
+          inactive-text="否"
+          inline-prompt
+          style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
+        />
+      </ElFormItem>
     </ElForm>
 
     <template #footer>
@@ -93,13 +166,26 @@
 
 <script setup lang="tsx">
 import { ref, computed, watch, onMounted } from 'vue'
-import { ElButton, ElMessage, ElImageViewer, ElForm, ElRow, ElCol } from 'element-plus'
+import {
+  ElButton,
+  ElMessage,
+  ElImageViewer,
+  ElForm,
+  ElRow,
+  ElCol,
+  ElFormItem,
+  ElInputNumber,
+  ElSwitch,
+  ElDivider,
+  ElTooltip,
+  ElDatePicker
+} from 'element-plus'
 import type { UploadUserFile, FormInstance } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
-import { v1SendGroupMessage } from '@/api/tgUser'
-import { v1GetMenuList, v2GetMenuList } from '@/api/menu_list'
+import { v1SendGroupMessage, v2SendGroupMessage } from '@/api/tgUser'
+import { v1GetInnerButtonList, v2GetInnerButtonList } from '@/api/menu_list'
 import { uploadFile as uploadAPI } from '@/api/utils/upload'
-import type { MenuItem } from '@/api/menu_list/types'
+import type { InnerButtonItem } from '@/api/menu_list/types'
 // import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
 import InlineButtonDialog from '../../../message_list/components/InlineButtonDialog.vue'
 
@@ -160,22 +246,63 @@ const dialogTitle = computed(() => {
 
 // 表单数据
 const formData = ref({
-  bot_id: undefined as number | string | (number | string)[] | undefined,
+  bot_ids: [] as number | string | (number | string)[] | undefined,
   filter_type: 'user_custom' as 'user_custom' | 'all_user',
   user_list: '',
-  content: ''
+  content: '',
+  period: 0,
+  delete_sent: false,
+  sent_at: '' as string | Date | number // 日期时间字符串、Date对象或空字符串
 })
 
 // 内联按钮管理
 const inlineButtonDialogVisible = ref(false)
 const checkList = ref<(number | string)[]>([])
-const menuList = ref<MenuItem[]>([])
+const menuList = ref<InnerButtonItem[]>([])
 
 // 是否选了多个机器人（直接从 formData 派生，避免双状态不同步）
 const isMultipleBots = computed(() => {
-  const val = formData.value.bot_id
+  const val = formData.value.bot_ids
   return Array.isArray(val) && val.length > 1
 })
+
+// 用于获取用户列表的机器人ID（只在单选机器人时有效）
+const selectedBotIdForUserList = computed(() => {
+  const val = formData.value.bot_ids
+  // 如果是数组且只有一个元素，返回该元素
+  if (Array.isArray(val) && val.length === 1) {
+    return val[0]
+  }
+  // 如果不是数组且有值，直接返回
+  if (!Array.isArray(val) && val !== undefined && val !== '') {
+    return val
+  }
+  return undefined
+})
+
+// 表单验证规则
+const formRules = computed(() => ({
+  user_list: [
+    {
+      required: formData.value.filter_type === 'user_custom' && !isMultipleBots.value,
+      message: '自定义用户时，TG用户ID列表不能为空',
+      trigger: ['blur', 'change'],
+      validator: (_rule: any, value: string, callback: Function) => {
+        // 如果不是自定义用户模式，或者是多选机器人，跳过验证
+        if (formData.value.filter_type !== 'user_custom' || isMultipleBots.value) {
+          callback()
+          return
+        }
+        // 自定义用户模式下，必须选择用户
+        if (!value || value.trim() === '') {
+          callback(new Error('自定义用户时，TG用户ID列表不能为空'))
+        } else {
+          callback()
+        }
+      }
+    }
+  ]
+}))
 
 // 文件上传相关
 const fileListRef = ref<UploadUserFile[]>([])
@@ -281,7 +408,7 @@ const handleImageRemove = (file: UploadUserFile) => {
 
 // 机器人选择变化
 const handleBotChange = (value: number | string | (number | string)[]) => {
-  formData.value.bot_id = value
+  formData.value.bot_ids = value
   if (Array.isArray(value) && value.length > 1) {
     formData.value.filter_type = 'all_user'
   }
@@ -291,15 +418,12 @@ const handleBotChange = (value: number | string | (number | string)[]) => {
 const fetchMenuList = async () => {
   try {
     // 根据 useV2Api prop 决定使用哪个接口
-    const apiFunc = props.useV2Api ? v2GetMenuList : v1GetMenuList
-    const res = await apiFunc({
-      menu_type: 2,
-      current_page: 1,
-      page_size: 100
-    })
+    const apiFunc = props.useV2Api ? v2GetInnerButtonList : v1GetInnerButtonList
+    const res = await apiFunc()
 
     if (res.code === '000000' && res.data) {
-      menuList.value = res.data.list || []
+      // 新接口返回的 data 直接是数组
+      menuList.value = res.data || []
     } else {
       menuList.value = []
     }
@@ -339,7 +463,7 @@ const handleSubmit = async () => {
       const selectedBot = props.botList.find((bot) => bot.value === actualBotId)
       previewData.botName = selectedBot?.label || `机器人 ID: ${actualBotId}`
     } else {
-      const botId = formData.value.bot_id
+      const botId = formData.value.bot_ids
       if (Array.isArray(botId)) {
         // 多个机器人：使用数组，每个机器人一行
         previewData.botNames = botId.map((id) => {
@@ -380,7 +504,7 @@ const handleSubmit = async () => {
       previewData.buttons = checkList.value
         .map((id) => {
           const menu = menuList.value.find((m) => m.id === id)
-          return menu ? { text: menu.text || menu.menu_name || '' } : null
+          return menu ? { text: menu.text || '' } : null
         })
         .filter((btn) => btn !== null) as Array<{ text: string; url?: string }>
     }
@@ -395,31 +519,35 @@ const handleConfirmSend = async () => {
   submitting.value = true
 
   try {
-    // 先上传文件
-    let fileUrl = ''
-    if (fileToUpload.value) {
-      const formDataObj = new FormData()
-      formDataObj.append('file', fileToUpload.value)
-      try {
-        const res = await uploadAPI(formDataObj)
-        if (res && res.data && res.data.filename) {
-          const browserOrigin = window.location.origin
-          fileUrl = `${browserOrigin}/${res.data.filename}`
-        } else {
-          ElMessage.error('文件上传失败，未返回文件名')
-          submitting.value = false
-          return
+    // 先上传所有文件
+    const uploadedFiles: string[] = []
+    if (fileListRef.value.length > 0) {
+      for (const fileItem of fileListRef.value) {
+        if (fileItem.raw) {
+          const formDataObj = new FormData()
+          formDataObj.append('file', fileItem.raw)
+          try {
+            const res = await uploadAPI(formDataObj)
+            if (res && res.data && res.data.filename) {
+              const browserOrigin = window.location.origin
+              uploadedFiles.push(`${browserOrigin}/${res.data.filename}`)
+            } else {
+              ElMessage.error(`文件 ${fileItem.name} 上传失败，未返回文件名`)
+              submitting.value = false
+              return
+            }
+          } catch (error: any) {
+            console.error('文件上传错误:', error)
+            ElMessage.error(`文件 ${fileItem.name} 上传失败: ${error?.message || '请重试'}`)
+            submitting.value = false
+            return
+          }
         }
-      } catch (error: any) {
-        console.error('文件上传错误:', error)
-        ElMessage.error('文件上传失败: ' + (error?.message || '请重试'))
-        submitting.value = false
-        return
       }
     }
 
     // 处理内联按钮
-    const keyboards = checkList.value
+    const innerButtons = checkList.value
       .map((item: any) => {
         if (typeof item === 'object' && item !== null && 'id' in item) {
           return Number(item.id)
@@ -428,27 +556,41 @@ const handleConfirmSend = async () => {
       })
       .filter((id: number) => !isNaN(id))
 
-    // 确定实际的 bot_id
-    let actualBotId: number
+    // 确定实际的 bot_ids（支持多选）
+    let botIds: number[]
     if (props.isSingleUser && props.user) {
-      actualBotId = Number(props.user.bot_id)
+      botIds = [Number(props.user.bot_id)]
     } else {
-      actualBotId = Number(formData.value.bot_id)
+      const botId = formData.value.bot_ids
+      if (Array.isArray(botId)) {
+        botIds = botId.map((id) => Number(id))
+      } else {
+        botIds = [Number(botId)]
+      }
+    }
+
+    // 处理发送时间：将日期字符串转换为Unix时间戳（秒）
+    let sentAtTimestamp: number
+    if (formData.value.sent_at) {
+      // 如果选择了日期，转换为Unix时间戳（秒）
+      sentAtTimestamp = Math.floor(new Date(formData.value.sent_at).getTime() / 1000)
+    } else {
+      // 如果没有选择日期，使用当前时间
+      sentAtTimestamp = Math.floor(Date.now() / 1000)
     }
 
     const apiParams: any = {
-      bot_id: actualBotId,
-      content: formData.value.content
+      bot_ids: botIds,
+      content: formData.value.content,
+      delete_sent: formData.value.delete_sent ? 1 : 2, // 将 boolean 转换为 1/2
+      files: uploadedFiles.length > 0 ? uploadedFiles : [],
+      inner_buttons: innerButtons.length > 0 ? innerButtons : [],
+      period: Number(formData.value.period) || 0,
+      sent_at: sentAtTimestamp,
+      tg_user_ids: []
     }
 
-    if (keyboards.length > 0) {
-      apiParams.keyboards = keyboards
-    }
-
-    if (fileUrl) {
-      apiParams.file_url = fileUrl
-    }
-
+    // 如果是自定义用户，设置 tg_user_ids
     if (formData.value.filter_type === 'user_custom') {
       if (formData.value.user_list) {
         const tgUserIdsArray = formData.value.user_list
@@ -469,7 +611,12 @@ const handleConfirmSend = async () => {
       }
     }
 
-    await v1SendGroupMessage(apiParams)
+    // 根据 useV2Api 决定调用 v1 或 v2 接口
+    if (props.useV2Api) {
+      await v2SendGroupMessage(apiParams)
+    } else {
+      await v1SendGroupMessage(apiParams)
+    }
 
     emit('success')
     ElMessage.success('发送消息请求成功')
@@ -501,14 +648,37 @@ watch(
 
         const botInfo = props.botList.find((bot) => String(bot.value) === String(props.user.bot_id))
         if (botInfo) {
-          formData.value.bot_id = botInfo.value
+          formData.value.bot_ids = botInfo.value
           formData.value.user_list = String(props.user.tg_user_id)
         }
       } else {
         formData.value.filter_type = 'user_custom'
       }
     } else {
+      // 弹窗关闭时清空所有状态
+      formRef.value?.resetFields()
+      formData.value = {
+        bot_ids: [],
+        filter_type: 'user_custom',
+        user_list: '',
+        content: '',
+        period: 0,
+        delete_sent: false,
+        sent_at: ''
+      }
       menuList.value = []
+      checkList.value = []
+      fileToUpload.value = null
+      fileListRef.value = []
+
+      // 清理视频预览的 blob URL，避免内存泄漏
+      if (videoPreviewUrl.value.startsWith('blob:')) {
+        URL.revokeObjectURL(videoPreviewUrl.value)
+      }
+      videoPreviewUrl.value = ''
+      showImageViewer.value = false
+      showVideoViewer.value = false
+      showMessagePreview.value = false
     }
   },
   { immediate: true }
@@ -538,5 +708,65 @@ onMounted(() => {
 
 :deep(.el-dialog__body)::-webkit-scrollbar-track {
   background-color: transparent;
+}
+
+/* 优化表单项间距 */
+:deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+/* 优化分割线样式 */
+:deep(.el-divider) {
+  margin: 24px 0 20px;
+}
+
+:deep(.el-divider__text) {
+  padding: 0 12px;
+  background-color: #fff;
+}
+
+/* 优化输入框样式 */
+:deep(.el-input-number) {
+  width: 100%;
+}
+
+:deep(.el-input-number .el-input__inner) {
+  text-align: left;
+}
+
+/* 发送周期输入框居中 */
+:deep(.period-input-center .el-input__inner) {
+  text-align: center;
+}
+
+/* 优化单选按钮组样式 */
+:deep(.el-radio-group) {
+  display: flex;
+  align-items: center;
+}
+
+:deep(.el-radio) {
+  margin-right: 24px;
+}
+
+/* 优化提示图标样式 */
+.cursor-help {
+  cursor: help;
+}
+
+/* 优化延迟时间提示文本 */
+:deep(.el-form-item__content) {
+  position: relative;
+}
+
+/* 快捷时间按钮样式 */
+:deep(.el-button--small) {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
+/* 快捷按钮容器 */
+.flex-wrap {
+  flex-wrap: wrap;
 }
 </style>

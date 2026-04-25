@@ -18,7 +18,6 @@
       v-if="showUserList && shouldShowUserListInput"
       :label="isSingleUser ? 'TG用户ID' : 'TG用户ID列表'"
       prop="user_list"
-      :rules="userListRules"
     >
       <!-- 单个用户模式：只读输入框 -->
       <ElInput
@@ -28,22 +27,48 @@
         disabled
         placeholder="当前用户TG ID"
       />
-      <!-- 群发模式：多行文本框 -->
-      <ElInput
+      <!-- 群发模式：下拉多选框 -->
+      <ElSelect
         v-else
-        :model-value="userList"
-        @update:model-value="handleUserListChange"
-        type="textarea"
-        :rows="3"
-        placeholder="请输入TG用户ID，多个用英文逗号隔开"
-      />
+        :model-value="selectedUserIds"
+        @update:model-value="handleUserSelectionChange"
+        multiple
+        filterable
+        placeholder="请选择用户"
+        style="width: 100%"
+        :loading="loadingUsers"
+        :disabled="!selectedBotId || loadingUsers"
+        collapse-tags
+        collapse-tags-tooltip
+        :max-collapse-tags="3"
+      >
+        <ElOption
+          v-for="user in userOptions"
+          :key="user.value"
+          :label="user.label"
+          :value="user.value"
+        />
+        <!-- 当有机器人但没有用户时显示提示 -->
+        <template v-if="selectedBotId && !loadingUsers && userOptions.length === 0" #empty>
+          <div class="text-center text-gray-400 py-2">此机器人下没有用户</div>
+        </template>
+      </ElSelect>
     </ElFormItem>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, type PropType } from 'vue'
-import { ElFormItem, ElRadioGroup, ElRadio, ElInput } from 'element-plus'
+import { computed, watch, ref, type PropType } from 'vue'
+import {
+  ElFormItem,
+  ElRadioGroup,
+  ElRadio,
+  ElInput,
+  ElSelect,
+  ElOption,
+  ElMessage
+} from 'element-plus'
+import { v1GetBotUserList } from '@/api/tgUser'
 
 const props = defineProps({
   filterType: {
@@ -71,10 +96,28 @@ const props = defineProps({
   showUserList: {
     type: Boolean,
     default: true
+  },
+  // 新增：选中的机器人ID（用于获取用户列表）
+  selectedBotId: {
+    type: [Number, String] as PropType<number | string | undefined>,
+    default: undefined
   }
 })
 
 const emit = defineEmits(['update:filterType', 'update:userList'])
+
+// 用户列表相关状态
+const loadingUsers = ref(false)
+const userOptions = ref<Array<{ label: string; value: number }>>([])
+
+// 将逗号分隔的字符串转换为数组
+const selectedUserIds = computed(() => {
+  if (!props.userList) return []
+  return props.userList
+    .split(',')
+    .map((id) => Number(id.trim()))
+    .filter((id) => !isNaN(id) && id !== 0)
+})
 
 // 是否应该显示用户列表输入框
 const shouldShowUserListInput = computed(() => {
@@ -84,25 +127,56 @@ const shouldShowUserListInput = computed(() => {
   return props.isSingleUser || props.filterType === 'user_custom'
 })
 
-// 用户列表校验规则
-const userListRules = computed(() => {
-  if (props.filterType === 'user_custom') {
-    return [
-      {
-        required: true,
-        validator: (_rule: any, value: string, callback: Function) => {
-          if (!value) {
-            callback(new Error('自定义用户时，TG用户ID列表不能为空'))
-          } else {
-            callback()
-          }
-        },
-        trigger: 'blur'
-      }
-    ]
+// 获取机器人用户列表
+const fetchBotUsers = async (botId: number | string) => {
+  if (!botId) {
+    userOptions.value = []
+    return
   }
-  return []
-})
+
+  loadingUsers.value = true
+  try {
+    const res = await v1GetBotUserList(Number(botId))
+    if (res.code === '000000' && res.data) {
+      userOptions.value = res.data.map((user) => ({
+        label: `${user.tg_user_name || user.tg_first_name || 'Unknown'} (${user.tg_user_id})`,
+        value: user.tg_user_id
+      }))
+    } else {
+      userOptions.value = []
+      ElMessage.warning('获取用户列表失败')
+    }
+  } catch (error) {
+    console.error('获取用户列表失败:', error)
+    userOptions.value = []
+    ElMessage.error('获取用户列表失败')
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
+// 监听机器人ID变化，自动获取用户列表
+watch(
+  () => props.selectedBotId,
+  (newBotId) => {
+    if (newBotId && !props.isSingleUser && props.filterType === 'user_custom') {
+      fetchBotUsers(newBotId)
+    } else {
+      userOptions.value = []
+    }
+  },
+  { immediate: true }
+)
+
+// 监听filterType变化
+watch(
+  () => props.filterType,
+  (newType) => {
+    if (newType === 'user_custom' && props.selectedBotId) {
+      fetchBotUsers(props.selectedBotId)
+    }
+  }
+)
 
 const handleFilterTypeChange = (value: 'user_custom' | 'all_user') => {
   emit('update:filterType', value)
@@ -114,6 +188,13 @@ const handleFilterTypeChange = (value: 'user_custom' | 'all_user') => {
 
 const handleUserListChange = (value: string) => {
   emit('update:userList', value)
+}
+
+// 处理用户选择变化
+const handleUserSelectionChange = (selectedIds: number[]) => {
+  // 将数组转换为逗号分隔的字符串
+  const userListStr = selectedIds.join(',')
+  emit('update:userList', userListStr)
 }
 </script>
 

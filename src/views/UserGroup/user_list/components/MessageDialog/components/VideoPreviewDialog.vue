@@ -30,6 +30,8 @@
             class="video-js vjs-default-skin vjs-big-play-centered"
             controls
             preload="auto"
+            disablePictureInPicture
+            controlslist="nodownload nofullscreen noremoteplayback"
           >
             <p class="vjs-no-js">您的浏览器不支持视频播放，请升级浏览器。</p>
           </video>
@@ -81,7 +83,8 @@ const initVideoPlayer = () => {
           controlBar: {
             volumePanel: {
               inline: false
-            }
+            },
+            pictureInPictureToggle: false // 禁用画中画按钮
           },
           sources: [
             {
@@ -90,6 +93,11 @@ const initVideoPlayer = () => {
             }
           ]
         })
+
+        // 禁用画中画功能
+        if (player && videoPlayerRef.value) {
+          videoPlayerRef.value.disablePictureInPicture = true
+        }
       } catch (error) {
         console.error('Video.js 初始化失败:', error)
       }
@@ -223,5 +231,10 @@ onBeforeUnmount(() => {
 .video-js:hover .vjs-big-play-button,
 .video-js .vjs-big-play-button:focus {
   background-color: rgb(0 0 0 / 90%);
+}
+
+/* 隐藏画中画按钮 */
+.video-js .vjs-picture-in-picture-control {
+  display: none !important;
 }
 </style>
