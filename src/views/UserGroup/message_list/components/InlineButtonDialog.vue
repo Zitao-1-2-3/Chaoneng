@@ -122,7 +122,7 @@
             </ElSelect>
             <div v-else style="width: 100%">
               <ElInput v-model="formData.inner_value" placeholder="请输入链接地址" />
-              <div style=" margin-top: 4px; font-size: 12px;color: #999">
+              <div style="margin-top: 4px; font-size: 12px; color: #999">
                 例如：https://www.123456789.com
               </div>
             </div>
