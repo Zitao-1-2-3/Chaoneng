@@ -8,7 +8,7 @@ import type {
   MassSendListParamsV1,
   MassSendListResponseV1,
   SendGroupMessageParamsV1,
-  SendMessageParamsV1,
+  UpdateGroupMessageParams,
   UserBillListParamsV1,
   UserBillListResponseV1
 } from './types'
@@ -19,7 +19,6 @@ export * from './types'
 // ==================== v1 接口（管理端） ====================
 
 const BASE_URL_V1 = '/v1/user/bot/tg_user/'
-const REPLY_BASE_URL_V1 = '/v1/bot/reply/'
 
 /**
  * 获取用户列表
@@ -55,46 +54,73 @@ export const v1AdminChangePassword = (data: AdminChangePasswordParamsV1): Promis
 }
 
 /**
- * 获取群发消息列表
- * GET /v1/bot/reply/msg/list
+ * 获取群发消息列表 - 新接口
+ * GET /v1/message
  */
 export const v1GetMassSendList = (
   params: MassSendListParamsV1
 ): Promise<IResponse<MassSendListResponseV1>> => {
   return request.get({
-    url: `${REPLY_BASE_URL_V1}msg/list`,
+    url: '/v1/message',
     params
   })
 }
 
 /**
- * 删除群发消息
- * POST /v1/bot/reply/msg/delete/{id}
+ * 删除群发消息 - 新接口
+ * DELETE /v1/message/{id}
  */
 export const v1DeleteMassSend = (id: number): Promise<IResponse> => {
-  return request.post({
-    url: `${REPLY_BASE_URL_V1}msg/delete/${id}`
+  return request.delete({
+    url: `/v1/message/${id}`
   })
 }
 
 /**
- * 给指定的tg用户群发信息
- * POST /v1/bot/group_msg
+ * 获取机器人名下的用户列表
+ * GET /v1/message/user
+ */
+export const v1GetBotUserList = (
+  bot_id: number
+): Promise<
+  IResponse<Array<{ tg_user_id: number; tg_user_name: string; tg_first_name: string }>>
+> => {
+  return request.get({
+    url: '/v1/message/user',
+    params: { bot_id }
+  })
+}
+
+/**
+ * 获取机器人列表（用于消息列表筛选）
+ * GET /v1/message/bot
+ */
+export const v1GetMessageBotList = (): Promise<
+  IResponse<Array<{ id: number; user_name: string }>>
+> => {
+  return request.get({
+    url: '/v1/message/bot'
+  })
+}
+
+/**
+ * 给指定的机器人名下用户群发信息（支持多机器人）
+ * POST /v1/message
  */
 export const v1SendGroupMessage = (data: SendGroupMessageParamsV1): Promise<IResponse> => {
   return request.post({
-    url: '/v1/bot/group_msg',
+    url: '/v1/message',
     data
   })
 }
 
 /**
- * 给指定的tg用户发信息
- * POST /v1/bot/reply/send_msg
+ * 更新群发消息
+ * PUT /v1/message
  */
-export const v1SendMessage = (data: SendMessageParamsV1): Promise<IResponse> => {
-  return request.post({
-    url: `${REPLY_BASE_URL_V1}send_msg`,
+export const v1UpdateGroupMessage = (data: UpdateGroupMessageParams): Promise<IResponse> => {
+  return request.put({
+    url: '/v1/message',
     data
   })
 }
@@ -108,21 +134,6 @@ export const v1GetUserBillList = (
 ): Promise<IResponse<UserBillListResponseV1>> => {
   return request.get({
     url: '/v1/bill/user/list',
-    params
-  })
-}
-
-/**
- * 获取内联按钮列表
- * GET /v1/bot/menu/list
- */
-export const v1GetInlineButtonList = (params: {
-  menu_type: number
-  current_page?: number
-  page_size?: number
-}): Promise<IResponse<any>> => {
-  return request.get({
-    url: '/v1/bot/menu/list',
     params
   })
 }
@@ -145,64 +156,59 @@ export const exportTgUserListApi = (params: any) => {
 
 // ==================== v2 接口（运营端） ====================
 
-const REPLY_BASE_URL_V2 = '/v2/bot/reply/'
-
 /**
- * 获取群发消息列表
- * GET /v2/bot/reply/msg/list
+ * 获取群发消息列表 - 新接口
+ * GET /v2/message
  */
 export const v2GetMassSendList = (
   params: MassSendListParamsV1
 ): Promise<IResponse<MassSendListResponseV1>> => {
   return request.get({
-    url: `${REPLY_BASE_URL_V2}msg/list`,
+    url: '/v2/message',
     params
   })
 }
 
 /**
- * 删除群发消息
- * POST /v2/bot/reply/msg/delete/{id}
+ * 删除群发消息 - 新接口
+ * DELETE /v2/message/{id}
  */
 export const v2DeleteMassSend = (id: number): Promise<IResponse> => {
-  return request.post({
-    url: `${REPLY_BASE_URL_V2}msg/delete/${id}`
+  return request.delete({
+    url: `/v2/message/${id}`
   })
 }
 
 /**
- * 给指定的tg用户群发信息
- * POST /v2/bot/group_msg
+ * 给指定的机器人名下用户群发信息（支持多机器人）
+ * POST /v2/message
  */
 export const v2SendGroupMessage = (data: SendGroupMessageParamsV1): Promise<IResponse> => {
   return request.post({
-    url: '/v2/bot/group_msg',
+    url: '/v2/message',
     data
   })
 }
 
 /**
- * 给指定的tg用户发信息
- * POST /v2/bot/reply/send_msg
+ * 更新群发消息
+ * PUT /v2/message
  */
-export const v2SendMessage = (data: SendMessageParamsV1): Promise<IResponse> => {
-  return request.post({
-    url: `${REPLY_BASE_URL_V2}send_msg`,
+export const v2UpdateGroupMessage = (data: UpdateGroupMessageParams): Promise<IResponse> => {
+  return request.put({
+    url: '/v2/message',
     data
   })
 }
 
 /**
- * 获取内联按钮列表
- * GET /v2/bot/menu/list
+ * 获取机器人列表（用于消息列表筛选）
+ * GET /v2/message/bot
  */
-export const v2GetInlineButtonList = (params: {
-  menu_type: number
-  current_page?: number
-  page_size?: number
-}): Promise<IResponse<any>> => {
+export const v2GetMessageBotList = (): Promise<
+  IResponse<Array<{ id: number; user_name: string }>>
+> => {
   return request.get({
-    url: '/v2/bot/menu/list',
-    params
+    url: '/v2/message/bot'
   })
 }

@@ -40,22 +40,6 @@
               <span>{{ currentDetailRecord.bot_name }}</span>
             </div>
             <div>
-              <span class="font-semibold">接收类型：</span>
-              <ElTag :type="getReceiveTypeTag(currentDetailRecord.receive_type).type">
-                {{ getReceiveTypeTag(currentDetailRecord.receive_type).label }}
-              </ElTag>
-            </div>
-            <div>
-              <span class="font-semibold">状态：</span>
-              <ElTag :type="getStatusTag(currentDetailRecord.status).type">
-                {{ getStatusTag(currentDetailRecord.status).label }}
-              </ElTag>
-            </div>
-            <div>
-              <span class="font-semibold">进度：</span>
-              <span>{{ currentDetailRecord.percent || 0 }}%</span>
-            </div>
-            <div>
               <span class="font-semibold">成功数：</span>
               <span>{{ currentDetailRecord.ok_num || 0 }} 个</span>
             </div>
@@ -67,68 +51,111 @@
               <span class="font-semibold">创建时间：</span>
               <span>{{
                 currentDetailRecord.created_at
-                  ? formatToDateTime(currentDetailRecord.created_at * 1000)
+                  ? formatToDateTime(new Date(currentDetailRecord.created_at).getTime())
                   : '-'
               }}</span>
+            </div>
+            <div v-if="currentDetailRecord.sent_at">
+              <span class="font-semibold">发送时间：</span>
+              <span>{{ formatSentTime(currentDetailRecord.sent_at) }}</span>
             </div>
           </div>
         </div>
 
         <ElDivider />
 
-        <!-- 消息内容 -->
+        <!-- 消息预览 -->
         <div class="mb-4">
-          <div class="font-semibold mb-2">消息内容：</div>
-          <div class="bg-gray-50 p-4 rounded">
-            <!-- 图片/视频预览 -->
-            <div
-              v-if="currentDetailRecord.image || currentDetailRecord.file_url"
-              class="mb-3 flex justify-center"
-            >
-              <template v-if="isVideo(currentDetailRecord.image || currentDetailRecord.file_url)">
-                <video
-                  :src="currentDetailRecord.image || currentDetailRecord.file_url"
-                  controls
-                  class="max-w-full h-auto rounded"
-                  style="max-height: 400px"
-                >
-                  您的浏览器不支持视频播放
-                </video>
-              </template>
-              <template v-else>
-                <ElImage
-                  :src="currentDetailRecord.image || currentDetailRecord.file_url"
-                  alt="消息图片"
-                  fit="contain"
-                  class="max-w-full h-auto rounded"
-                  :preview-src-list="[currentDetailRecord.image || currentDetailRecord.file_url]"
-                />
-              </template>
-            </div>
+          <div class="font-semibold mb-2">消息预览：</div>
 
-            <!-- 文字内容 -->
-            <p v-if="currentDetailRecord.content" class="text-sm whitespace-pre-wrap">
-              {{ currentDetailRecord.content }}
-            </p>
-            <p v-else class="text-sm text-gray-400 italic">无文字内容</p>
-          </div>
-
-          <!-- 内联按钮预览 -->
-          <div
-            v-if="currentDetailRecord.keyboards && currentDetailRecord.keyboards.length > 0"
-            class="mt-3"
-          >
-            <div class="font-semibold mb-2">内联按钮：</div>
-            <div class="flex flex-wrap gap-2">
-              <ElButton
-                v-for="(button, index) in currentDetailRecord.keyboards"
-                :key="index"
-                size="small"
-                disabled
+          <!-- Telegram 风格的消息卡片 -->
+          <div class="message-preview-container">
+            <!-- 如果有文件，遍历显示 -->
+            <template v-if="currentDetailRecord.files && currentDetailRecord.files.length > 0">
+              <div
+                v-for="(file, index) in currentDetailRecord.files"
+                :key="`file-${index}`"
+                class="message-card"
               >
-                {{ getButtonText(button) }}
-              </ElButton>
-            </div>
+                <!-- 图片/视频 -->
+                <div class="media-container">
+                  <template v-if="isVideo(file)">
+                    <video
+                      :src="file"
+                      controls
+                      disablePictureInPicture
+                      controlslist="nodownload noremoteplayback"
+                      class="media-content"
+                    >
+                      您的浏览器不支持视频播放
+                    </video>
+                  </template>
+                  <template v-else>
+                    <ElImage
+                      :src="file"
+                      alt="消息图片"
+                      fit="cover"
+                      class="media-content cursor-pointer"
+                      :preview-src-list="currentDetailRecord.files"
+                      :initial-index="Number(index)"
+                    />
+                  </template>
+                </div>
+
+                <!-- 只在最后一个文件上显示文字内容和内联按钮 -->
+                <template v-if="index === currentDetailRecord.files.length - 1">
+                  <!-- 文字内容 -->
+                  <div v-if="currentDetailRecord.content" class="message-text">
+                    {{ currentDetailRecord.content }}
+                  </div>
+
+                  <!-- 内联按钮 -->
+                  <div
+                    v-if="
+                      currentDetailRecord.inner_buttons &&
+                      currentDetailRecord.inner_buttons.length > 0
+                    "
+                    class="inline-buttons"
+                  >
+                    <div
+                      v-for="(button, btnIndex) in currentDetailRecord.inner_buttons"
+                      :key="btnIndex"
+                      class="inline-button"
+                    >
+                      {{ button.text }}
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </template>
+
+            <!-- 如果没有文件，只显示文字和按钮 -->
+            <template v-else>
+              <div class="message-card text-only">
+                <!-- 文字内容 -->
+                <div v-if="currentDetailRecord.content" class="message-text">
+                  {{ currentDetailRecord.content }}
+                </div>
+                <div v-else class="message-text text-gray-400 italic"> 无文字内容 </div>
+
+                <!-- 内联按钮 -->
+                <div
+                  v-if="
+                    currentDetailRecord.inner_buttons &&
+                    currentDetailRecord.inner_buttons.length > 0
+                  "
+                  class="inline-buttons"
+                >
+                  <div
+                    v-for="(button, btnIndex) in currentDetailRecord.inner_buttons"
+                    :key="btnIndex"
+                    class="inline-button"
+                  >
+                    {{ button.text }}
+                  </div>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -142,6 +169,29 @@
 
     <!-- 内联按钮管理弹窗 -->
     <InlineButtonDialog v-model="inlineButtonDialogVisible" />
+
+    <!-- 高级设置弹窗 -->
+    <AdvancedSettingsDialog
+      v-model="advancedSettingsDialogVisible"
+      :row-data="currentEditRow"
+      @success="handleAdvancedSettingsSuccess"
+    />
+
+    <!-- 文件预览弹窗 - 图片 -->
+    <ElImageViewer
+      v-if="filePreviewVisible && !isPreviewVideo"
+      :url-list="previewFileList"
+      :initial-index="previewInitialIndex"
+      teleported
+      @close="filePreviewVisible = false"
+    />
+
+    <!-- 文件预览弹窗 - 视频 -->
+    <VideoPreviewDialog
+      v-model:visible="filePreviewVisible"
+      :video-url="previewFileUrl"
+      v-if="isPreviewVideo"
+    />
   </ContentWrap>
 </template>
 
@@ -154,12 +204,41 @@ import { Dialog } from '@/components/Dialog'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { ElMessage, ElTag, ElMessageBox, ElDivider, ElImage, ElButton } from 'element-plus'
-import { v2GetMassSendList, v2SendGroupMessage } from '@/api/tgUser'
+import { ElMessage, ElMessageBox, ElDivider, ElImage, ElImageViewer } from 'element-plus'
+import {
+  v2GetMassSendList,
+  v2SendGroupMessage,
+  v2DeleteMassSend,
+  v2GetMessageBotList
+} from '@/api/tgUser'
 import type { MassSendListParamsV1 } from '@/api/tgUser/types'
-import { getAgentBotListApi } from '@/api/agent/bot'
 import MessageDialog from '../components/MessageDialog.vue'
 import InlineButtonDialog from './components/InlineButtonDialog.vue'
+import AdvancedSettingsDialog from './components/AdvancedSettingsDialog.vue'
+import VideoPreviewDialog from '@/views/UserGroup/user_list/components/MessageDialog/components/VideoPreviewDialog.vue'
+
+// 辅助函数：格式化发送时间
+const formatSentTime = (sentAt: string | number): string => {
+  if (!sentAt) return '—'
+
+  let timestamp: number
+
+  // 处理不同的时间格式
+  if (typeof sentAt === 'number') {
+    // 如果是数字，判断是秒还是毫秒
+    timestamp = sentAt < 10000000000 ? sentAt * 1000 : sentAt
+  } else if (typeof sentAt === 'string') {
+    // 如果是字符串，尝试解析
+    timestamp = new Date(sentAt).getTime()
+  } else {
+    return '—'
+  }
+
+  // 检查时间是否有效
+  if (isNaN(timestamp) || timestamp <= 0) return '—'
+
+  return formatToDateTime(timestamp)
+}
 
 // SearchTable 引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -178,19 +257,27 @@ const messageDialogCustomTitle = ref('')
 const detailDialogVisible = ref(false)
 const currentDetailRecord = ref<any>({})
 
+// 文件预览
+const filePreviewVisible = ref(false)
+const previewFileUrl = ref('')
+const previewFileList = ref<string[]>([])
+const previewInitialIndex = ref(0)
+const isPreviewVideo = ref(false)
+
 // 内联按钮管理弹窗
 const inlineButtonDialogVisible = ref(false)
+
+// 高级设置弹窗
+const advancedSettingsDialogVisible = ref(false)
+const currentEditRow = ref<any>(null)
 
 // 获取机器人列表
 const fetchBotList = async () => {
   try {
-    const res = await getAgentBotListApi({
-      current_page: 1,
-      page_size: 100
-    })
+    const res = await v2GetMessageBotList()
     if (res.code === '000000' && res.data) {
-      botList.value = (res.data.list || []).map((bot: any) => ({
-        label: `${bot.user_name}(${bot.first_name})`,
+      botList.value = (res.data || []).map((bot: any) => ({
+        label: bot.user_name,
         value: bot.id
       }))
       // 标记机器人列表已加载
@@ -228,38 +315,30 @@ const goToInlineButtons = () => {
   inlineButtonDialogVisible.value = true
 }
 
-// 判断是否为视频
-const isVideo = (url: string) => {
+// 判断是否为视频文件
+const isVideo = (url: string): boolean => {
   if (!url) return false
-  const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi']
-  return videoExtensions.some((ext) => url.toLowerCase().includes(ext))
+  return /\.(mp4|avi|mov|wmv|flv|mkv|webm)$/i.test(url)
 }
 
-// 获取按钮文本
-const getButtonText = (button: any) => {
-  if (typeof button === 'object' && button.text) {
-    return button.text
-  }
-  return String(button)
-}
+// 文件预览
+const handleFilePreview = (fileUrl: string, allFiles?: string[]) => {
+  if (!fileUrl) return
 
-// 获取接收类型标签
-const getReceiveTypeTag = (type: string) => {
-  const typeMap: Record<string, { label: string; type: any }> = {
-    all_user: { label: '全部用户', type: 'info' },
-    user_custom: { label: '指定用户', type: 'success' },
-    one_user: { label: '单个用户', type: 'warning' }
-  }
-  return typeMap[type] || { label: type, type: '' }
-}
+  previewFileUrl.value = fileUrl
+  isPreviewVideo.value = isVideo(fileUrl)
 
-// 获取状态标签
-const getStatusTag = (status: number) => {
-  const statusMap: Record<number, { label: string; type: any }> = {
-    1: { label: '发送中', type: 'warning' },
-    2: { label: '已完成', type: 'success' }
+  // 如果提供了所有文件列表，过滤出所有图片
+  if (allFiles && allFiles.length > 0) {
+    const imageFiles = allFiles.filter((file) => !isVideo(file))
+    previewFileList.value = imageFiles
+    previewInitialIndex.value = imageFiles.indexOf(fileUrl)
+  } else {
+    previewFileList.value = [fileUrl]
+    previewInitialIndex.value = 0
   }
-  return statusMap[status] || { label: '未知', type: '' }
+
+  filePreviewVisible.value = true
 }
 
 // 查看详情
@@ -268,62 +347,40 @@ const handleViewDetail = (row: any) => {
   detailDialogVisible.value = true
 }
 
-// 重发消息 - 使用群发消息接口重新发送，成功后刷新列表
+// 编辑消息
+const handleEdit = (row: any) => {
+  currentEditRow.value = row
+  advancedSettingsDialogVisible.value = true
+}
+
+// 高级设置成功回调
+const handleAdvancedSettingsSuccess = () => {
+  searchTableRef.value?.reload()
+}
+
+// 重发消息
 const handleResend = async (row: any) => {
   try {
-    await ElMessageBox.confirm('确定要重新发送这条消息吗？', '提示', {
+    await ElMessageBox.confirm('确定要立即重发这条消息吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
 
-    // 使用群发消息接口 v2SendGroupMessage，参数与原记录一致
-    const apiParams: any = {
-      bot_id: row.tg_bot_id || row.bot_id,
-      content: row.content
-    }
+    // 再次调用发送消息接口，只修改 period 为 0 和 sent_at 为当前时间
+    const res = await v2SendGroupMessage({
+      bot_ids: [row.bot_id],
+      content: row.content || '',
+      delete_sent: row.delete_sent || 2,
+      files: row.files || [],
+      inner_buttons: (row.inner_buttons || []).map((btn: any) => btn.id),
+      period: 0, // 重发时周期改为0（只发一次）
+      sent_at: Math.floor(Date.now() / 1000), // 发送时间改为当前时间
+      tg_user_ids: row.tg_user_ids || []
+    })
 
-    // 添加内联按钮（如果有）
-    if (row.keyboards && row.keyboards.length > 0) {
-      apiParams.keyboards = row.keyboards
-        .map((btn: any) => {
-          return typeof btn === 'object' ? btn.id : Number(btn)
-        })
-        .filter((id: number) => !isNaN(id))
-    }
-
-    // 添加文件URL（图片或视频）
-    if (row.image || row.file_url) {
-      apiParams.file_url = row.file_url || row.image
-    }
-
-    // 添加接收用户列表
-    if (row.tg_user_ids) {
-      let userIds: number[] = []
-
-      if (Array.isArray(row.tg_user_ids)) {
-        userIds = row.tg_user_ids
-          .map((id: any) => Number(id))
-          .filter((id: number) => !isNaN(id) && id !== 0)
-      } else if (typeof row.tg_user_ids === 'string') {
-        userIds = row.tg_user_ids
-          .split(',')
-          .map((id: string) => Number(id.trim()))
-          .filter((id: number) => !isNaN(id) && id !== 0)
-      } else if (typeof row.tg_user_ids === 'number') {
-        userIds = [row.tg_user_ids]
-      }
-
-      if (userIds.length > 0) {
-        apiParams.tg_user_ids = userIds
-      }
-    }
-
-    // 1. 调用群发接口
-    const res = await v2SendGroupMessage(apiParams)
     if (res.code === '000000') {
       ElMessage.success('重发成功')
-      // 2. 刷新表格数据
       searchTableRef.value?.reload()
     } else {
       ElMessage.error((res as any).msg || '重发失败')
@@ -332,6 +389,31 @@ const handleResend = async (row: any) => {
     if (error !== 'cancel') {
       console.error('重发失败:', error)
       ElMessage.error(error.message || '重发失败')
+    }
+  }
+}
+
+// 删除消息
+const handleDelete = async (row: any) => {
+  try {
+    await ElMessageBox.confirm('确定要删除这条群发消息记录吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    // 调用删除接口
+    const res = await v2DeleteMassSend(row.id)
+    if (res.code === '000000') {
+      ElMessage.success('删除成功')
+      searchTableRef.value?.reload()
+    } else {
+      ElMessage.error((res as any).msg || '删除失败')
+    }
+  } catch (error: any) {
+    if (error !== 'cancel') {
+      console.error('删除失败:', error)
+      ElMessage.error(error.message || '删除失败')
     }
   }
 }
@@ -353,26 +435,17 @@ const searchSchema = computed<FormSchema[]>(() => {
       }
     },
     {
-      field: 'keyword',
-      component: 'Input',
-      label: '关键词',
-      colProps: { span: 6 },
-      componentProps: {
-        placeholder: '搜索消息内容',
-        clearable: true
-      }
-    },
-    {
       field: 'status',
       component: 'Select',
-      label: '状态',
+      label: '发送周期',
       colProps: { span: 6 },
       componentProps: {
         options: [
-          { label: '发送中', value: 1 },
-          { label: '已完成', value: 2 }
+          { label: '全部', value: 0 },
+          { label: '只发一次', value: 1 },
+          { label: '周期发送', value: 2 }
         ],
-        placeholder: '请选择状态',
+        placeholder: '请选择发送周期',
         clearable: true
       }
     }
@@ -382,73 +455,178 @@ const searchSchema = computed<FormSchema[]>(() => {
 // 表格列配置
 const tableColumns: TableColumn[] = [
   {
+    field: 'bot_id',
+    label: '机器人ID',
+    width: 120
+  },
+  {
     field: 'bot_name',
-    label: '机器人',
-    width: 150
+    label: '发送目标',
+    width: 150,
+    formatter: (row) => row.bot_name || '-'
+  },
+  {
+    field: 'tg_user_ids',
+    label: 'TG用户ID',
+    width: 150,
+    formatter: (row) => {
+      if (!row.tg_user_ids || row.tg_user_ids.length === 0) return '全部用户'
+      if (row.tg_user_ids.length === 1) return String(row.tg_user_ids[0])
+      return `${row.tg_user_ids.length}个用户`
+    }
   },
   {
     field: 'content',
     label: '消息内容',
-    minWidth: 250,
     formatter: (row) => {
       const content = row.content || ''
-      return content.length > 80 ? content.substring(0, 80) + '...' : content
+      return content.length > 50 ? content.substring(0, 50) + '...' : content || '—'
     }
   },
   {
-    field: 'status',
-    label: '状态',
-    width: 100,
+    field: 'files',
+    label: '文件',
+    align: 'center',
     slots: {
       default: ({ row }: { row: any }) => {
-        const statusMap: Record<number, { label: string; type: any }> = {
-          1: { label: '发送中', type: 'warning' },
-          2: { label: '已完成', type: 'success' }
+        if (row.files && row.files.length > 0) {
+          const firstFile = row.files[0]
+          const isVideoFile = isVideo(firstFile)
+
+          if (isVideoFile) {
+            return (
+              <div style="display: flex; justify-content: center; align-items: center;">
+                <div
+                  style="width: 50px; height: 50px; border-radius: 4px; overflow: hidden; cursor: pointer; position: relative; background: #000;"
+                  onClick={() => handleFilePreview(firstFile, row.files)}
+                >
+                  <video
+                    src={firstFile + '#t=0.1'}
+                    style="width: 100%; height: 100%; object-fit: cover;"
+                    muted
+                    preload="metadata"
+                    disablePictureInPicture
+                    controlslist="nodownload noremoteplayback"
+                  />
+                  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 20px; pointer-events: none; text-shadow: 0 0 4px rgba(0,0,0,0.8);">
+                    ▶
+                  </div>
+                </div>
+              </div>
+            )
+          } else {
+            return (
+              <div style="display: flex; justify-content: center; align-items: center;">
+                <div
+                  style="width: 50px; height: 50px; border-radius: 4px; overflow: hidden; cursor: pointer;"
+                  onClick={() => handleFilePreview(firstFile, row.files)}
+                >
+                  <ElImage
+                    src={firstFile}
+                    fit="cover"
+                    style="width: 100%; height: 100%; object-fit: cover;"
+                    preview-teleported={false}
+                  />
+                </div>
+              </div>
+            )
+          }
         }
-        const statusInfo = statusMap[row.status] || { label: '未知', type: '' }
-        return <ElTag type={statusInfo.type}>{statusInfo.label}</ElTag>
+        return <div style="text-align: center;">—</div>
       }
     }
   },
   {
-    field: 'percent',
-    label: '进度',
-    width: 100,
-    formatter: (row) => `${row.percent || 0}%`
+    field: 'sent_at',
+    label: '发送时间',
+    width: 180,
+    formatter: (row) => formatSentTime(row.sent_at)
   },
   {
-    field: 'ok_num',
-    label: '成功数',
-    width: 100,
-    formatter: (row) => `${row.ok_num || 0} 个`
+    field: 'time_diff',
+    label: '距离上次发送',
+    width: 130,
+    formatter: (row) => {
+      if (!row.sent_at) return '—'
+      const now = Date.now()
+      let sentTime: number
+
+      // 处理不同的时间格式
+      if (typeof row.sent_at === 'number') {
+        // 如果是数字，判断是秒还是毫秒
+        sentTime = row.sent_at < 10000000000 ? row.sent_at * 1000 : row.sent_at
+      } else if (typeof row.sent_at === 'string') {
+        // 如果是字符串，尝试解析
+        sentTime = new Date(row.sent_at).getTime()
+      } else {
+        return '—'
+      }
+
+      // 检查时间是否有效
+      if (isNaN(sentTime) || sentTime <= 0) return '—'
+
+      const diffMs = now - sentTime
+      // 如果是未来时间，显示"未发送"
+      if (diffMs < 0) return '未发送'
+
+      const diffMinutes = Math.floor(diffMs / 1000 / 60)
+      // 小于1小时，显示分钟
+      if (diffMinutes < 60) return `${diffMinutes}分钟`
+
+      const diffHours = Math.floor(diffMinutes / 60)
+      // 小于24小时，显示小时
+      if (diffHours < 24) return `${diffHours}小时`
+
+      const diffDays = Math.floor(diffHours / 24)
+      return `${diffDays}天`
+    }
   },
   {
-    field: 'fail_num',
-    label: '失败数',
+    field: 'delete_sent',
+    label: '删除上次',
     width: 100,
-    formatter: (row) => `${row.fail_num || 0} 个`
+    formatter: (row) => {
+      return row.delete_sent === 1 ? '是' : '否'
+    }
+  },
+  {
+    field: 'period',
+    label: '发送周期',
+    width: 120,
+    formatter: (row) => {
+      if (row.period === null || row.period === undefined) return '—'
+      if (row.period === 0) return '只发一次'
+      return `${row.period}小时`
+    }
   },
   {
     field: 'created_at',
     label: '创建时间',
     width: 180,
     sortable: 'custom',
-    formatter: (row) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
+    formatter: (row) =>
+      row.created_at ? formatToDateTime(new Date(row.created_at).getTime()) : '-'
   },
   {
     field: 'action',
     label: '操作',
-    width: 200,
+    width: 300,
     fixed: 'right',
     slots: {
       default: ({ row }: { row: any }) => {
         return (
-          <div>
-            <BaseButton type="primary" onClick={() => handleViewDetail(row)}>
-              查看详情
+          <div style="display: flex; gap: 4px; justify-content: center;">
+            <BaseButton type="primary" onClick={() => handleEdit(row)} style="margin: 0;">
+              高级设置
             </BaseButton>
-            <BaseButton type="success" style="margin-left: 8px" onClick={() => handleResend(row)}>
+            <BaseButton type="success" onClick={() => handleResend(row)} style="margin: 0;">
               重发
+            </BaseButton>
+            <BaseButton type="default" onClick={() => handleViewDetail(row)} style="margin: 0;">
+              详情
+            </BaseButton>
+            <BaseButton type="danger" onClick={() => handleDelete(row)} style="margin: 0;">
+              删除
             </BaseButton>
           </div>
         )
@@ -469,10 +647,10 @@ const fetchMessageList = async (params: any) => {
     if (params.bot_id) {
       queryParams.bot_id = Number(params.bot_id)
     }
-    if (params.keyword) {
-      queryParams.keyword = params.keyword
-    }
-    if (params.status) {
+
+    // 处理发送周期筛选：0-全部（不传参数），1-只发一次，2-周期发送
+    // 只有当 status 为 1 或 2 时才传递给后端
+    if (params.status && (params.status === 1 || params.status === 2)) {
       queryParams.status = Number(params.status)
     }
 
@@ -505,5 +683,84 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* 可以添加自定义样式 */
+/* Telegram 风格的消息预览样式 */
+.message-preview-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.message-card {
+  position: relative;
+  width: 100%;
+  max-width: 500px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  background: #dcf8c6;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+}
+
+.message-card.text-only {
+  width: 100%;
+  max-width: 500px;
+  padding: 8px 12px;
+}
+
+.media-container {
+  width: 100%;
+  overflow: hidden;
+  background: #000;
+  border-radius: 8px 8px 0 0;
+}
+
+.media-content {
+  display: block;
+  width: 100%;
+  max-width: 500px;
+  max-height: 400px;
+  object-fit: contain;
+}
+
+.message-text {
+  padding: 8px 12px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #000;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.inline-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 0 8px 8px;
+}
+
+.inline-button {
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: #08c;
+  text-align: center;
+  cursor: pointer;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+  user-select: none;
+}
+
+.inline-button:hover {
+  background: #f5f5f5;
+}
+
+.inline-button:active {
+  background: #e8e8e8;
+}
 </style>

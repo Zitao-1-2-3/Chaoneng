@@ -89,38 +89,43 @@ export interface MassSendListParamsV1 {
   current_page?: number // 当前页码
   keyword?: string // 关键字
   page_size?: number // 每页大小
-  status?: number // 状态
+  status?: number // 发送周期筛选：0-全部，1-只发一次，2-周期发送
   order?: string // 排序参数，格式：字段名 ASC/DESC
 }
 
 /**
- * 群发消息键盘按钮
+ * 内联按钮对象
  */
-export interface MassSendKeyboard {
-  additionalProp1?: string
-  additionalProp2?: string
-  additionalProp3?: string
+export interface InnerButton {
+  agent_id: number // 代理ID
+  created_at: string // 创建时间
+  id: number // 按钮ID
+  inner_type: 'url' | 'call' // 内联类型：url-链接，call-回调
+  inner_value: string // 内联值
+  text: string // 按钮文本
+  updated_at: string // 更新时间
 }
 
 /**
- * 群发消息列表项 - 新接口 v1
+ * 群发消息列表项 - 新接口 v1（新版数据结构）
  */
 export interface MassSendItemV1 {
-  id: number // 消息ID
-  created_at: number // 创建时间（时间戳-秒）
-  updated_at: number // 更新时间（时间戳-秒）
-  agent_id: number // 代理ID
-  bot_id: number // 机器人ID
-  bot_name: string // 机器人名称
-  percent: number // 完成百分比
+  agent_id: number // 代理ID - 0表示运营平台的
+  bot_id: number // 机器人ID - tg的appId
+  bot_name: string // 机器人名称 - 机器人用户名
   content: string // 消息内容
-  keyboards: any[] // 键盘按钮
-  image: string // 图片URL
-  ok_num: number // 成功数量
+  created_at: string // 创建时间
+  delete_sent: number // 删除上次发送的信息 Enum: [1, 2]
   fail_num: number // 失败数量
-  receive_type: string // 接收类型（all_user, user_custom, one_user）
-  tg_user_ids: string // TG用户ID列表（逗号分隔）
-  status: number // 状态
+  files: string[] // 文件数组（图片/视频）
+  id: number // 唯一标识
+  inner_buttons: InnerButton[] // 内联按钮数组
+  ok_num: number // 成功数量
+  period: number // 间隔发送周期，以小时为最小单位
+  sent_at: string // 发送时间
+  sent_id: number // 发送ID
+  tg_user_ids: number[] // 空间表发送给指定用户下面的所有用户
+  updated_at: string // 更新时间
 }
 
 /**
@@ -139,24 +144,29 @@ export interface DeleteMassSendParamsV1 {
 }
 
 /**
- * 群发消息请求参数 - 新接口 v1
- * POST /v1/bot/group_msg
+ * 更新群发消息请求参数
+ * PUT /v1/message
  */
-export interface SendGroupMessageParamsV1 {
-  bot_id: number // 机器人ID（必填）
-  content: string // 消息内容（必填）
-  file_url?: string // 文件URL（可选，图片或视频）
-  keyboards?: number[] // 内联按钮ID数组（可选）
-  tg_user_ids?: number[] // TG用户ID列表（可选，指定接收用户）
+export interface UpdateGroupMessageParams {
+  delete_sent: number // 删除上次发送的信息 1-删除 2-不删除
+  id: number // 消息ID（必填）
+  period: number // 间隔发送周期，以小时为最小单位，为0表示只发一次
+  sent_at?: number // 发送时间（可选，时间戳秒）
 }
 
 /**
- * 发送单个消息请求参数 - 新接口 v1
+ * 群发消息请求参数 - 新接口 v1
+ * POST /v1/message
  */
-export interface SendMessageParamsV1 {
+export interface SendGroupMessageParamsV1 {
+  bot_ids: number[] // 机器人ID数组（必填，支持多选）
   content: string // 消息内容（必填）
-  keyboards?: any[] // 键盘按钮（可选）
-  user_id: number // 用户ID（必填）
+  delete_sent: number // 删除上次发送的信息 1-删除 2-不删除（必填）
+  files: string[] // 文件URL数组（必填，可以为空数组）
+  inner_buttons: number[] // 内联按钮ID数组（必填，可以为空数组）
+  period: number // 间隔发送周期，以小时为最小单位，为0表示只发一次（必填）
+  sent_at: number // 发送时间（必填，Unix 时间戳-秒）
+  tg_user_ids: number[] // TG用户ID列表（必填，可以为空数组表示全部用户）
 }
 
 /**
