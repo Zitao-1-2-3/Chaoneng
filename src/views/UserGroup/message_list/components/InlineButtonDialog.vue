@@ -135,9 +135,7 @@
               inline-prompt
               active-text="启用"
               inactive-text="禁用"
-              style="
-
---el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
             />
           </ElFormItem>
         </ElForm>

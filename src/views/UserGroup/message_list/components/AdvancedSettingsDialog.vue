@@ -64,9 +64,7 @@
               active-text="是"
               inactive-text="否"
               inline-prompt
-              style="
-
---el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
+              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
             />
           </ElFormItem>
         </ElCol>
