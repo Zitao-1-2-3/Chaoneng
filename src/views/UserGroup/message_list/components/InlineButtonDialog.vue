@@ -135,7 +135,9 @@
               inline-prompt
               active-text="启用"
               inactive-text="禁用"
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
             />
           </ElFormItem>
         </ElForm>
@@ -371,7 +373,6 @@ const fetchCallbackList = async () => {
 const handleAdd = () => {
   formDialogVisible.value = true
   formDialogTitle.value = '添加内联按钮'
-
   // 重置表单
   Object.assign(formData, {
     id: undefined,
@@ -380,14 +381,11 @@ const handleAdd = () => {
     inner_value: '',
     status: 1
   })
-
   formRef.value?.resetFields()
 }
-
 const handleEdit = (row: InnerButtonItem) => {
   formDialogVisible.value = true
   formDialogTitle.value = '编辑内联按钮'
-
   // 设置表单值
   Object.assign(formData, {
     id: row.id,
@@ -397,13 +395,10 @@ const handleEdit = (row: InnerButtonItem) => {
     status: 1 // 默认启用，因为接口返回的数据没有 status 字段
   })
 }
-
 const handleFormSubmit = async () => {
   if (!formRef.value) return
-
   try {
     await formRef.value.validate()
-
     // 判断是添加还是更新
     if (formData.id) {
       // 更新操作
@@ -413,7 +408,6 @@ const handleFormSubmit = async () => {
         inner_type: formData.inner_type,
         inner_value: formData.inner_value
       }
-
       await v1UpdateInnerButton(updateParams)
       ElMessage.success('更新成功')
     } else {
@@ -424,13 +418,10 @@ const handleFormSubmit = async () => {
         inner_type: formData.inner_type,
         inner_value: formData.inner_value
       }
-
       await v1CreateInnerButton(createParams)
       ElMessage.success('添加成功')
     }
-
     formDialogVisible.value = false
-
     // 刷新列表
     fetchData()
     emit('success')
@@ -442,7 +433,6 @@ const handleFormSubmit = async () => {
   }
 }
 </script>
-
 <style scoped>
 .inline-button-container {
   min-height: 400px;

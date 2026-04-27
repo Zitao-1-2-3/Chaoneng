@@ -125,7 +125,9 @@
           active-text="是"
           inactive-text="否"
           inline-prompt
-          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
+          style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
         />
       </ElFormItem>
     </ElForm>
@@ -315,15 +317,6 @@ const previewFileType = ref<'image' | 'video'>('image')
 // 消息预览相关
 const showMessagePreview = ref(false)
 const messagePreviewData = ref<MessagePreviewData>({})
-
-// 格式化按钮（暂时禁用，因为 v-html 渲染有问题）
-// const getContent = async () => formData.value.content
-// const setContent = async (newContent: string) => {
-//   formData.value.content = newContent
-// }
-// const { renderFormattingButtons } = useHtmlInsert(getContent, setContent)
-// const formattingButtonsHtml = computed(() => renderFormattingButtons())
-
 // 判断文件类型
 const getFileType = (file: File | UploadUserFile): 'image' | 'video' => {
   const fileName = file.name || ''

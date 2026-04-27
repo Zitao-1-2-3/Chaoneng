@@ -23,7 +23,6 @@
             />
           </ElFormItem>
         </ElCol>
-
         <ElCol :span="12">
           <ElFormItem prop="sent_at">
             <template #label>
@@ -46,7 +45,6 @@
           </ElFormItem>
         </ElCol>
       </ElRow>
-
       <ElRow :gutter="20">
         <ElCol :span="12">
           <ElFormItem prop="delete_sent">
@@ -64,20 +62,20 @@
               active-text="是"
               inactive-text="否"
               inline-prompt
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
+              style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
             />
           </ElFormItem>
         </ElCol>
       </ElRow>
     </ElForm>
-
     <template #footer>
       <BaseButton @click="handleClose">取消</BaseButton>
       <BaseButton type="primary" @click="handleConfirm" :loading="loading">确定</BaseButton>
     </template>
   </Dialog>
 </template>
-
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
 import { Dialog } from '@/components/Dialog'
@@ -100,36 +98,29 @@ interface Props {
   modelValue: boolean
   rowData?: any
 }
-
 interface Emits {
   (e: 'update:modelValue', value: boolean): void
   (e: 'success'): void
 }
-
 const props = withDefaults(defineProps<Props>(), {
   modelValue: false,
   rowData: undefined
 })
-
 const emit = defineEmits<Emits>()
-
 const dialogVisible = ref(false)
 const formRef = ref<FormInstance>()
 const loading = ref(false)
-
 const formData = reactive({
   period: 0,
   sent_at: '',
   delete_sent: false
 })
-
 const formRules: FormRules = {
   period: [
     { required: true, message: '请输入发送周期', trigger: 'blur' },
     { type: 'number', min: 0, max: 8760, message: '发送周期范围为 0-8760 小时', trigger: 'blur' }
   ]
 }
-
 // 监听 modelValue 变化
 watch(
   () => props.modelValue,
@@ -159,20 +150,16 @@ watch(
   },
   { immediate: true }
 )
-
 // 监听 dialogVisible 变化
 watch(dialogVisible, (val) => {
   emit('update:modelValue', val)
 })
-
 const handleClose = () => {
   dialogVisible.value = false
   formRef.value?.resetFields()
 }
-
 const handleConfirm = async () => {
   if (!formRef.value) return
-
   try {
     await formRef.value.validate()
 
@@ -180,9 +167,7 @@ const handleConfirm = async () => {
       ElMessage.error('缺少消息ID')
       return
     }
-
     loading.value = true
-
     // 处理发送时间
     let sentAtTimestamp: number
     if (formData.sent_at) {
@@ -190,7 +175,6 @@ const handleConfirm = async () => {
     } else {
       sentAtTimestamp = Math.floor(Date.now() / 1000)
     }
-
     // 调用更新接口，将 boolean 转换为 1/2
     const res = await v1UpdateGroupMessage({
       id: props.rowData.id,
@@ -198,7 +182,6 @@ const handleConfirm = async () => {
       sent_at: sentAtTimestamp,
       delete_sent: formData.delete_sent ? 1 : 2
     })
-
     if (res.code === '000000') {
       ElMessage.success('更新成功')
       emit('success')
@@ -216,7 +199,6 @@ const handleConfirm = async () => {
   }
 }
 </script>
-
 <style scoped>
 /* 发送周期输入框居中 */
 :deep(.period-input-center .el-input__inner) {
