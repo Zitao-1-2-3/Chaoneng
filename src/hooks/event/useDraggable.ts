@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { MenuItem, MenuLayout } from '@/api/menu_list/types'
+import type { MenuItem, MenuLayout } from '@/api/menu_list/types'
 
 export interface Position {
   row: number

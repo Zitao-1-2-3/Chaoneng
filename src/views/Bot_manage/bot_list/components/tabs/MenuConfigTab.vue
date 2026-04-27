@@ -12,7 +12,8 @@
         @dragleave="handlePreviewDragLeave"
         @drop="handlePreviewDrop"
       >
-        <el-row :gutter="20">
+        <div v-if="keyboardLayout.length === 0 && !loading" class="empty-tip">暂无启用的菜单</div>
+        <el-row v-else :gutter="20">
           <template v-for="(row, rowIndex) in keyboardLayout" :key="rowIndex">
             <el-col :span="item?.span || 24" v-for="(item, colIndex) in row" :key="colIndex">
               <div
@@ -35,7 +36,6 @@
             </el-col>
           </template>
         </el-row>
-        <div v-if="keyboardLayout.length === 0 && !loading" class="empty-tip">暂无启用的菜单</div>
       </div>
     </div>
 
@@ -53,7 +53,8 @@
         @dragleave="handleDisabledZoneDragLeave"
         @drop="handleDisabledZoneDrop"
       >
-        <div class="disabled-menu-list">
+        <div v-if="disabledMenus.length === 0 && !loading" class="empty-tip">暂无禁用的菜单</div>
+        <div v-else class="disabled-menu-list">
           <div
             v-for="item in disabledMenus"
             :key="item.id"
@@ -67,7 +68,6 @@
               {{ item.text }}
             </el-button>
           </div>
-          <div v-if="keyboardLayout.length === 0 && !loading" class="empty-tip">暂无禁用的菜单</div>
         </div>
       </div>
     </div>
