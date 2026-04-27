@@ -499,13 +499,65 @@ const formSchema = computed<FormSchema[]>(() => {
       }
     },
     {
+      field: 'enable_period',
+      component: 'Switch',
+      label: '启用周期',
+      value: false,
+      colProps: { span: 12 },
+      componentProps: {
+        activeValue: true,
+        inactiveValue: false,
+        activeText: '是',
+        inactiveText: '否',
+        inlinePrompt: true,
+        style: '--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6'
+      },
+      formItemProps: {
+        slots: {
+          label: () => (
+            <ElTooltip content="开启后可设置消息周期发送，关闭后将禁止消息周期发送" placement="top">
+              <span class="cursor-help">
+                启用周期 <span style="color: var(--el-color-primary);">ⓘ</span>
+              </span>
+            </ElTooltip>
+          )
+        }
+      }
+    },
+    {
+      field: 'delete_sent',
+      component: 'Switch',
+      label: '删除上次消息',
+      value: false,
+      colProps: { span: 12 },
+      componentProps: {
+        activeValue: true,
+        inactiveValue: false,
+        activeText: '是',
+        inactiveText: '否',
+        inlinePrompt: true,
+        style: '--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6'
+      },
+      formItemProps: {
+        slots: {
+          label: () => (
+            <ElTooltip content="是否删除上一次发送的消息" placement="top">
+              <span class="cursor-help">
+                删除上次消息 <span style="color: var(--el-color-primary);">ⓘ</span>
+              </span>
+            </ElTooltip>
+          )
+        }
+      }
+    },
+    {
       field: 'period',
       component: 'InputNumber',
       label: '发送周期',
-      value: 0,
+      value: 1,
       colProps: { span: 12 },
       componentProps: {
-        min: 0,
+        min: 1,
         max: 8760,
         placeholder: '小时数',
         style: { width: '100%' },
@@ -515,17 +567,19 @@ const formSchema = computed<FormSchema[]>(() => {
       formItemProps: {
         slots: {
           label: () => (
-            <ElTooltip content="设置消息重复发送的周期，0表示只发送一次" placement="top">
+            <ElTooltip content="设置消息重复发送的周期（小时），最小值为1小时" placement="top">
               <span class="cursor-help">
                 发送周期 <span style="color: var(--el-color-primary);">ⓘ</span>
               </span>
             </ElTooltip>
           )
         }
-      }
+      },
+      // 根据 enable_period 控制显示/隐藏
+      hidden: (formModel: any) => !formModel.enable_period
     },
     {
-      field: 'sent_at',
+      field: 'send_at',
       component: 'DatePicker',
       label: '发送时间',
       value: '',
@@ -542,35 +596,12 @@ const formSchema = computed<FormSchema[]>(() => {
       formItemProps: {
         slots: {
           label: () => (
-            <ElTooltip content="选择消息发送的具体时间，不选择则立即发送" placement="top">
+            <ElTooltip
+              content="选择消息发送的具体时间，只能选择未来时间，不选择则立即发送"
+              placement="top"
+            >
               <span class="cursor-help">
                 发送时间 <span style="color: var(--el-color-primary);">ⓘ</span>
-              </span>
-            </ElTooltip>
-          )
-        }
-      }
-    },
-    {
-      field: 'delete_sent',
-      component: 'Switch',
-      label: '删除上次消息',
-      value: false,
-      colProps: { span: 24 },
-      componentProps: {
-        activeValue: true,
-        inactiveValue: false,
-        activeText: '是',
-        inactiveText: '否',
-        inlinePrompt: true,
-        style: '--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6'
-      },
-      formItemProps: {
-        slots: {
-          label: () => (
-            <ElTooltip content="是否删除上一次发送的消息" placement="top">
-              <span class="cursor-help">
-                删除上次消息 <span style="color: var(--el-color-primary);">ⓘ</span>
               </span>
             </ElTooltip>
           )
@@ -785,6 +816,21 @@ watch(
   { immediate: true }
 )
 
+// 监听启用周期开关变化
+watch(
+  () => formModel.value.enable_period,
+  (newVal, oldVal) => {
+    // 当从关闭切换到打开时，设置默认值为1
+    if (newVal && !oldVal) {
+      formMethods.setValues({ period: 1 })
+    }
+    // 当开关打开时，确保值不小于1
+    if (newVal && formModel.value.period < 1) {
+      formMethods.setValues({ period: 1 })
+    }
+  }
+)
+
 // 取消操作
 const handleCancel = () => {
   dialogVisible.value = false
@@ -932,13 +978,13 @@ const handleConfirmSend = async () => {
     }
 
     // 处理发送时间：将日期字符串转换为Unix时间戳（秒）
-    let sentAtTimestamp: number
-    if (formData.sent_at) {
+    let sendAtTimestamp: number
+    if (formData.send_at) {
       // 如果选择了日期，转换为Unix时间戳（秒）
-      sentAtTimestamp = Math.floor(new Date(formData.sent_at).getTime() / 1000)
+      sendAtTimestamp = Math.floor(new Date(formData.send_at).getTime() / 1000)
     } else {
       // 如果没有选择日期，使用当前时间
-      sentAtTimestamp = Math.floor(Date.now() / 1000)
+      sendAtTimestamp = Math.floor(Date.now() / 1000)
     }
 
     // 群发 - 使用新接口 v2SendGroupMessage
@@ -948,8 +994,8 @@ const handleConfirmSend = async () => {
       delete_sent: formData.delete_sent ? 1 : 2, // 将 boolean 转换为 1/2
       files: fileUrls, // 使用上传后的所有文件URL数组
       inner_buttons: keyboards.length > 0 ? keyboards : [],
-      period: Number(formData.period) || 0,
-      sent_at: sentAtTimestamp,
+      period: formData.enable_period ? (formData.period >= 1 ? formData.period : 1) : 0, // 开关关闭传0，打开传实际值
+      send_at: sendAtTimestamp,
       tg_user_ids: []
     }
 

@@ -122,7 +122,7 @@ export interface MassSendItemV1 {
   inner_buttons: InnerButton[] // 内联按钮数组
   ok_num: number // 成功数量
   period: number // 间隔发送周期，以小时为最小单位
-  sent_at: string // 发送时间
+  send_at: string // 发送时间
   sent_id: number // 发送ID
   tg_user_ids: number[] // 空间表发送给指定用户下面的所有用户
   updated_at: string // 更新时间
@@ -151,7 +151,7 @@ export interface UpdateGroupMessageParams {
   delete_sent: number // 删除上次发送的信息 1-删除 2-不删除
   id: number // 消息ID（必填）
   period: number // 间隔发送周期，以小时为最小单位，为0表示只发一次
-  sent_at?: number // 发送时间（可选，时间戳秒）
+  send_at?: number // 发送时间（可选，时间戳秒）
 }
 
 /**
@@ -165,7 +165,7 @@ export interface SendGroupMessageParamsV1 {
   files: string[] // 文件URL数组（必填，可以为空数组）
   inner_buttons: number[] // 内联按钮ID数组（必填，可以为空数组）
   period: number // 间隔发送周期，以小时为最小单位，为0表示只发一次（必填）
-  sent_at: number // 发送时间（必填，Unix 时间戳-秒）
+  send_at: number // 发送时间（必填，Unix 时间戳-秒）
   tg_user_ids: number[] // TG用户ID列表（必填，可以为空数组表示全部用户）
 }
 

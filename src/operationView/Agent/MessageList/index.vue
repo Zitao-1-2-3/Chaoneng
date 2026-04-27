@@ -55,9 +55,9 @@
                   : '-'
               }}</span>
             </div>
-            <div v-if="currentDetailRecord.sent_at">
+            <div v-if="currentDetailRecord.send_at">
               <span class="font-semibold">发送时间：</span>
-              <span>{{ formatSentTime(currentDetailRecord.sent_at) }}</span>
+              <span>{{ formatSentTime(currentDetailRecord.send_at) }}</span>
             </div>
           </div>
         </div>
@@ -367,7 +367,7 @@ const handleResend = async (row: any) => {
       type: 'warning'
     })
 
-    // 再次调用发送消息接口，只修改 period 为 0 和 sent_at 为当前时间
+    // 再次调用发送消息接口，只修改 period 为 0 和 send_at 为当前时间
     const res = await v2SendGroupMessage({
       bot_ids: [row.bot_id],
       content: row.content || '',
@@ -375,7 +375,7 @@ const handleResend = async (row: any) => {
       files: row.files || [],
       inner_buttons: (row.inner_buttons || []).map((btn: any) => btn.id),
       period: 0, // 重发时周期改为0（只发一次）
-      sent_at: Math.floor(Date.now() / 1000), // 发送时间改为当前时间
+      send_at: Math.floor(Date.now() / 1000), // 发送时间改为当前时间
       tg_user_ids: row.tg_user_ids || []
     })
 
@@ -487,77 +487,45 @@ const tableColumns: TableColumn[] = [
     field: 'files',
     label: '文件',
     align: 'center',
+    width: 100,
     slots: {
       default: ({ row }: { row: any }) => {
         if (row.files && row.files.length > 0) {
-          const firstFile = row.files[0]
-          const isVideoFile = isVideo(firstFile)
-
-          if (isVideoFile) {
-            return (
-              <div style="display: flex; justify-content: center; align-items: center;">
-                <div
-                  style="width: 50px; height: 50px; border-radius: 4px; overflow: hidden; cursor: pointer; position: relative; background: #000;"
-                  onClick={() => handleFilePreview(firstFile, row.files)}
-                >
-                  <video
-                    src={firstFile + '#t=0.1'}
-                    style="width: 100%; height: 100%; object-fit: cover;"
-                    muted
-                    preload="metadata"
-                    disablePictureInPicture
-                    controlslist="nodownload noremoteplayback"
-                  />
-                  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 20px; pointer-events: none; text-shadow: 0 0 4px rgba(0,0,0,0.8);">
-                    ▶
-                  </div>
-                </div>
-              </div>
-            )
-          } else {
-            return (
-              <div style="display: flex; justify-content: center; align-items: center;">
-                <div
-                  style="width: 50px; height: 50px; border-radius: 4px; overflow: hidden; cursor: pointer;"
-                  onClick={() => handleFilePreview(firstFile, row.files)}
-                >
-                  <ElImage
-                    src={firstFile}
-                    fit="cover"
-                    style="width: 100%; height: 100%; object-fit: cover;"
-                    preview-teleported={false}
-                  />
-                </div>
-              </div>
-            )
-          }
+          return (
+            <div
+              style="color: #409eff; cursor: pointer; user-select: none;"
+              onClick={() => handleFilePreview(row.files[0], row.files)}
+            >
+              {row.files.length} 个文件
+            </div>
+          )
         }
         return <div style="text-align: center;">—</div>
       }
     }
   },
   {
-    field: 'sent_at',
+    field: 'send_at',
     label: '发送时间',
     width: 180,
-    formatter: (row) => formatSentTime(row.sent_at)
+    formatter: (row) => formatSentTime(row.send_at)
   },
   {
     field: 'time_diff',
     label: '距离上次发送',
     width: 130,
     formatter: (row) => {
-      if (!row.sent_at) return '—'
+      if (!row.send_at) return '—'
       const now = Date.now()
       let sentTime: number
 
       // 处理不同的时间格式
-      if (typeof row.sent_at === 'number') {
+      if (typeof row.send_at === 'number') {
         // 如果是数字，判断是秒还是毫秒
-        sentTime = row.sent_at < 10000000000 ? row.sent_at * 1000 : row.sent_at
-      } else if (typeof row.sent_at === 'string') {
+        sentTime = row.send_at < 10000000000 ? row.send_at * 1000 : row.send_at
+      } else if (typeof row.send_at === 'string') {
         // 如果是字符串，尝试解析
-        sentTime = new Date(row.sent_at).getTime()
+        sentTime = new Date(row.send_at).getTime()
       } else {
         return '—'
       }
@@ -594,9 +562,8 @@ const tableColumns: TableColumn[] = [
     label: '发送周期',
     width: 120,
     formatter: (row) => {
-      // 当 period 为 null 或 4294967295 时，显示"只发一次"
-      if (row.period === null || row.period === 4294967295) return '只发一次'
-      if (row.period === 0) return '只发一次'
+      // null、0 和 4294967295 = 禁止周期, 其他 = 周期小时数
+      if (row.period === null || row.period === 0 || row.period === 4294967295) return '禁止周期'
       return `${row.period}小时`
     }
   },

@@ -66,18 +66,65 @@
         <span class="text-sm text-gray-600">高级设置</span>
       </ElDivider>
 
-      <!-- 发送周期和发送时间 -->
+      <!-- 启用周期和删除上次消息 -->
       <ElRow :gutter="20">
         <ElCol :span="12">
+          <ElFormItem label="启用周期">
+            <template #label>
+              <ElTooltip
+                content="开启后可设置消息周期发送，关闭后将禁止消息周期发送"
+                placement="top"
+              >
+                <span class="cursor-help">启用周期 <span class="text-primary">ⓘ</span></span>
+              </ElTooltip>
+            </template>
+            <ElSwitch
+              v-model="formData.enable_period"
+              :active-value="true"
+              :inactive-value="false"
+              active-text="是"
+              inactive-text="否"
+              inline-prompt
+              style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
+            />
+          </ElFormItem>
+        </ElCol>
+        <ElCol :span="12">
+          <ElFormItem label="删除上次消息">
+            <template #label>
+              <ElTooltip content="是否删除上一次发送的消息" placement="top">
+                <span class="cursor-help">删除上次消息 <span class="text-primary">ⓘ</span></span>
+              </ElTooltip>
+            </template>
+            <ElSwitch
+              v-model="formData.delete_sent"
+              :active-value="true"
+              :inactive-value="false"
+              active-text="是"
+              inactive-text="否"
+              inline-prompt
+              style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
+            />
+          </ElFormItem>
+        </ElCol>
+      </ElRow>
+
+      <!-- 发送周期和发送时间 -->
+      <ElRow :gutter="20">
+        <ElCol :span="12" v-if="formData.enable_period">
           <ElFormItem label="发送周期">
             <template #label>
-              <ElTooltip content="设置消息重复发送的周期，0表示只发送一次" placement="top">
+              <ElTooltip content="设置消息重复发送的周期（小时），最小值为1小时" placement="top">
                 <span class="cursor-help">发送周期 <span class="text-primary">ⓘ</span></span>
               </ElTooltip>
             </template>
             <ElInputNumber
               v-model="formData.period"
-              :min="0"
+              :min="1"
               :max="8760"
               placeholder="小时数"
               controls-position="right"
@@ -93,43 +140,26 @@
         <ElCol :span="12">
           <ElFormItem label="发送时间">
             <template #label>
-              <ElTooltip content="选择消息发送的具体时间，不选择则立即发送" placement="top">
+              <ElTooltip
+                content="选择消息发送的具体时间，只能选择未来时间，不选择则立即发送"
+                placement="top"
+              >
                 <span class="cursor-help">发送时间 <span class="text-primary">ⓘ</span></span>
               </ElTooltip>
             </template>
             <ElDatePicker
-              v-model="formData.sent_at"
+              v-model="formData.send_at"
               type="datetime"
               placeholder="选择发送时间"
               format="YYYY-MM-DD HH:mm:ss"
               value-format="YYYY-MM-DD HH:mm:ss"
               style="width: 100%"
               :clearable="true"
-              :disabled-date="(time) => time.getTime() < Date.now()"
+              :disabled-date="(time: Date) => time.getTime() < Date.now()"
             />
           </ElFormItem>
         </ElCol>
       </ElRow>
-
-      <!-- 删除上次消息 -->
-      <ElFormItem label="删除上次消息">
-        <template #label>
-          <ElTooltip content="是否删除上一次发送的消息" placement="top">
-            <span class="cursor-help">删除上次消息 <span class="text-primary">ⓘ</span></span>
-          </ElTooltip>
-        </template>
-        <ElSwitch
-          v-model="formData.delete_sent"
-          :active-value="true"
-          :inactive-value="false"
-          active-text="是"
-          inactive-text="否"
-          inline-prompt
-          style="
-
---el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
-        />
-      </ElFormItem>
     </ElForm>
     <template #footer>
       <div class="flex justify-end">
@@ -249,9 +279,10 @@ const formData = ref({
   filter_type: 'user_custom' as 'user_custom' | 'all_user',
   user_list: '',
   content: '',
-  period: 0,
+  period: 1,
+  enable_period: false, // 启用周期开关
   delete_sent: false,
-  sent_at: '' as string | Date | number // 日期时间字符串、Date对象或空字符串
+  send_at: '' as string | Date | number // 日期时间字符串、Date对象或空字符串
 })
 
 // 内联按钮管理
@@ -560,13 +591,13 @@ const handleConfirmSend = async () => {
     }
 
     // 处理发送时间：将日期字符串转换为Unix时间戳（秒）
-    let sentAtTimestamp: number
-    if (formData.value.sent_at) {
+    let sendAtTimestamp: number
+    if (formData.value.send_at) {
       // 如果选择了日期，转换为Unix时间戳（秒）
-      sentAtTimestamp = Math.floor(new Date(formData.value.sent_at).getTime() / 1000)
+      sendAtTimestamp = Math.floor(new Date(formData.value.send_at).getTime() / 1000)
     } else {
       // 如果没有选择日期，使用当前时间
-      sentAtTimestamp = Math.floor(Date.now() / 1000)
+      sendAtTimestamp = Math.floor(Date.now() / 1000)
     }
 
     const apiParams: any = {
@@ -575,8 +606,12 @@ const handleConfirmSend = async () => {
       delete_sent: formData.value.delete_sent ? 1 : 2, // 将 boolean 转换为 1/2
       files: uploadedFiles.length > 0 ? uploadedFiles : [],
       inner_buttons: innerButtons.length > 0 ? innerButtons : [],
-      period: Number(formData.value.period) || 0,
-      sent_at: sentAtTimestamp,
+      period: formData.value.enable_period
+        ? formData.value.period >= 1
+          ? formData.value.period
+          : 1
+        : 0, // 开关关闭传0，打开传实际值
+      send_at: sendAtTimestamp,
       tg_user_ids: []
     }
 
@@ -652,9 +687,10 @@ watch(
         filter_type: 'user_custom',
         user_list: '',
         content: '',
-        period: 0,
+        period: 1,
+        enable_period: false,
         delete_sent: false,
-        sent_at: ''
+        send_at: ''
       }
       menuList.value = []
       checkList.value = []
@@ -672,6 +708,21 @@ watch(
     }
   },
   { immediate: true }
+)
+
+// 监听启用周期开关变化
+watch(
+  () => formData.value.enable_period,
+  (newVal, oldVal) => {
+    // 当从关闭切换到打开时，设置默认值为1
+    if (newVal && !oldVal) {
+      formData.value.period = 1
+    }
+    // 当开关打开时，确保值不小于1
+    if (newVal && formData.value.period < 1) {
+      formData.value.period = 1
+    }
+  }
 )
 
 onMounted(() => {

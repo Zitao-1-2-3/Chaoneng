@@ -12,15 +12,13 @@
               </el-text>
             </div>
             <div class="header-actions">
-              <!-- 查看模式：显示"修改"按钮 -->
-              <el-button
-                v-if="!editModeMap[agent.id]"
-                type="primary"
-                size="default"
-                @click="handleEdit(agent.id)"
-              >
-                修改
-              </el-button>
+              <!-- 查看模式：显示"刷新"和"修改"按钮 -->
+              <template v-if="!editModeMap[agent.id]">
+                <el-button size="default" @click="handleRefresh"> 刷新 </el-button>
+                <el-button type="primary" size="default" @click="handleEdit(agent.id)">
+                  修改
+                </el-button>
+              </template>
               <!-- 编辑模式：显示"保存"和"取消"按钮 -->
               <template v-else>
                 <el-button size="default" @click="handleCancel(agent.id)"> 取消 </el-button>
@@ -398,6 +396,12 @@ const hasChanges = (agentId: number) => {
 // 进入编辑模式
 const handleEdit = (agentId: number) => {
   editModeMap[agentId] = true
+}
+
+// 刷新数据
+const handleRefresh = async () => {
+  await loadPriceData()
+  ElMessage.success('刷新成功')
 }
 
 // 取消编辑

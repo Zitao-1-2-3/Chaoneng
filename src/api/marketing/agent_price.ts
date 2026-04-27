@@ -33,7 +33,7 @@ export const v2GetSystemPrice = (): Promise<{ data: V2SystemPriceResponse }> => 
 // 更新系统价格参数 - 新接口 v2
 // POST /v2/system/price/update
 export const v2UpdateSystemPrice = (data: V2UpdateSystemPriceParams): Promise<any> => {
-  return request.post({ url: `${BASE_URL}price/update`, data })
+  return request.put({ url: `/v2/price`, data })
 }
 
 // ========== 旧接口 ==========
