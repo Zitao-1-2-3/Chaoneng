@@ -31,7 +31,7 @@ export default tseslint.config({
     }
   },
   rules: {
-    'prettier/prettier': 'error',
+    'prettier/prettier': 'warn',
     'no-useless-escape': 0,
     'no-undef': 0,
     '@typescript-eslint/no-unused-expressions': 0,

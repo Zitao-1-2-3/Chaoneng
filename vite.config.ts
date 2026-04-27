@@ -39,8 +39,7 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
   console.log('Current VITE_SYSTEM_TYPE:', env.VITE_SYSTEM_TYPE)
   console.log('Current VITE_TRONSCAN_URL:', env.VITE_TRONSCAN_URL)
   return {
-    base:
-      env.VITE_BASE_PATH || (env.VITE_SYSTEM_TYPE === 'Management' ? '/management' : '/operation'),
+    base: env.VITE_SYSTEM_TYPE === 'Management' ? '/management' : '/operation',
     plugins: [
       codeInspectorPlugin({
         bundler: 'vite'
