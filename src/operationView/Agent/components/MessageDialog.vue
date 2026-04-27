@@ -86,8 +86,8 @@ import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
-import { v2SendGroupMessage } from '@/api/tgUser'
-import { v2GetInnerButtonList } from '@/api/menu_list'
+import { v1SendGroupMessage } from '@/api/tgUser'
+import { v1GetInnerButtonList } from '@/api/menu_list'
 import { v1GetBotUserList } from '@/api/tgUser' // 添加获取用户列表API
 import { uploadFileV2 as uploadAPI } from '@/api/utils/upload' // 使用 v2 版本的上传接口
 import type { InnerButtonItem } from '@/api/menu_list/types'
@@ -141,8 +141,8 @@ const dialogTitle = computed(() => {
   if (props.customTitle) {
     return props.customTitle
   }
-  // 否则默认使用"群发消息"
-  return '群发消息'
+  // 否则默认使用"发送消息"
+  return '发送消息'
 })
 
 const checkList = ref<(number | string)[]>([])
@@ -169,6 +169,9 @@ const previewFileType = ref<'image' | 'video'>('image')
 // 消息预览相关
 const showMessagePreview = ref(false)
 const messagePreviewData = ref<MessagePreviewData>({})
+
+// Track enable_period state for controlling period field visibility
+const enablePeriodState = ref(false)
 
 // 关闭视频预览
 const closeVideoViewer = () => {
@@ -269,10 +272,10 @@ const getContent = async () => (await getFormData())?.content || ''
 const setContent = async (newContent: string) => await setValues({ content: newContent })
 const { renderFormattingButtons } = useHtmlInsert(getContent, setContent)
 
-// 获取内联菜单列表 - 使用 v2GetInnerButtonList
+// 获取内联菜单列表 - 使用 v1GetInnerButtonList
 const fetchMenuList = async () => {
   try {
-    const res = await v2GetInnerButtonList()
+    const res = await v1GetInnerButtonList()
 
     console.log('res', res)
     if (res.code === '000000' && res.data) {
@@ -510,7 +513,14 @@ const formSchema = computed<FormSchema[]>(() => {
         activeText: '是',
         inactiveText: '否',
         inlinePrompt: true,
-        style: '--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6'
+        style: '--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6',
+        onChange: async (value: boolean) => {
+          enablePeriodState.value = value
+          // When enabling period, set default value to 1
+          if (value) {
+            await formMethods.setValues({ period: 1 })
+          }
+        }
       },
       formItemProps: {
         slots: {
@@ -576,7 +586,7 @@ const formSchema = computed<FormSchema[]>(() => {
         }
       },
       // 根据 enable_period 控制显示/隐藏
-      hidden: (formModel: any) => !formModel.enable_period
+      hidden: () => !enablePeriodState.value
     },
     {
       field: 'send_at',
@@ -816,20 +826,8 @@ watch(
   { immediate: true }
 )
 
-// 监听启用周期开关变化
-watch(
-  () => formModel.value.enable_period,
-  (newVal, oldVal) => {
-    // 当从关闭切换到打开时，设置默认值为1
-    if (newVal && !oldVal) {
-      formMethods.setValues({ period: 1 })
-    }
-    // 当开关打开时，确保值不小于1
-    if (newVal && formModel.value.period < 1) {
-      formMethods.setValues({ period: 1 })
-    }
-  }
-)
+// Note: Period field visibility and validation are handled by the form schema
+// The InputNumber component enforces min: 1, and the field is always visible in this implementation
 
 // 取消操作
 const handleCancel = () => {
@@ -987,7 +985,7 @@ const handleConfirmSend = async () => {
       sendAtTimestamp = Math.floor(Date.now() / 1000)
     }
 
-    // 群发 - 使用新接口 v2SendGroupMessage
+    // 群发 - 使用新接口 v1SendGroupMessage
     const apiParams: any = {
       bot_ids: botIds,
       content: formData.content,
@@ -1038,7 +1036,7 @@ const handleConfirmSend = async () => {
     }
     // 对于 'all_user' 类型，tg_user_ids 为空数组，表示发送给所有用户
 
-    await v2SendGroupMessage(apiParams)
+    await v1SendGroupMessage(apiParams)
 
     emit('success')
     ElMessage.success('发送消息请求成功')

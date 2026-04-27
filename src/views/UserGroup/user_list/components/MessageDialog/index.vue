@@ -270,7 +270,7 @@ const dialogVisible = computed({
 })
 
 const dialogTitle = computed(() => {
-  return props.customTitle || '群发消息'
+  return props.customTitle || '发送消息'
 })
 
 // 表单数据

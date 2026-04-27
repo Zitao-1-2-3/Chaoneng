@@ -9,7 +9,7 @@
       ref="searchTableRef"
     >
       <template #searchButtons>
-        <BaseButton type="primary" @click="openMassSendDialog()">群发消息</BaseButton>
+        <BaseButton type="primary" @click="openMassSendDialog()">发送消息</BaseButton>
         <BaseButton type="success" @click="goToInlineButtons()">内联按钮</BaseButton>
       </template>
     </SearchTable>
@@ -276,7 +276,7 @@ const botsForDialog = computed(() => {
 
 // 打开群发消息弹窗
 const openMassSendDialog = () => {
-  messageDialogCustomTitle.value = '群发消息'
+  messageDialogCustomTitle.value = '发送消息'
   messageDialogVisible.value = true
 }
 
@@ -414,8 +414,8 @@ const searchSchema = computed<FormSchema[]>(() => [
     componentProps: {
       options: [
         { label: '全部', value: 0 },
-        { label: '只发一次', value: 1 },
-        { label: '周期发送', value: 2 }
+        { label: '禁止周期', value: 1 },
+        { label: '发送周期', value: 2 }
       ],
       placeholder: '请选择发送周期',
       clearable: true

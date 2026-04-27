@@ -477,7 +477,7 @@ const openSendMessageDialog = (row: any) => {
 // 打开群发消息弹窗
 const openMassSendDialog = () => {
   messageDialogType.value = 'mass'
-  messageDialogCustomTitle.value = '' // 不设置自定义标题，使用默认的"群发消息"
+  messageDialogCustomTitle.value = '发送消息'
   isSingleUserMode.value = false // 设置为群发模式（机器人可选择）
   messageDialogVisible.value = true
 }

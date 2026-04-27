@@ -9,7 +9,7 @@
       ref="searchTableRef"
     >
       <template #searchButtons>
-        <BaseButton type="primary" @click="openMassSendDialog()">群发消息</BaseButton>
+        <BaseButton type="primary" @click="openMassSendDialog()">发送消息</BaseButton>
         <BaseButton type="success" @click="goToInlineButtons()">内联按钮</BaseButton>
       </template>
     </SearchTable>
@@ -21,7 +21,6 @@
       :bot-list="botsForDialog"
       :custom-title="messageDialogCustomTitle"
       :is-single-user="false"
-      :use-v2-api="true"
       @success="handleMessageSent"
     />
 
@@ -206,10 +205,10 @@ import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { ElMessage, ElMessageBox, ElDivider, ElImage, ElImageViewer } from 'element-plus'
 import {
-  v2GetMassSendList,
-  v2SendGroupMessage,
-  v2DeleteMassSend,
-  v2GetMessageBotList
+  v1GetMassSendList,
+  v1SendGroupMessage,
+  v1DeleteMassSend,
+  v1GetMessageBotList
 } from '@/api/tgUser'
 import type { MassSendListParamsV1 } from '@/api/tgUser/types'
 import MessageDialog from '../components/MessageDialog.vue'
@@ -274,7 +273,7 @@ const currentEditRow = ref<any>(null)
 // 获取机器人列表
 const fetchBotList = async () => {
   try {
-    const res = await v2GetMessageBotList()
+    const res = await v1GetMessageBotList()
     if (res.code === '000000' && res.data) {
       botList.value = (res.data || []).map((bot: any) => ({
         label: bot.user_name,
@@ -298,9 +297,9 @@ const botsForDialog = computed(() => {
   }))
 })
 
-// 打开群发消息弹窗
+// 打开发送消息弹窗
 const openMassSendDialog = () => {
-  messageDialogCustomTitle.value = '群发消息'
+  messageDialogCustomTitle.value = '发送消息'
   messageDialogVisible.value = true
 }
 
@@ -368,7 +367,7 @@ const handleResend = async (row: any) => {
     })
 
     // 再次调用发送消息接口，只修改 period 为 0 和 send_at 为当前时间
-    const res = await v2SendGroupMessage({
+    const res = await v1SendGroupMessage({
       bot_ids: [row.bot_id],
       content: row.content || '',
       delete_sent: row.delete_sent || 2,
@@ -396,14 +395,14 @@ const handleResend = async (row: any) => {
 // 删除消息
 const handleDelete = async (row: any) => {
   try {
-    await ElMessageBox.confirm('确定要删除这条群发消息记录吗？', '提示', {
+    await ElMessageBox.confirm('确定要删除这条发送消息记录吗？', '提示', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
 
     // 调用删除接口
-    const res = await v2DeleteMassSend(row.id)
+    const res = await v1DeleteMassSend(row.id)
     if (res.code === '000000') {
       ElMessage.success('删除成功')
       searchTableRef.value?.reload()
@@ -578,7 +577,7 @@ const tableColumns: TableColumn[] = [
   {
     field: 'action',
     label: '操作',
-    width: 300,
+    width: 350,
     fixed: 'right',
     slots: {
       default: ({ row }: { row: any }) => {
@@ -627,7 +626,7 @@ const fetchMessageList = async (params: any) => {
       queryParams.order = params.order
     }
 
-    const response = await v2GetMassSendList(queryParams)
+    const response = await v1GetMassSendList(queryParams)
 
     if (response.code === '000000' && response.data) {
       return {
