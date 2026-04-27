@@ -10,6 +10,7 @@ stats.html
 .env.base
 deploy.sh
 测试
+docs
 
 # Auto-generated files
 types/auto-imports.d.ts

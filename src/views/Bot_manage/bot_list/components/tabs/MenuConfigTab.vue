@@ -4,7 +4,7 @@
     <div class="enabled-section">
       <div class="section-header">
         <span class="section-title">启用的菜单</span>
-        <span class="section-tip">拖到下方禁用</span>
+        <span class="section-tip">拖拽到下方禁用</span>
       </div>
       <div
         class="menu-preview"
@@ -19,12 +19,14 @@
                 v-if="item"
                 class="menu-item"
                 :class="{ 'is-dragging': isDragging && dragItem?.id === item?.id }"
+                @dragover="handleEnabledItemDragOver"
+                @drop="(e) => handleEnabledItemDrop(e, rowIndex, colIndex)"
               >
                 <el-button
                   type="info"
                   class="menu-button"
                   draggable="true"
-                  @dragstart="(e) => handleEnabledItemDragStart(item, e)"
+                  @dragstart="(e) => handleEnabledItemDragStart(item, rowIndex, colIndex, e)"
                   @dragend="handleDragEnd"
                 >
                   {{ item.text }}
@@ -65,7 +67,7 @@
               {{ item.text }}
             </el-button>
           </div>
-          <div v-if="disabledMenus.length === 0" class="empty-tip">暂无禁用的菜单</div>
+          <div v-if="keyboardLayout.length === 0 && !loading" class="empty-tip">暂无禁用的菜单</div>
         </div>
       </div>
     </div>
@@ -74,133 +76,157 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import { ElMessage } from 'element-plus'
 import { getMenuListApi, saveMenuApi } from '@/api/menu_list'
 import { useDraggable } from '@/hooks/event/useDraggable'
 import type { MenuItem, MenuLayout } from '@/api/menu_list/types'
 
-// 接收 bot_id 作为 prop
-const props = defineProps<{
-  botId?: number
-}>()
+// 常量定义
+const COLUMN_COUNT = 3
+const TOTAL_SPAN = 24
 
+// 状态管理
 const loading = ref(false)
 const keyboardLayout = ref<MenuLayout>([])
 const disabledMenus = ref<MenuItem[]>([])
 const originalMenuList = ref<MenuItem[]>([])
 const isOverDisabledZone = ref(false)
-const isOverEnabledZone = ref(false)
+const dragStartPosition = ref<{ row: number; col: number } | null>(null)
 
-// 提取公共函数：压缩布局
+// ==================== 工具函数 ====================
+
+/**
+ * 收集布局中所有非空菜单项
+ */
+const collectMenuItems = (layout: MenuLayout): MenuItem[] => {
+  return layout.flat().filter((item): item is MenuItem => item !== null)
+}
+
+/**
+ * 将菜单项数组转换为网格布局
+ * @param items 菜单项数组
+ * @returns 网格布局
+ */
 const compactLayout = (items: MenuItem[]): MenuLayout => {
   if (items.length === 0) return []
 
-  const columnCount = 3
-  const rowCount = Math.ceil(items.length / columnCount)
-  const layout: MenuLayout = Array(rowCount)
-    .fill(null)
-    .map(() => Array(columnCount).fill(null))
+  const rowCount = Math.ceil(items.length / COLUMN_COUNT)
+  const layout: MenuLayout = Array.from({ length: rowCount }, () => Array(COLUMN_COUNT).fill(null))
 
   items.forEach((item, index) => {
-    const row = Math.floor(index / columnCount)
-    const col = index % columnCount
-    if (row < rowCount && col < columnCount) {
-      layout[row][col] = item
-    }
+    const row = Math.floor(index / COLUMN_COUNT)
+    const col = index % COLUMN_COUNT
+    layout[row][col] = item
   })
 
   // 计算每行的 span
   return layout.map((row) => {
-    const validItems = row.filter((item): item is MenuItem => item !== null)
-    const span = validItems.length === 0 ? 0 : 24 / validItems.length
+    const validCount = row.filter((item) => item !== null).length
+    const span = validCount > 0 ? TOTAL_SPAN / validCount : 0
     return row.map((item) => (item ? { ...item, span } : null))
   })
 }
 
-// 提取公共函数：收集所有非空菜单项
-const collectMenuItems = (layout: MenuLayout): MenuItem[] => {
-  const items: MenuItem[] = []
-  layout.forEach((row) => {
-    row.forEach((item) => {
-      if (item !== null) {
-        items.push(item)
-      }
-    })
-  })
-  return items
-}
-
-const convertToKeyboardLayout = (list: MenuItem[]) => {
+/**
+ * 将菜单列表转换为键盘布局
+ * @param list 原始菜单列表
+ * @returns 网格布局
+ */
+const convertToKeyboardLayout = (list: MenuItem[]): MenuLayout => {
   originalMenuList.value = [...list]
 
   // 分离启用和禁用的菜单
-  const enabledList = list.filter((item) => item.menu_type === 1 && item.status === 1)
-  const disabledList = list.filter((item) => item.menu_type === 1 && item.status === 2)
-
-  // 设置禁用菜单列表
-  disabledMenus.value = disabledList
+  const enabledList = list
+    .filter((item) => item.menu_type === 1 && item.status === 1)
     .sort((a, b) => b.order_num - a.order_num)
     .map((item) => ({ ...item, text: item.menu_name }))
 
-  // 构建启用菜单的网格布局
-  const columnCount = 3
-  const rowCount = Math.ceil(enabledList.length / columnCount)
-  const layout: MenuLayout = Array(rowCount)
-    .fill(null)
-    .map(() => Array(columnCount).fill(null))
-
-  enabledList
+  const disabledList = list
+    .filter((item) => item.menu_type === 1 && item.status === 2)
     .sort((a, b) => b.order_num - a.order_num)
-    .forEach((item, index) => {
-      if (!item || !item.menu_name) return
-      const row = Math.floor(index / columnCount)
-      const col = index % columnCount
-      if (row < rowCount && col < columnCount) {
-        layout[row][col] = { ...item, text: item.menu_name, span: 8 }
-      }
-    })
+    .map((item) => ({ ...item, text: item.menu_name }))
 
-  for (let rowIndex = 0; rowIndex < layout.length; rowIndex++) {
-    const row = layout[rowIndex]
-    const validItemCount = row.filter((item) => item !== null).length
-    if (validItemCount > 0) {
-      const span = 24 / validItemCount
-      for (let colIndex = 0; colIndex < row.length; colIndex++) {
-        if (row[colIndex] !== null) row[colIndex]!.span = span
-      }
-    }
-  }
-  return layout
+  // 设置禁用菜单列表
+  disabledMenus.value = disabledList
+
+  // 使用 compactLayout 构建启用菜单的网格布局
+  return compactLayout(enabledList)
 }
 
+// ==================== API 调用 ====================
+
+/**
+ * 获取菜单数据
+ */
 const fetchMenuData = async () => {
   try {
     loading.value = true
     await nextTick()
-    console.log('🔵 开始调用菜单列表API: getMenuListApi')
     const data = await getMenuListApi({})
-    console.log('🟢 菜单列表API返回数据:', data)
     keyboardLayout.value = convertToKeyboardLayout(data.data.list || [])
   } catch (error) {
-    console.error('🔴 获取菜单数据失败:', error)
+    console.error('获取菜单数据失败:', error)
     ElMessage.error('获取菜单数据失败')
   } finally {
     loading.value = false
   }
 }
 
-const onDragEnd = (newLayout: MenuLayout) => {
-  // 使用公共函数收集和压缩布局
-  const allItems = collectMenuItems(newLayout)
-  keyboardLayout.value = compactLayout(allItems)
+/**
+ * 保存菜单配置
+ */
+const saveMenuConfig = async () => {
+  try {
+    loading.value = true
+
+    // 收集所有菜单项
+    const enabledItems = collectMenuItems(keyboardLayout.value)
+    const allItems = [...enabledItems, ...disabledMenus.value]
+
+    // 批量保存
+    const savePromises = allItems.map((item) => {
+      const originalItem = originalMenuList.value.find((menu) => menu.id === item.id)
+      if (!originalItem) return Promise.resolve()
+
+      return saveMenuApi({
+        id: originalItem.id,
+        menu_name: originalItem.menu_name,
+        menu_type: originalItem.menu_type,
+        order_num: originalItem.order_num,
+        status: item.status,
+        inner_type: originalItem.inner_type,
+        inner_value: originalItem.inner_value,
+        callback_type: originalItem.callback_type || ''
+      })
+    })
+
+    await Promise.all(savePromises)
+    ElMessage.success('菜单配置保存成功')
+    return true
+  } catch (error) {
+    console.error('保存菜单配置失败:', error)
+    ElMessage.error('保存失败，请重试')
+    return false
+  } finally {
+    loading.value = false
+  }
 }
 
-const { isDragging, dragItem, handleDragEnd } = useDraggable({ onDragEnd })
+// ==================== 拖拽逻辑 ====================
 
-// 处理启用区域按钮的拖拽开始（只能拖到禁用区域）
-const handleEnabledItemDragStart = (item: MenuItem, e: DragEvent) => {
+const { isDragging, dragItem, handleDragEnd } = useDraggable()
+
+/**
+ * 启用区域：开始拖拽
+ */
+const handleEnabledItemDragStart = (
+  item: MenuItem,
+  rowIndex: number,
+  colIndex: number,
+  e: DragEvent
+) => {
   isDragging.value = true
-  dragItem.value = { ...item, _fromEnabled: true } as MenuItem // 添加标记
+  dragItem.value = { ...item, _fromEnabled: true } as MenuItem
+  dragStartPosition.value = { row: rowIndex, col: colIndex }
 
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'move'
@@ -208,31 +234,90 @@ const handleEnabledItemDragStart = (item: MenuItem, e: DragEvent) => {
   }
 }
 
-// 处理禁用区域的拖拽事件
+/**
+ * 启用区域：拖拽悬停
+ */
+const handleEnabledItemDragOver = (e: DragEvent) => {
+  if (!isDragging.value || !dragItem.value || !(dragItem.value as any)._fromEnabled) return
+
+  e.preventDefault()
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = 'move'
+  }
+}
+
+/**
+ * 启用区域：放置（排序）
+ */
+const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: number) => {
+  e.preventDefault()
+
+  if (!isDragging.value || !dragItem.value || !dragStartPosition.value) return
+  if (!(dragItem.value as any)._fromEnabled) return
+
+  const { row: startRow, col: startCol } = dragStartPosition.value
+
+  // 拖到同一位置，不处理
+  if (startRow === targetRow && startCol === targetCol) {
+    resetDragState()
+    return
+  }
+
+  // 收集所有启用的菜单项
+  const allEnabledItems = collectMenuItems(keyboardLayout.value)
+  const draggedItem = allEnabledItems.find((item) => item.id === dragItem.value!.id)
+  const targetItem = keyboardLayout.value[targetRow]?.[targetCol]
+
+  if (!draggedItem || !targetItem) {
+    resetDragState()
+    return
+  }
+
+  // 交换 order_num
+  ;[draggedItem.order_num, targetItem.order_num] = [targetItem.order_num, draggedItem.order_num]
+
+  // 重新排序并布局
+  allEnabledItems.sort((a, b) => b.order_num - a.order_num)
+  keyboardLayout.value = compactLayout(allEnabledItems)
+
+  resetDragState()
+}
+
+/**
+ * 重置拖拽状态
+ */
+const resetDragState = () => {
+  isDragging.value = false
+  dragItem.value = null
+  dragStartPosition.value = null
+}
+
+/**
+ * 禁用区域：拖拽悬停
+ */
 const handleDisabledZoneDragOver = (e: DragEvent) => {
-  if (!isDragging.value) return
+  if (!isDragging.value || !(dragItem.value as any)?._fromEnabled) return
 
-  // 只接受从启用区域拖来的
-  if ((dragItem.value as any)?._fromEnabled) {
-    e.preventDefault()
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'move'
-    }
+  e.preventDefault()
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = 'move'
   }
 }
 
+/**
+ * 禁用区域：进入
+ */
 const handleDisabledZoneDragEnter = (e: DragEvent) => {
-  if (!isDragging.value) return
+  if (!isDragging.value || !(dragItem.value as any)?._fromEnabled) return
 
-  // 只接受从启用区域拖来的
-  if ((dragItem.value as any)?._fromEnabled) {
-    e.preventDefault()
-    isOverDisabledZone.value = true
-  }
+  e.preventDefault()
+  isOverDisabledZone.value = true
 }
 
+/**
+ * 禁用区域：离开
+ */
 const handleDisabledZoneDragLeave = (e: DragEvent) => {
-  // 检查是否真的离开了禁用区域（而不是进入子元素）
   const target = e.currentTarget as HTMLElement
   const relatedTarget = e.relatedTarget as HTMLElement
   if (target && !target.contains(relatedTarget)) {
@@ -240,58 +325,34 @@ const handleDisabledZoneDragLeave = (e: DragEvent) => {
   }
 }
 
-const handleDisabledZoneDrop = async (e: DragEvent) => {
+/**
+ * 禁用区域：放置（启用→禁用）
+ */
+const handleDisabledZoneDrop = (e: DragEvent) => {
   e.preventDefault()
   isOverDisabledZone.value = false
 
-  if (!dragItem.value) return
-
-  // 只处理从启用区域拖来的（跨区域拖拽）
-  if (!(dragItem.value as any)._fromEnabled) {
-    console.log('⚠️ 禁用区域内部拖拽，不调用接口')
-    return
-  }
+  if (!dragItem.value || !(dragItem.value as any)._fromEnabled) return
 
   const itemToDisable = dragItem.value
 
-  // 立即调用接口保存状态
-  try {
-    loading.value = true
-    const originalItem = originalMenuList.value.find((menu) => menu.id === itemToDisable.id)
-    if (originalItem) {
-      const payload = {
-        id: originalItem.id,
-        menu_name: originalItem.menu_name,
-        menu_type: originalItem.menu_type,
-        order_num: originalItem.order_num,
-        status: 2, // 禁用
-        inner_type: originalItem.inner_type,
-        inner_value: originalItem.inner_value,
-        callback_type: originalItem.callback_type || ''
-      }
-      console.log('🔵 从启用拖到禁用，调用 saveMenuApi:', payload)
-      await saveMenuApi(payload)
+  // 从启用列表中移除
+  const allEnabledItems = collectMenuItems(keyboardLayout.value)
+  const updatedEnabledItems = allEnabledItems.filter((item) => item.id !== itemToDisable.id)
 
-      ElMessage.success(`已将"${itemToDisable.text}"禁用`)
+  // 添加到禁用列表
+  disabledMenus.value.push({ ...itemToDisable, status: 2 })
 
-      // 更新成功后重新获取列表
-      console.log('🔄 更新成功，重新获取菜单列表')
-      await fetchMenuData()
-    }
-  } catch (error) {
-    console.error('🔴 禁用菜单失败:', error)
-    ElMessage.error('禁用失败，请重试')
-    // 失败时回滚
-    await fetchMenuData()
-  } finally {
-    loading.value = false
-  }
+  // 重新布局启用区域
+  keyboardLayout.value = compactLayout(updatedEnabledItems)
 }
 
-// 处理从禁用区域拖拽菜单
+/**
+ * 禁用区域：开始拖拽
+ */
 const handleDisabledItemDragStart = (item: MenuItem, e: DragEvent) => {
   isDragging.value = true
-  dragItem.value = { ...item, _fromDisabled: true } as MenuItem // 添加标记
+  dragItem.value = { ...item, _fromDisabled: true } as MenuItem
 
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = 'move'
@@ -299,90 +360,62 @@ const handleDisabledItemDragStart = (item: MenuItem, e: DragEvent) => {
   }
 }
 
-// 处理拖拽到预览区域空白处（只接受从禁用区域拖来的）
+/**
+ * 预览区域：拖拽悬停
+ */
 const handlePreviewDragOver = (e: DragEvent) => {
   if (!isDragging.value || !dragItem.value) return
 
-  // 检查是否从禁用区域拖拽（通过 dragItem 的标记判断）
-  if ((dragItem.value as any)._fromDisabled) {
+  const isFromDisabled = (dragItem.value as any)._fromDisabled
+  const isFromEnabled = (dragItem.value as any)._fromEnabled
+
+  if (isFromDisabled || isFromEnabled) {
     e.preventDefault()
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'move'
     }
-    isOverEnabledZone.value = true
-  } else {
-    // 如果不是从禁用区域拖来的，不允许放置
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'none'
-    }
   }
 }
 
-const handlePreviewDragLeave = (e: DragEvent) => {
-  const target = e.currentTarget as HTMLElement
-  const relatedTarget = e.relatedTarget as HTMLElement
-  if (target && !target.contains(relatedTarget)) {
-    isOverEnabledZone.value = false
-  }
+/**
+ * 预览区域：离开
+ */
+const handlePreviewDragLeave = () => {
+  // 预留：可以在这里添加视觉反馈
 }
 
-const handlePreviewDrop = async (e: DragEvent) => {
+/**
+ * 预览区域：放置（禁用→启用）
+ */
+const handlePreviewDrop = (e: DragEvent) => {
+  e.preventDefault()
+
   if (!isDragging.value || !dragItem.value) return
 
-  e.preventDefault()
-  isOverEnabledZone.value = false
-
-  // 检查是否从禁用区域拖拽（通过 dragItem 的标记判断）
   const isFromDisabled = (dragItem.value as any)._fromDisabled
 
   if (!isFromDisabled) {
-    // 如果不是从禁用区域拖来的，说明是启用区域内部拖拽，不调用接口
-    console.log('⚠️ 启用区域内部拖拽，不调用接口')
-    isDragging.value = false
-    dragItem.value = null
+    // 启用区域内部拖拽，不处理
+    resetDragState()
     return
   }
 
-  // 只处理从禁用区域拖来的（跨区域拖拽）
   const itemToEnable = dragItem.value
 
-  // 立即调用接口保存状态
-  try {
-    loading.value = true
-    const originalItem = originalMenuList.value.find((menu) => menu.id === itemToEnable.id)
-    if (originalItem) {
-      const payload = {
-        id: originalItem.id,
-        menu_name: originalItem.menu_name,
-        menu_type: originalItem.menu_type,
-        order_num: originalItem.order_num,
-        status: 1, // 启用
-        inner_type: originalItem.inner_type,
-        inner_value: originalItem.inner_value,
-        callback_type: originalItem.callback_type || ''
-      }
-      console.log('🔵 从禁用拖到启用，调用 saveMenuApi:', payload)
-      await saveMenuApi(payload)
+  // 从禁用列表中移除
+  disabledMenus.value = disabledMenus.value.filter((item) => item.id !== itemToEnable.id)
 
-      ElMessage.success(`已将"${itemToEnable.text}"启用`)
+  // 添加到启用列表
+  const allEnabledItems = collectMenuItems(keyboardLayout.value)
+  allEnabledItems.push({ ...itemToEnable, status: 1 })
 
-      // 更新成功后重新获取列表
-      console.log('🔄 更新成功，重新获取菜单列表')
-      await fetchMenuData()
-    }
-  } catch (error) {
-    console.error('🔴 启用菜单失败:', error)
-    ElMessage.error('启用失败，请重试')
-    // 失败时回滚
-    await fetchMenuData()
-  } finally {
-    loading.value = false
-    isDragging.value = false
-    dragItem.value = null
-  }
+  // 重新布局启用区域
+  keyboardLayout.value = compactLayout(allEnabledItems)
+
+  resetDragState()
 }
 
-defineExpose({ fetchMenuData })
+defineExpose({ fetchMenuData, saveMenuConfig })
 </script>
 
 <style scoped>
@@ -406,7 +439,7 @@ defineExpose({ fetchMenuData })
   padding: 8px 12px;
   margin-bottom: 12px;
   background: #f0f2f5;
-  border-left: 3px solid #909399;
+  border-left: 3px solid #67c23a;
   border-radius: 4px;
   justify-content: space-between;
   align-items: center;
@@ -415,32 +448,31 @@ defineExpose({ fetchMenuData })
 .section-title {
   font-size: 14px;
   font-weight: 500;
-  color: #606266;
+  color: #67c23a;
 }
 
 .section-tip {
-  font-size: 12px;
-  color: #909399;
+  font-size: 14px;
+  font-weight: bold;
+  color: #000;
 }
 
 .menu-preview {
   position: relative;
+  display: flex;
+  flex-direction: column;
   min-height: 150px;
   padding: 15px;
-  background-color: #f5f7fa;
-  border: 2px dashed transparent;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+  border: 2px dashed #d0d7de;
   border-radius: 8px;
   transition: all 0.3s;
 }
 
 .menu-preview.drag-over {
-  background-color: #f0f9ff;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
   border-color: #67c23a;
-}
-
-.menu-preview.drag-from-enabled {
-  background-color: #fdf6ec;
-  border-color: #e6a23c;
+  box-shadow: 0 0 20px rgb(103 194 58 / 20%);
 }
 
 .menu-item {
@@ -479,6 +511,7 @@ defineExpose({ fetchMenuData })
 }
 
 .disabled-section {
+  display: flex;
   min-height: 120px;
   padding: 15px;
   background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
@@ -494,15 +527,18 @@ defineExpose({ fetchMenuData })
 }
 
 .disabled-section-wrapper .section-header {
-  border-left-color: #c0c4cc;
+  border-left-color: #f56c6c;
+}
+
+.disabled-section-wrapper .section-title {
+  color: #f56c6c;
 }
 
 .disabled-menu-list {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  min-height: 60px;
-  padding: 5px;
+  width: 100%;
 }
 
 .disabled-menu-item {
@@ -531,9 +567,12 @@ defineExpose({ fetchMenuData })
 }
 
 .empty-tip {
-  padding: 30px 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 1;
+  padding: 0;
   font-size: 13px;
   color: #909399;
-  text-align: center;
 }
 </style>

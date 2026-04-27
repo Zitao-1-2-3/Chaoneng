@@ -130,6 +130,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
             title: '收款地址簿',
             buttonList: ['add', 'edit', 'delete']
           }
+        },
+        {
+          path: 'menu_list',
+          component: () => import('@/operationView/Marketing/MenuList/index.vue'),
+          name: 'MarketingMenuList',
+          meta: {
+            title: '菜单列表'
+          }
         }
       ]
     },

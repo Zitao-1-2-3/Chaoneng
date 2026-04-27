@@ -28,13 +28,7 @@
     <template #footer>
       <div class="flex justify-end">
         <ElButton @click="close" :disabled="submitting">取消</ElButton>
-        <ElButton
-          v-if="activeTab !== 'menuConfig'"
-          type="primary"
-          @click="submit"
-          :loading="submitting"
-          >保存配置</ElButton
-        >
+        <ElButton type="primary" @click="submit" :loading="submitting">保存配置</ElButton>
       </div>
     </template>
   </Dialog>
@@ -148,6 +142,20 @@ const close = () => {
 // 提交表单
 const submit = async () => {
   if (submitting.value) return
+
+  // 如果是菜单配置标签页，调用菜单配置的保存方法
+  if (activeTab.value === 'menuConfig') {
+    submitting.value = true
+    try {
+      const success = await menuConfigTabRef.value?.saveMenuConfig()
+      if (success) {
+        emit('success')
+      }
+    } finally {
+      submitting.value = false
+    }
+    return
+  }
 
   const formMethods = getFormMethods()
   const currentFormMethod = formMethods[activeTab.value]
