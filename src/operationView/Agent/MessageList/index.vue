@@ -594,7 +594,8 @@ const tableColumns: TableColumn[] = [
     label: '发送周期',
     width: 120,
     formatter: (row) => {
-      if (row.period === null || row.period === undefined) return '—'
+      // 当 period 为 null 或 4294967295 时，显示"只发一次"
+      if (row.period === null || row.period === 4294967295) return '只发一次'
       if (row.period === 0) return '只发一次'
       return `${row.period}小时`
     }

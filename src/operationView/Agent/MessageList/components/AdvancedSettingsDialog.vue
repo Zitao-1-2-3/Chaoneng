@@ -64,7 +64,9 @@
               active-text="是"
               inactive-text="否"
               inline-prompt
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
+              style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
             />
           </ElFormItem>
         </ElCol>
@@ -136,7 +138,9 @@ watch(
     dialogVisible.value = val
     if (val && props.rowData) {
       // 初始化表单数据，将 1/2 转换为 true/false
-      formData.period = props.rowData.period || 0
+      // 如果 period 为 null 或 4294967295，则显示为 0（只发一次）
+      const periodValue = props.rowData.period
+      formData.period = periodValue === null || periodValue === 4294967295 ? 0 : periodValue || 0
       formData.delete_sent = props.rowData.delete_sent === 1
 
       // 处理发送时间
@@ -191,9 +195,11 @@ const handleConfirm = async () => {
     }
 
     // 调用更新接口，将 boolean 转换为 1/2
+    // 如果 period 为 0，则传递 4294967295（表示只发一次）
+    const periodValue = formData.period === 0 ? 4294967295 : formData.period
     const res = await v2UpdateGroupMessage({
       id: props.rowData.id,
-      period: formData.period,
+      period: periodValue,
       sent_at: sentAtTimestamp,
       delete_sent: formData.delete_sent ? 1 : 2
     })
