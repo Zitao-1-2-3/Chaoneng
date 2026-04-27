@@ -124,7 +124,7 @@ import {
   ElCol
 } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { v2UpdateGroupMessage } from '@/api/tgUser'
+import { v1UpdateGroupMessage } from '@/api/tgUser'
 
 interface Props {
   modelValue: boolean
@@ -286,7 +286,7 @@ const handleConfirm = async () => {
       params.send_at = sendAtTimestamp
     }
 
-    const res = await v2UpdateGroupMessage(params)
+    const res = await v1UpdateGroupMessage(params)
 
     if (res.code === '000000') {
       ElMessage.success('更新成功')

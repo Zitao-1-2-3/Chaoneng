@@ -123,7 +123,9 @@
               inline-prompt
               active-text="启用"
               inactive-text="禁用"
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+              style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
             />
           </ElFormItem>
         </ElForm>
@@ -158,10 +160,10 @@ import {
 import type { FormInstance, FormRules } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import {
-  v2GetInnerButtonList,
-  v2CreateInnerButton,
-  v2UpdateInnerButton,
-  v2DeleteInnerButton
+  v1GetInnerButtonList,
+  v1CreateInnerButton,
+  v1UpdateInnerButton,
+  v1DeleteInnerButton
 } from '@/api/menu_list'
 import type {
   CreateInnerButtonParams,
@@ -269,7 +271,7 @@ const formRules: FormRules = {
 const fetchData = async () => {
   loading.value = true
   try {
-    const response = await v2GetInnerButtonList()
+    const response = await v1GetInnerButtonList()
     if (response.code === '000000' && response.data) {
       allData.value = response.data || []
       applyPagination()
@@ -319,7 +321,7 @@ const handleDelete = async (row: InnerButtonItem) => {
       type: 'warning'
     })
 
-    const res = await v2DeleteInnerButton(row.id)
+    const res = await v1DeleteInnerButton(row.id)
     if (res.code === '000000') {
       ElMessage.success('删除成功')
       fetchData()
@@ -382,7 +384,7 @@ const handleFormSubmit = async () => {
         inner_value: formData.inner_value
       }
 
-      await v2UpdateInnerButton(updateParams)
+      await v1UpdateInnerButton(updateParams)
       ElMessage.success('更新成功')
     } else {
       // 添加操作 - 使用新的创建接口（运营端固定为URL类型）
@@ -393,7 +395,7 @@ const handleFormSubmit = async () => {
         inner_value: formData.inner_value
       }
 
-      await v2CreateInnerButton(createParams)
+      await v1CreateInnerButton(createParams)
       ElMessage.success('添加成功')
     }
 
