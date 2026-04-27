@@ -20,10 +20,6 @@
             <Icon icon="ep:download" class="mr-5px" />
             导出
           </BaseButton>
-          <BaseButton type="primary" @click="openMassSendDialog()" style="margin-right: 10px"
-            >群发消息</BaseButton
-          >
-          <BaseButton type="success" @click="openMassSendRecordDialog()">群发记录</BaseButton>
         </template>
       </SearchTable>
 
@@ -472,19 +468,6 @@ const openSendMessageDialog = (row: any) => {
   messageDialogCustomTitle.value = '发送消息' // 设置自定义标题为"发送消息"
   isSingleUserMode.value = true // 设置为单个用户模式（机器人信息只读）
   messageDialogVisible.value = true
-}
-
-// 打开群发消息弹窗
-const openMassSendDialog = () => {
-  messageDialogType.value = 'mass'
-  messageDialogCustomTitle.value = '发送消息'
-  isSingleUserMode.value = false // 设置为群发模式（机器人可选择）
-  messageDialogVisible.value = true
-}
-
-// 打开群发记录弹窗
-const openMassSendRecordDialog = () => {
-  massSendRecordDialogVisible.value = true
 }
 
 // 消息发送成功处理

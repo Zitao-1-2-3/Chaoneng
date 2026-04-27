@@ -1,6 +1,6 @@
 <template>
   <Dialog v-model="dialogVisible" title="高级设置" width="850px" @close="handleClose">
-    <ElForm ref="formRef" :model="formData" :rules="formRules" label-width="110px">
+    <ElForm ref="formRef" :model="formData" :rules="formRules" label-width="130px">
       <ElRow :gutter="20">
         <ElCol :span="12">
           <ElFormItem prop="disable_period">

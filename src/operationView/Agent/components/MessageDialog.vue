@@ -560,34 +560,40 @@ const formSchema = computed<FormSchema[]>(() => {
         }
       }
     },
-    {
-      field: 'period',
-      component: 'InputNumber',
-      label: '发送周期',
-      value: 1,
-      colProps: { span: 12 },
-      componentProps: {
-        min: 1,
-        max: 8760,
-        placeholder: '小时数',
-        style: { width: '100%' },
-        controlsPosition: 'right',
-        class: 'period-input-center'
-      },
-      formItemProps: {
-        slots: {
-          label: () => (
-            <ElTooltip content="设置消息重复发送的周期（小时），最小值为1小时" placement="top">
-              <span class="cursor-help">
-                发送周期 <span style="color: var(--el-color-primary);">ⓘ</span>
-              </span>
-            </ElTooltip>
-          )
-        }
-      },
-      // 根据 enable_period 控制显示/隐藏
-      hidden: () => !enablePeriodState.value
-    },
+    // 发送周期字段 - 只在启用周期时显示
+    ...(enablePeriodState.value
+      ? ([
+          {
+            field: 'period',
+            component: 'InputNumber',
+            label: '发送周期',
+            value: 1,
+            colProps: { span: 12 },
+            componentProps: {
+              min: 1,
+              max: 8760,
+              placeholder: '小时数',
+              style: { width: '100%' },
+              controlsPosition: 'right',
+              class: 'period-input-center'
+            },
+            formItemProps: {
+              slots: {
+                label: () => (
+                  <ElTooltip
+                    content="设置消息重复发送的周期（小时），最小值为1小时"
+                    placement="top"
+                  >
+                    <span class="cursor-help">
+                      发送周期 <span style="color: var(--el-color-primary);">ⓘ</span>
+                    </span>
+                  </ElTooltip>
+                )
+              }
+            }
+          }
+        ] as FormSchema[])
+      : []),
     {
       field: 'send_at',
       component: 'DatePicker',
