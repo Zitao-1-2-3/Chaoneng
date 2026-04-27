@@ -160,12 +160,12 @@ watch(
     if (val && props.rowData) {
       // 初始化表单数据
       // period 逻辑：
-      // - null 或 4294967295 = 禁止周期(开关关闭)，period 显示为 1（但输入框隐藏）
+      // - null 或 4294967295 = 只发一次(开关关闭)，period 显示为 1（但输入框隐藏）
       // - 其他值 = 启用周期(开关打开)，period 显示实际值
       const periodValue = props.rowData.period
 
       if (periodValue === null || periodValue === 4294967295) {
-        // 禁止周期：开关关闭，period 设为 1（输入框会被隐藏）
+        // 只发一次 设为 1（输入框会被隐藏）
         formData.disable_period = false
         formData.period = 1
       } else {
@@ -252,7 +252,7 @@ const handleConfirm = async () => {
     // - 如果启用周期开关打开（true），则传递实际的 period 值（最小为1）
     let periodValue: number
     if (!formData.disable_period) {
-      // 开关关闭 = 禁止周期
+      // 开关关闭 = 只发一次
       periodValue = 4294967295
     } else {
       // 开关打开 = 启用周期，传递实际值（确保最小为1）

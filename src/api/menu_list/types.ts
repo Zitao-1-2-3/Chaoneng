@@ -34,7 +34,7 @@ export interface MenuItemV1 {
   menu_name: string // 菜单名称
   menu_type: number // 菜单类型:1菜单 2内联按钮
   order_num: number // 排序
-  status: number // 1禁用 2启用
+  status: number // 状态：1=启用，2=禁用
   create_type: number // 创建类型
   inner_type: string // 内联类型 url/call
   inner_value: string // 内联值
@@ -142,13 +142,16 @@ export interface MenuItem {
   menu_name: string
   menu_type: number // 菜单类型:1菜单 2内联按钮
   order_num: number // 排序
-  status: number // 1禁用 2启用
+  status: number // 状态：1=启用，2=禁用
   create_type?: number
   inner_type: string // 内联类型 url/call 菜单为内联时必须选择
   inner_value?: string // 根据inner_type判断: url时为链接地址，call时为回调函数名称
+  callback_type?: string // 回调类型
   // 前端特有字段
   span?: number
   text?: string // 用于显示
+  _fromEnabled?: boolean // 拖拽标记：是否从启用区域拖拽
+  _fromDisabled?: boolean // 拖拽标记：是否从禁用区域拖拽
 }
 
 // 菜单布局类型 - 二维数组，用于拖拽排序

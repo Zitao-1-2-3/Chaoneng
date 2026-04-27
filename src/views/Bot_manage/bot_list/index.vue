@@ -156,7 +156,7 @@ const columns = [
         return (
           <div>
             自动续费
-            <Tips content="当机器人余额不足时，将会自动续费" />：
+            <Tips content="当机器人余额不足时，将会自动续费" />
           </div>
         )
       },

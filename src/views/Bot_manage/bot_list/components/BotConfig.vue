@@ -18,13 +18,23 @@
         <ElTabPane label="价格配置" name="priceConfig">
           <PriceConfigTab ref="priceConfigTabRef" :cost-prices="costPrices" />
         </ElTabPane>
+
+        <ElTabPane label="菜单配置" name="menuConfig">
+          <MenuConfigTab ref="menuConfigTabRef" />
+        </ElTabPane>
       </ElTabs>
     </div>
 
     <template #footer>
       <div class="flex justify-end">
         <ElButton @click="close" :disabled="submitting">取消</ElButton>
-        <ElButton type="primary" @click="submit" :loading="submitting">保存配置</ElButton>
+        <ElButton
+          v-if="activeTab !== 'menuConfig'"
+          type="primary"
+          @click="submit"
+          :loading="submitting"
+          >保存配置</ElButton
+        >
       </div>
     </template>
   </Dialog>
@@ -40,11 +50,13 @@ import { useBotConfigV1 } from './composables/useBotConfigV1'
 import BotInfoTab from './tabs/BotInfoTab.vue'
 import PaymentTab from './tabs/PaymentTab.vue'
 import PriceConfigTab from './tabs/PriceConfigTab.vue'
+import MenuConfigTab from './tabs/MenuConfigTab.vue'
 
 // 组件引用
 const botInfoTabRef = ref()
 const paymentTabRef = ref()
 const priceConfigTabRef = ref()
+const menuConfigTabRef = ref()
 
 // 使用新的机器人配置组合函数 V1（使用 v1 新接口）
 const {
@@ -75,6 +87,13 @@ const getFormMethods = () => {
 // Tab切换处理
 const handleTabChange = async (tabName: string) => {
   console.log('切换到标签页:', tabName)
+
+  if (tabName === 'menuConfig') {
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    await menuConfigTabRef.value?.fetchMenuData()
+    return
+  }
+
   if (!currentBot.value.id) {
     console.warn('currentBot.value.id 不存在')
     return

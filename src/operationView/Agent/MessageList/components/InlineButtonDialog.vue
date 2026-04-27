@@ -34,13 +34,6 @@
             <ElTag type="primary">URL链接</ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn prop="status" label="状态" width="100" align="center" header-align="center">
-          <template #default="{ row }">
-            <ElTag :type="row.status === 1 ? 'success' : 'danger'">
-              {{ row.status === 1 ? '启用' : '禁用' }}
-            </ElTag>
-          </template>
-        </ElTableColumn>
         <ElTableColumn
           prop="created_at"
           label="创建时间"
@@ -115,19 +108,6 @@
               </div>
             </div>
           </ElFormItem>
-          <ElFormItem label="状态" prop="status" style="margin-bottom: 0">
-            <ElSwitch
-              v-model="formData.status"
-              :active-value="1"
-              :inactive-value="2"
-              inline-prompt
-              active-text="启用"
-              inactive-text="禁用"
-              style="
-
---el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-            />
-          </ElFormItem>
         </ElForm>
         <template #footer>
           <div class="flex justify-end">
@@ -154,8 +134,7 @@ import {
   ElFormItem,
   ElInput,
   ElSelect,
-  ElOption,
-  ElSwitch
+  ElOption
 } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Dialog } from '@/components/Dialog'

@@ -89,7 +89,7 @@ export interface MassSendListParamsV1 {
   current_page?: number // 当前页码
   keyword?: string // 关键字
   page_size?: number // 每页大小
-  status?: number // 发送周期筛选：0-全部，1-只发一次，2-周期发送
+  kind?: number // 信息类别：1-只发一次，2-周期发送
   order?: string // 排序参数，格式：字段名 ASC/DESC
 }
 
@@ -120,6 +120,7 @@ export interface MassSendItemV1 {
   files: string[] // 文件数组（图片/视频）
   id: number // 唯一标识
   inner_buttons: InnerButton[] // 内联按钮数组
+  kind: number // 信息类别：1-只发一次，2-周期发送
   ok_num: number // 成功数量
   period: number // 间隔发送周期，以小时为最小单位
   send_at: string // 发送时间

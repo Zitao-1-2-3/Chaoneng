@@ -127,19 +127,6 @@
               </div>
             </div>
           </ElFormItem>
-          <ElFormItem label="状态" prop="status" style="margin-bottom: 0">
-            <ElSwitch
-              v-model="formData.status"
-              :active-value="1"
-              :inactive-value="2"
-              inline-prompt
-              active-text="启用"
-              inactive-text="禁用"
-              style="
-
---el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-            />
-          </ElFormItem>
         </ElForm>
         <template #footer>
           <div class="flex justify-end">
@@ -166,8 +153,7 @@ import {
   ElFormItem,
   ElInput,
   ElSelect,
-  ElOption,
-  ElSwitch
+  ElOption
 } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { Dialog } from '@/components/Dialog'

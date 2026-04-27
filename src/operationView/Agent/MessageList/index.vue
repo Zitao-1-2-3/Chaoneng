@@ -434,9 +434,9 @@ const searchSchema = computed<FormSchema[]>(() => {
       }
     },
     {
-      field: 'status',
+      field: 'kind',
       component: 'Select',
-      label: '发送周期',
+      label: '信息类别',
       colProps: { span: 6 },
       componentProps: {
         options: [
@@ -444,7 +444,7 @@ const searchSchema = computed<FormSchema[]>(() => {
           { label: '只发一次', value: 1 },
           { label: '周期发送', value: 2 }
         ],
-        placeholder: '请选择发送周期',
+        placeholder: '请选择信息类别',
         clearable: true
       }
     }
@@ -557,12 +557,23 @@ const tableColumns: TableColumn[] = [
     }
   },
   {
+    field: 'kind',
+    label: '信息类别',
+    width: 120,
+    formatter: (row) => {
+      // kind: 1-只发一次, 2-周期发送
+      if (row.kind === 1) return '只发一次'
+      if (row.kind === 2) return '周期发送'
+      return '—'
+    }
+  },
+  {
     field: 'period',
     label: '发送周期',
     width: 120,
     formatter: (row) => {
-      // null、0 和 4294967295 = 禁止周期, 其他 = 周期小时数
-      if (row.period === null || row.period === 0 || row.period === 4294967295) return '禁止周期'
+      // null、0 和 4294967295 = 只发一次, 其他 = 周期小时数
+      if (row.period === null || row.period === 0 || row.period === 4294967295) return '只发一次'
       return `${row.period}小时`
     }
   },
@@ -615,10 +626,10 @@ const fetchMessageList = async (params: any) => {
       queryParams.bot_id = Number(params.bot_id)
     }
 
-    // 处理发送周期筛选：0-全部（不传参数），1-只发一次，2-周期发送
-    // 只有当 status 为 1 或 2 时才传递给后端
-    if (params.status && (params.status === 1 || params.status === 2)) {
-      queryParams.status = Number(params.status)
+    // 处理信息类别筛选：0-全部（不传参数），1-只发一次，2-周期发送
+    // 只有当 kind 为 1 或 2 时才传递给后端
+    if (params.kind && (params.kind === 1 || params.kind === 2)) {
+      queryParams.kind = Number(params.kind)
     }
 
     // 处理排序参数

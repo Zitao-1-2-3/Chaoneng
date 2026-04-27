@@ -137,7 +137,29 @@
             </ElInputNumber>
           </ElFormItem>
         </ElCol>
-        <ElCol :span="12">
+        <ElCol :span="12" v-if="!formData.enable_period">
+          <ElFormItem label="发送时间">
+            <template #label>
+              <ElTooltip
+                content="选择消息发送的具体时间，只能选择未来时间，不选择则立即发送"
+                placement="top"
+              >
+                <span class="cursor-help">发送时间 <span class="text-primary">ⓘ</span></span>
+              </ElTooltip>
+            </template>
+            <ElDatePicker
+              v-model="formData.send_at"
+              type="datetime"
+              placeholder="选择发送时间"
+              format="YYYY-MM-DD HH:mm:ss"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              style="width: 100%"
+              :clearable="true"
+              :disabled-date="(time: Date) => time.getTime() < Date.now()"
+            />
+          </ElFormItem>
+        </ElCol>
+        <ElCol :span="12" v-if="formData.enable_period">
           <ElFormItem label="发送时间">
             <template #label>
               <ElTooltip

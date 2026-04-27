@@ -34,8 +34,7 @@ import {
   getAgentBotListApi,
   updateAgentBotStatusApi,
   AgentBotItem,
-  UpdateAgentBotStatusPayload,
-  exportAgentBotListApi
+  UpdateAgentBotStatusPayload
 } from '@/api/agent/bot'
 import { ContentWrap } from '@/components/ContentWrap'
 import { BaseButton } from '@/components/Button'
