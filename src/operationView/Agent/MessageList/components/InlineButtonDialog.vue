@@ -360,7 +360,9 @@ const handleFormSubmit = async () => {
         id: formData.id,
         text: formData.menu_name,
         inner_type: 'url',
-        inner_value: formData.inner_value
+        inner_value: formData.inner_value,
+        order_num: formData.order_num || 0,
+        status: formData.status || 1
       }
 
       await v1UpdateInnerButton(updateParams)
@@ -368,10 +370,11 @@ const handleFormSubmit = async () => {
     } else {
       // 添加操作 - 使用新的创建接口（运营端固定为URL类型）
       const createParams: CreateInnerButtonParams = {
-        id: 0, // 创建时ID为0
         text: formData.menu_name,
         inner_type: 'url',
-        inner_value: formData.inner_value
+        inner_value: formData.inner_value,
+        order_num: formData.order_num || 0,
+        status: formData.status || 1
       }
 
       await v1CreateInnerButton(createParams)

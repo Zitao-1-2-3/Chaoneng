@@ -87,10 +87,10 @@ import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { v1SendGroupMessage } from '@/api/tgUser'
-import { v1GetInnerButtonList } from '@/api/menu_list'
+import { getBotMenuList } from '@/api/menu_list'
 import { v1GetBotUserList } from '@/api/tgUser' // 添加获取用户列表API
 import { uploadFileV2 as uploadAPI } from '@/api/utils/upload' // 使用 v2 版本的上传接口
-import type { InnerButtonItem } from '@/api/menu_list/types'
+import type { BotMenuItem } from '@/api/menu_list/types'
 import { BaseButton } from '@/components/Button'
 import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
 import InlineButtonDialog from '../MessageList/components/InlineButtonDialog.vue'
@@ -146,7 +146,7 @@ const dialogTitle = computed(() => {
 })
 
 const checkList = ref<(number | string)[]>([])
-const menuList = ref<InnerButtonItem[]>([])
+const menuList = ref<BotMenuItem[]>([])
 const currentFilterType = ref<'user_custom' | 'all_user'>('user_custom') // 改为默认自定义用户
 
 // 用户列表相关状态
@@ -272,10 +272,10 @@ const getContent = async () => (await getFormData())?.content || ''
 const setContent = async (newContent: string) => await setValues({ content: newContent })
 const { renderFormattingButtons } = useHtmlInsert(getContent, setContent)
 
-// 获取内联菜单列表 - 使用 v1GetInnerButtonList
+// 获取内联菜单列表 - 使用 getBotMenuList
 const fetchMenuList = async () => {
   try {
-    const res = await v1GetInnerButtonList()
+    const res = await getBotMenuList({ bot_id: 0 }) // 运营端使用 bot_id: 0
 
     console.log('res', res)
     if (res.code === '000000' && res.data) {
@@ -473,7 +473,7 @@ const formSchema = computed<FormSchema[]>(() => {
                       // 关键：在 ElCheckboxGroup 中，label 属性是选中时的值
                       // 不要同时设置 value 属性，只设置 label
                       <ElCheckbox key={menu.id} label={menu.id}>
-                        {menu.text}
+                        {menu.menu_name}
                       </ElCheckbox>
                     ))}
                   </ElCheckboxGroup>
@@ -901,7 +901,7 @@ const handleSubmit = async () => {
       previewData.buttons = checkList.value
         .map((id) => {
           const menu = menuList.value.find((m) => m.id === id)
-          return menu ? { text: menu.text || '' } : null
+          return menu ? { text: menu.menu_name || '' } : null
         })
         .filter((btn) => btn !== null) as Array<{ text: string; url?: string }>
     }

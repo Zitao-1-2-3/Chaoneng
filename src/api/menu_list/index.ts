@@ -1,62 +1,72 @@
 import request from '@/axios'
 import type {
-  MenuListParamsV1,
-  MenuListResponseV1,
-  AddMenuParamsV1,
-  UpdateMenuParamsV1,
-  InnerButtonListResponse,
-  CreateInnerButtonParams,
-  UpdateInnerButtonParams
+  GetBotMenuListParams,
+  GetBotMenuListResponse,
+  AddBotMenuParams,
+  BatchUpdateBotMenuParams
 } from './types'
 
 // 导出类型定义
 export * from './types'
 
-// ========== 新接口 v1 ==========
+const BASE_URL = '/v1/bot/menu'
 
-const BASE_URL = '/v1/bot/menu/'
+/**
+ * 获取机器人菜单列表
+ * GET /v1/bot/menu
+ */
+export const getBotMenuList = (
+  params: GetBotMenuListParams
+): Promise<IResponse<GetBotMenuListResponse>> => {
+  return request.get({
+    url: BASE_URL,
+    params
+  })
+}
+
+/**
+ * 添加机器人菜单（运营端使用）
+ * POST /v1/bot/menu
+ */
+export const addBotMenu = (data: AddBotMenuParams): Promise<IResponse> => {
+  return request.post({
+    url: BASE_URL,
+    data
+  })
+}
+
+/**
+ * 批量更新机器人菜单
+ * PUT /v1/bot/menu
+ * @param data - 包含 bot_id 和 menus 数组
+ */
+export const batchUpdateBotMenu = (data: BatchUpdateBotMenuParams): Promise<IResponse> => {
+  return request.put({
+    url: BASE_URL,
+    data
+  })
+}
+
+/**
+ * 删除机器人菜单（运营端使用）
+ * DELETE /v1/bot/menu/{id}
+ */
+export const deleteBotMenu = (id: number): Promise<IResponse> => {
+  return request.delete({
+    url: `${BASE_URL}/${id}`
+  })
+}
+
+// ========== 内联按钮 API ==========
 
 /**
  * 获取内联按钮列表（用于群发消息选择）
  * GET /v1/message/inner_button
  * 无参数，返回所有可用的内联按钮
  */
-export const v1GetInnerButtonList = (): Promise<IResponse<InnerButtonListResponse>> => {
+export const v1GetInnerButtonList = (): Promise<IResponse<any>> => {
   return request.get({
     url: '/v1/message/inner_button'
-  })
-}
-
-/**
- * 获取机器人菜单列表 - 新接口 v1
- * GET /v1/bot/menu/list
- */
-export const v1GetMenuList = (params: MenuListParamsV1): Promise<IResponse<MenuListResponseV1>> => {
-  return request.get({
-    url: `${BASE_URL}list`,
-    params
-  })
-}
-
-/**
- * 添加机器人菜单 - 新接口 v1
- * POST /v1/bot/menu/add
- */
-export const v1AddMenu = (data: AddMenuParamsV1): Promise<IResponse> => {
-  return request.post({
-    url: `${BASE_URL}add`,
-    data
-  })
-}
-
-/**
- * 更新机器人菜单 - 新接口 v1
- * POST /v1/bot/menu/update
- */
-export const v1UpdateMenu = (data: UpdateMenuParamsV1): Promise<IResponse> => {
-  return request.post({
-    url: `${BASE_URL}update`,
-    data
   })
 }
 
@@ -64,7 +74,7 @@ export const v1UpdateMenu = (data: UpdateMenuParamsV1): Promise<IResponse> => {
  * 创建内联按钮 - v1接口
  * POST /v1/message/inner_button
  */
-export const v1CreateInnerButton = (data: CreateInnerButtonParams): Promise<IResponse> => {
+export const v1CreateInnerButton = (data: any): Promise<IResponse> => {
   return request.post({
     url: '/v1/message/inner_button',
     data
@@ -75,7 +85,7 @@ export const v1CreateInnerButton = (data: CreateInnerButtonParams): Promise<IRes
  * 更新内联按钮 - v1接口
  * PUT /v1/message/inner_button
  */
-export const v1UpdateInnerButton = (data: UpdateInnerButtonParams): Promise<IResponse> => {
+export const v1UpdateInnerButton = (data: any): Promise<IResponse> => {
   return request.put({
     url: '/v1/message/inner_button',
     data
@@ -93,116 +103,8 @@ export const v1DeleteInnerButton = (id: number): Promise<IResponse> => {
 }
 
 /**
- * 创建内联按钮 - v2接口
- * POST /v2/message/inner_button
+ * 获取内联回调操作指令列表 - 仅管理端使用
  */
-export const v2CreateInnerButton = (data: CreateInnerButtonParams): Promise<IResponse> => {
-  return request.post({
-    url: '/v2/message/inner_button',
-    data
-  })
-}
-
-/**
- * 更新内联按钮 - v2接口
- * PUT /v2/message/inner_button
- */
-export const v2UpdateInnerButton = (data: UpdateInnerButtonParams): Promise<IResponse> => {
-  return request.put({
-    url: '/v2/message/inner_button',
-    data
-  })
-}
-
-/**
- * 删除内联按钮 - v2接口
- * DELETE /v2/message/inner_button/{id}
- */
-export const v2DeleteInnerButton = (id: number): Promise<IResponse> => {
-  return request.delete({
-    url: `/v2/message/inner_button/${id}`
-  })
-}
-
-// ========== v2 接口（运营端） ==========
-
-const BASE_URL_V2 = '/v2/bot/menu/'
-
-/**
- * 获取内联按钮列表（用于群发消息选择）
- * GET /v2/message/inner_button
- * 无参数，返回所有可用的内联按钮
- */
-export const v2GetInnerButtonList = (): Promise<IResponse<InnerButtonListResponse>> => {
-  return request.get({
-    url: '/v2/message/inner_button'
-  })
-}
-
-export const v2GetMenuList = (params: MenuListParamsV1): Promise<IResponse<MenuListResponseV1>> => {
-  return request.get({ url: `${BASE_URL_V2}list`, params })
-}
-
-export const v2AddMenu = (data: AddMenuParamsV1): Promise<IResponse> => {
-  return request.post({ url: `${BASE_URL_V2}add`, data })
-}
-
-export const v2UpdateMenu = (data: UpdateMenuParamsV1): Promise<IResponse> => {
-  return request.post({ url: `${BASE_URL_V2}update`, data })
-}
-
-export const v2DeleteMenuApi = (id: number) => {
-  return request.delete({ url: `/v2/bot/menu/delete/${id}` })
-}
-
-// ========== 旧接口 ==========
-
-// 新增的参数类型
-export interface AddBotMenuParam {
-  menu_name: string
-  status: number
-  menu_type: number
-  inner_type: string
-  inner_value?: string // URL链接时使用
-  callback_type?: string // 回调函数时使用
-  order_num?: number
-}
-
-// 更新的参数类型
-export interface UpdateBotMenuParam extends AddBotMenuParam {
-  id: number
-}
-
-// 获取菜单列表
-export const getMenuListApi = (params: any) => {
-  return request.get({ url: '/v1/bot/menu/list', params })
-}
-
-// 删除菜单
-export const deleteMenuApi = (id: number) => {
-  return request.delete({ url: `/v1/bot/menu/delete/${id}` })
-}
-
-// 新增菜单
-export const addMenuApi = (data: AddBotMenuParam) => {
-  return request.post({ url: '/v1/bot/menu/add', data })
-}
-
-// 更新菜单
-export const updateMenuApi = (data: UpdateBotMenuParam) => {
-  return request.post({ url: '/v1/bot/menu/update', data })
-}
-
-// 保存菜单（新增或更新）- 兼容接口，内部会根据是否有ID调用不同接口
-export const saveMenuApi = (data: Partial<UpdateBotMenuParam>) => {
-  if (data.id) {
-    return updateMenuApi(data as UpdateBotMenuParam)
-  } else {
-    return addMenuApi(data as AddBotMenuParam)
-  }
-}
-
-// 获取内联回调操作指令列表 - 仅管理端使用
 export const getCallBackListApi = () => {
   return request.get({ url: '/v1/bot/operate-command/list' })
 }

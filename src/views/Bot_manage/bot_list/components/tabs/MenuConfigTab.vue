@@ -30,7 +30,7 @@
                   @dragstart="(e) => handleEnabledItemDragStart(item, rowIndex, colIndex, e)"
                   @dragend="handleDragEnd"
                 >
-                  {{ item.text }}
+                  {{ item.menu_name }}
                 </el-button>
               </div>
             </el-col>
@@ -65,7 +65,7 @@
             @dragend="handleDragEnd"
           >
             <el-button type="info" plain class="disabled-menu-button">
-              {{ item.text }}
+              {{ item.menu_name }}
             </el-button>
           </div>
         </div>
@@ -76,9 +76,25 @@
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
-import { getMenuListApi, saveMenuApi } from '@/api/menu_list'
+import { getBotMenuList, batchUpdateBotMenu } from '@/api/bot_menu'
+import type { BotMenuItem, UpdateBotMenuItemParams } from '@/api/bot_menu/types'
 import { useDraggable } from '@/hooks/event/useDraggable'
-import type { MenuItem, MenuLayout } from '@/api/menu_list/types'
+
+// 扩展 BotMenuItem 类型以支持拖拽和显示
+interface MenuItemWithExtras extends BotMenuItem {
+  span?: number
+  _fromEnabled?: boolean
+  _fromDisabled?: boolean
+}
+
+type MenuLayout = (MenuItemWithExtras | null)[][]
+
+// Props
+interface Props {
+  botId: number
+}
+
+const props = defineProps<Props>()
 
 // 常量定义
 const COLUMN_COUNT = 3
@@ -87,8 +103,8 @@ const TOTAL_SPAN = 24
 // 状态管理
 const loading = ref(false)
 const keyboardLayout = ref<MenuLayout>([])
-const disabledMenus = ref<MenuItem[]>([])
-const originalMenuList = ref<MenuItem[]>([])
+const disabledMenus = ref<MenuItemWithExtras[]>([])
+const originalMenuList = ref<BotMenuItem[]>([])
 const isOverDisabledZone = ref(false)
 const dragStartPosition = ref<{ row: number; col: number } | null>(null)
 
@@ -96,17 +112,20 @@ const dragStartPosition = ref<{ row: number; col: number } | null>(null)
 
 /**
  * 收集布局中所有非空菜单项
+ * @param layout 网格布局
+ * @returns 菜单项数组
  */
-const collectMenuItems = (layout: MenuLayout): MenuItem[] => {
-  return layout.flat().filter((item): item is MenuItem => item !== null)
+const collectMenuItems = (layout: MenuLayout): MenuItemWithExtras[] => {
+  return layout.flat().filter((item): item is MenuItemWithExtras => item !== null)
 }
 
 /**
  * 将菜单项数组转换为网格布局
+ * 自动计算每行的 span 值以实现响应式布局
  * @param items 菜单项数组
- * @returns 网格布局
+ * @returns 网格布局（二维数组）
  */
-const compactLayout = (items: MenuItem[]): MenuLayout => {
+const compactLayout = (items: MenuItemWithExtras[]): MenuLayout => {
   if (items.length === 0) return []
 
   const rowCount = Math.ceil(items.length / COLUMN_COUNT)
@@ -118,7 +137,7 @@ const compactLayout = (items: MenuItem[]): MenuLayout => {
     layout[row][col] = item
   })
 
-  // 计算每行的 span
+  // 计算每行的 span 值，确保均匀分布
   return layout.map((row) => {
     const validCount = row.filter((item) => item !== null).length
     const span = validCount > 0 ? TOTAL_SPAN / validCount : 0
@@ -128,22 +147,21 @@ const compactLayout = (items: MenuItem[]): MenuLayout => {
 
 /**
  * 将菜单列表转换为键盘布局
+ * 分离启用和禁用的菜单，并按 order_num 排序
  * @param list 原始菜单列表
- * @returns 网格布局
+ * @returns 网格布局（仅包含启用的菜单）
  */
-const convertToKeyboardLayout = (list: MenuItem[]): MenuLayout => {
+const convertToKeyboardLayout = (list: BotMenuItem[]): MenuLayout => {
   originalMenuList.value = [...list]
 
-  // 分离启用和禁用的菜单
+  // 分离启用和禁用的菜单 (status: 1=启用, 2=禁用)
   const enabledList = list
-    .filter((item) => item.menu_type === 1 && item.status === 1)
+    .filter((item) => item.status === 1)
     .sort((a, b) => b.order_num - a.order_num)
-    .map((item) => ({ ...item, text: item.menu_name }))
 
   const disabledList = list
-    .filter((item) => item.menu_type === 1 && item.status === 2)
+    .filter((item) => item.status === 2)
     .sort((a, b) => b.order_num - a.order_num)
-    .map((item) => ({ ...item, text: item.menu_name }))
 
   // 设置禁用菜单列表
   disabledMenus.value = disabledList
@@ -161,11 +179,21 @@ const fetchMenuData = async () => {
   try {
     loading.value = true
     await nextTick()
-    const data = await getMenuListApi({})
-    keyboardLayout.value = convertToKeyboardLayout(data.data.list || [])
+    const response = await getBotMenuList({ bot_id: props.botId })
+
+    if (!response.data) {
+      console.warn('菜单数据为空')
+      keyboardLayout.value = []
+      disabledMenus.value = []
+      return
+    }
+
+    keyboardLayout.value = convertToKeyboardLayout(response.data)
   } catch (error) {
     console.error('获取菜单数据失败:', error)
-    ElMessage.error('获取菜单数据失败')
+    ElMessage.error('获取菜单数据失败，请刷新重试')
+    keyboardLayout.value = []
+    disabledMenus.value = []
   } finally {
     loading.value = false
   }
@@ -182,29 +210,34 @@ const saveMenuConfig = async () => {
     const enabledItems = collectMenuItems(keyboardLayout.value)
     const allItems = [...enabledItems, ...disabledMenus.value]
 
-    // 批量保存
-    const savePromises = allItems.map((item) => {
-      const originalItem = originalMenuList.value.find((menu) => menu.id === item.id)
-      if (!originalItem) return Promise.resolve()
+    if (allItems.length === 0) {
+      ElMessage.warning('没有可保存的菜单项')
+      return false
+    }
 
-      return saveMenuApi({
-        id: originalItem.id,
-        menu_name: originalItem.menu_name,
-        menu_type: originalItem.menu_type,
-        order_num: originalItem.order_num,
-        status: item.status,
-        inner_type: originalItem.inner_type,
-        inner_value: originalItem.inner_value,
-        callback_type: originalItem.callback_type || ''
-      })
+    // 构建批量更新参数
+    const updateParams: UpdateBotMenuItemParams[] = allItems.map((item) => ({
+      id: item.id,
+      menu_name: item.menu_name,
+      order_num: item.order_num,
+      status: item.status
+    }))
+
+    // 批量更新
+    await batchUpdateBotMenu({
+      bot_id: props.botId,
+      menus: updateParams
     })
 
-    await Promise.all(savePromises)
     ElMessage.success('菜单配置保存成功')
+
+    // 重新获取最新数据
+    await fetchMenuData()
+
     return true
   } catch (error) {
     console.error('保存菜单配置失败:', error)
-    ElMessage.error('保存失败，请重试')
+    ElMessage.error('保存失败，请检查网络后重试')
     return false
   } finally {
     loading.value = false
@@ -213,25 +246,35 @@ const saveMenuConfig = async () => {
 
 // ==================== 拖拽逻辑 ====================
 
-const { isDragging, dragItem, handleDragEnd } = useDraggable()
+const {
+  isDragging,
+  dragItem,
+  handleDragEnd: originalHandleDragEnd
+} = useDraggable<MenuItemWithExtras>()
+
+// 包装 handleDragEnd 以确保总是重置状态
+const handleDragEnd = () => {
+  originalHandleDragEnd()
+  resetDragState()
+}
 
 /**
  * 启用区域：开始拖拽
  */
 const handleEnabledItemDragStart = (
-  item: MenuItem,
+  item: MenuItemWithExtras,
   rowIndex: number,
   colIndex: number,
   e: DragEvent
 ) => {
+  if (!e.dataTransfer) return
+
   isDragging.value = true
-  dragItem.value = { ...item, _fromEnabled: true } as MenuItem
+  dragItem.value = { ...item, _fromEnabled: true } as MenuItemWithExtras
   dragStartPosition.value = { row: rowIndex, col: colIndex }
 
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', JSON.stringify({ fromEnabled: true }))
-  }
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', JSON.stringify({ fromEnabled: true, id: item.id }))
 }
 
 /**
@@ -248,12 +291,20 @@ const handleEnabledItemDragOver = (e: DragEvent) => {
 
 /**
  * 启用区域：放置（排序）
+ * 只有在启用区域内拖拽时才交换 order_num
  */
 const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: number) => {
   e.preventDefault()
 
-  if (!isDragging.value || !dragItem.value || !dragStartPosition.value) return
-  if (!(dragItem.value as any)._fromEnabled) return
+  if (!isDragging.value || !dragItem.value || !dragStartPosition.value) {
+    resetDragState()
+    return
+  }
+
+  if (!(dragItem.value as any)._fromEnabled) {
+    resetDragState()
+    return
+  }
 
   const { row: startRow, col: startCol } = dragStartPosition.value
 
@@ -273,10 +324,12 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
     return
   }
 
-  // 交换 order_num
-  ;[draggedItem.order_num, targetItem.order_num] = [targetItem.order_num, draggedItem.order_num]
+  // 交换 order_num（只在启用区域内互换时交换）
+  const tempOrderNum = draggedItem.order_num
+  draggedItem.order_num = targetItem.order_num
+  targetItem.order_num = tempOrderNum
 
-  // 重新排序并布局
+  // 重新排序并布局（从大到小排序）
   allEnabledItems.sort((a, b) => b.order_num - a.order_num)
   keyboardLayout.value = compactLayout(allEnabledItems)
 
@@ -285,11 +338,13 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
 
 /**
  * 重置拖拽状态
+ * 清除所有拖拽相关的临时状态
  */
 const resetDragState = () => {
   isDragging.value = false
   dragItem.value = null
   dragStartPosition.value = null
+  isOverDisabledZone.value = false
 }
 
 /**
@@ -327,37 +382,57 @@ const handleDisabledZoneDragLeave = (e: DragEvent) => {
 
 /**
  * 禁用区域：放置（启用→禁用）
+ * 保持原有 order_num，只改变 status
  */
 const handleDisabledZoneDrop = (e: DragEvent) => {
   e.preventDefault()
   isOverDisabledZone.value = false
 
-  if (!dragItem.value || !(dragItem.value as any)._fromEnabled) return
+  if (!dragItem.value || !(dragItem.value as any)._fromEnabled) {
+    resetDragState()
+    return
+  }
 
   const itemToDisable = dragItem.value
+  const itemId = itemToDisable.id
 
   // 从启用列表中移除
   const allEnabledItems = collectMenuItems(keyboardLayout.value)
-  const updatedEnabledItems = allEnabledItems.filter((item) => item.id !== itemToDisable.id)
+  const itemIndex = allEnabledItems.findIndex((item) => item.id === itemId)
 
-  // 添加到禁用列表
-  disabledMenus.value.push({ ...itemToDisable, status: 2 })
+  if (itemIndex === -1) {
+    resetDragState()
+    return
+  }
+
+  const updatedEnabledItems = allEnabledItems.filter((item) => item.id !== itemId)
+
+  // 添加到禁用列表，保持原来的 order_num，只改变 status
+  disabledMenus.value.push({
+    ...itemToDisable,
+    status: 2 // 只改变状态为禁用
+  })
+
+  // 按 order_num 从大到小排序禁用列表
+  disabledMenus.value.sort((a, b) => b.order_num - a.order_num)
 
   // 重新布局启用区域
   keyboardLayout.value = compactLayout(updatedEnabledItems)
+
+  resetDragState()
 }
 
 /**
  * 禁用区域：开始拖拽
  */
-const handleDisabledItemDragStart = (item: MenuItem, e: DragEvent) => {
-  isDragging.value = true
-  dragItem.value = { ...item, _fromDisabled: true } as MenuItem
+const handleDisabledItemDragStart = (item: MenuItemWithExtras, e: DragEvent) => {
+  if (!e.dataTransfer) return
 
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move'
-    e.dataTransfer.setData('text/plain', JSON.stringify({ fromDisabled: true }))
-  }
+  isDragging.value = true
+  dragItem.value = { ...item, _fromDisabled: true } as MenuItemWithExtras
+
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('text/plain', JSON.stringify({ fromDisabled: true, id: item.id }))
 }
 
 /**
@@ -380,36 +455,52 @@ const handlePreviewDragOver = (e: DragEvent) => {
 /**
  * 预览区域：离开
  */
-const handlePreviewDragLeave = () => {
+const handlePreviewDragLeave = (e: DragEvent) => {
+  e.preventDefault()
   // 预留：可以在这里添加视觉反馈
 }
 
 /**
  * 预览区域：放置（禁用→启用）
+ * 保持原有 order_num，只改变 status
  */
 const handlePreviewDrop = (e: DragEvent) => {
   e.preventDefault()
 
-  if (!isDragging.value || !dragItem.value) return
+  if (!isDragging.value || !dragItem.value) {
+    resetDragState()
+    return
+  }
 
   const isFromDisabled = (dragItem.value as any)._fromDisabled
 
   if (!isFromDisabled) {
-    // 启用区域内部拖拽，不处理
+    // 启用区域内部拖拽，不在这里处理
     resetDragState()
     return
   }
 
   const itemToEnable = dragItem.value
+  const itemId = itemToEnable.id
 
   // 从禁用列表中移除
-  disabledMenus.value = disabledMenus.value.filter((item) => item.id !== itemToEnable.id)
+  const indexToRemove = disabledMenus.value.findIndex((item) => item.id === itemId)
+  if (indexToRemove === -1) {
+    resetDragState()
+    return
+  }
 
-  // 添加到启用列表
+  disabledMenus.value.splice(indexToRemove, 1)
+
+  // 添加到启用列表，保持原来的 order_num，只改变 status
   const allEnabledItems = collectMenuItems(keyboardLayout.value)
-  allEnabledItems.push({ ...itemToEnable, status: 1 })
+  allEnabledItems.push({
+    ...itemToEnable,
+    status: 1 // 只改变状态为启用
+  })
 
-  // 重新布局启用区域
+  // 按 order_num 从大到小排序后重新布局
+  allEnabledItems.sort((a, b) => b.order_num - a.order_num)
   keyboardLayout.value = compactLayout(allEnabledItems)
 
   resetDragState()

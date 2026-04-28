@@ -85,7 +85,9 @@
               active-text="是"
               inactive-text="否"
               inline-prompt
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
+              style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
             />
           </ElFormItem>
         </ElCol>
@@ -103,7 +105,9 @@
               active-text="是"
               inactive-text="否"
               inline-prompt
-              style="--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
+              style="
+
+--el-switch-on-color: #13ce66; --el-switch-off-color: #dcdfe6"
             />
           </ElFormItem>
         </ElCol>
@@ -230,7 +234,7 @@ import {
 import type { UploadUserFile, FormInstance } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
 import { v1SendGroupMessage, v2SendGroupMessage } from '@/api/tgUser'
-import { v1GetInnerButtonList, v2GetInnerButtonList } from '@/api/menu_list'
+import { v1GetInnerButtonList } from '@/api/menu_list'
 import { uploadFile as uploadAPI } from '@/api/utils/upload'
 import type { InnerButtonItem } from '@/api/menu_list/types'
 // import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
@@ -456,9 +460,8 @@ const handleBotChange = (value: number | string | (number | string)[]) => {
 // 获取内联菜单列表
 const fetchMenuList = async () => {
   try {
-    // 根据 useV2Api prop 决定使用哪个接口
-    const apiFunc = props.useV2Api ? v2GetInnerButtonList : v1GetInnerButtonList
-    const res = await apiFunc()
+    // 内联按钮只有 v1 版本，统一使用 v1GetInnerButtonList
+    const res = await v1GetInnerButtonList()
 
     if (res.code === '000000' && res.data) {
       // 新接口返回的 data 直接是数组

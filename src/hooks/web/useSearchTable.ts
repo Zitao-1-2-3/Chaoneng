@@ -66,8 +66,17 @@ export const useSearchTable = (config: UseSearchTableConfig, onReady?: (instance
 
   // 延迟初始化
   function tryInit() {
-    if (searchRegistered.value && tableRegistered.value) {
-      init()
+    // 如果没有搜索表单，只需要等待table注册
+    const needsSearch = config.searchSchema && config.searchSchema.length > 0
+    if (needsSearch) {
+      if (searchRegistered.value && tableRegistered.value) {
+        init()
+      }
+    } else {
+      // 没有搜索表单时，只需要table注册完成
+      if (tableRegistered.value) {
+        init()
+      }
     }
   }
 

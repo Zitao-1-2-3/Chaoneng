@@ -20,7 +20,7 @@
         </ElTabPane>
 
         <ElTabPane label="菜单配置" name="menuConfig">
-          <MenuConfigTab ref="menuConfigTabRef" />
+          <MenuConfigTab ref="menuConfigTabRef" :bot-id="currentBot.id || 0" />
         </ElTabPane>
       </ElTabs>
     </div>

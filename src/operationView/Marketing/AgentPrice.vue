@@ -43,32 +43,36 @@
               <div class="item-title">托管</div>
               <div class="item-content">
                 <div class="time-row">
-                  <span class="time-label">65k</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].hosting_65k"
-                    :precision="2"
-                    :step="0.1"
-                    :min="0"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].hosting_65k }}</span>
-                  <span class="unit">TRX</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">65k</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].hosting_65k"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].hosting_65k }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
                 </div>
                 <div class="time-row">
-                  <span class="time-label">131k</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].hosting_131k"
-                    :precision="2"
-                    :step="0.1"
-                    :min="0"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].hosting_131k }}</span>
-                  <span class="unit">TRX</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">131k</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].hosting_131k"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].hosting_131k }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -78,88 +82,100 @@
               <div class="item-title">按时间</div>
               <div class="item-content time-grid">
                 <div class="time-row">
-                  <span class="time-label">1小时</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].time_1h"
-                    :precision="2"
-                    :step="0.1"
-                    :min="0"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].time_1h }}</span>
-                  <span class="unit">TRX</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">1小时</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_1h"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_1h }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
                 </div>
                 <div class="time-row">
-                  <span class="time-label">1天</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].time_1d"
-                    :precision="2"
-                    :step="0.1"
-                    :min="0"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].time_1d }}</span>
-                  <span class="unit">TRX</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">1天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_1d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_1d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
                 </div>
                 <div class="time-row">
-                  <span class="time-label">3天</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].time_3d"
-                    :precision="2"
-                    :step="0.1"
-                    :min="0"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].time_3d }}</span>
-                  <span class="unit">TRX</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">3天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_3d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_3d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
                 </div>
                 <div class="time-row">
-                  <span class="time-label">7天</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].time_7d"
-                    :precision="2"
-                    :step="0.1"
-                    :min="0"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].time_7d }}</span>
-                  <span class="unit">TRX</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">7天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_7d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_7d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
                 </div>
                 <div class="time-row">
-                  <span class="time-label">15天</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].time_15d"
-                    :precision="2"
-                    :step="0.1"
-                    :min="0"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].time_15d }}</span>
-                  <span class="unit">TRX</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">15天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_15d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_15d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
                 </div>
                 <div class="time-row">
-                  <span class="time-label">30天</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="formDataMap[agent.id].time_30d"
-                    :precision="2"
-                    :step="0.1"
-                    :min="0"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ formDataMap[agent.id].time_30d }}</span>
-                  <span class="unit">TRX</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">30天</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="formDataMap[agent.id].time_30d"
+                      :precision="2"
+                      :step="0.1"
+                      :min="0"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ formDataMap[agent.id].time_30d }}</span>
+                    <span class="unit">TRX</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -169,34 +185,38 @@
               <div class="item-title">闪兑</div>
               <div class="item-content">
                 <div class="time-row">
-                  <span class="time-label">TRX→USDT</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="getTrx2UsdtDisplay(agent.id).value"
-                    :precision="2"
-                    :step="1"
-                    :min="0"
-                    :max="100"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ getTrx2UsdtDisplay(agent.id).value }}</span>
-                  <span class="unit">%</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">TRX→USDT</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="getTrx2UsdtDisplay(agent.id).value"
+                      :precision="2"
+                      :step="1"
+                      :min="0"
+                      :max="100"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ getTrx2UsdtDisplay(agent.id).value }}</span>
+                    <span class="unit">%</span>
+                  </div>
                 </div>
                 <div class="time-row">
-                  <span class="time-label">USDT→TRX</span>
-                  <el-input-number
-                    v-if="editModeMap[agent.id]"
-                    v-model="getUsdt2TrxDisplay(agent.id).value"
-                    :precision="2"
-                    :step="1"
-                    :min="0"
-                    :max="100"
-                    size="small"
-                    controls-position="right"
-                  />
-                  <span v-else class="value-text">{{ getUsdt2TrxDisplay(agent.id).value }}</span>
-                  <span class="unit">%</span>
+                  <div class="value-wrapper">
+                    <span class="time-label">USDT→TRX</span>
+                    <el-input-number
+                      v-if="editModeMap[agent.id]"
+                      v-model="getUsdt2TrxDisplay(agent.id).value"
+                      :precision="2"
+                      :step="1"
+                      :min="0"
+                      :max="100"
+                      size="small"
+                      controls-position="right"
+                    />
+                    <span v-else class="value-text">{{ getUsdt2TrxDisplay(agent.id).value }}</span>
+                    <span class="unit">%</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -208,17 +228,19 @@
             <div class="price-item-card">
               <div class="item-title">闪租</div>
               <div class="item-content single-input">
-                <el-input-number
-                  v-if="editModeMap[agent.id]"
-                  v-model="formDataMap[agent.id].flash"
-                  :precision="2"
-                  :step="0.1"
-                  :min="0"
-                  size="small"
-                  controls-position="right"
-                />
-                <span v-else class="value-text">{{ formDataMap[agent.id].flash }}</span>
-                <span class="unit">TRX</span>
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].flash"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].flash }}</span>
+                  <span class="unit">TRX</span>
+                </div>
               </div>
             </div>
 
@@ -226,17 +248,19 @@
             <div class="price-item-card">
               <div class="item-title">按笔数</div>
               <div class="item-content single-input">
-                <el-input-number
-                  v-if="editModeMap[agent.id]"
-                  v-model="formDataMap[agent.id].stroke"
-                  :precision="2"
-                  :step="0.1"
-                  :min="0"
-                  size="small"
-                  controls-position="right"
-                />
-                <span v-else class="value-text">{{ formDataMap[agent.id].stroke }}</span>
-                <span class="unit">TRX</span>
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].stroke"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].stroke }}</span>
+                  <span class="unit">TRX</span>
+                </div>
               </div>
             </div>
 
@@ -244,17 +268,19 @@
             <div class="price-item-card">
               <div class="item-title">首次激活</div>
               <div class="item-content single-input">
-                <el-input-number
-                  v-if="editModeMap[agent.id]"
-                  v-model="formDataMap[agent.id].active"
-                  :precision="2"
-                  :step="0.1"
-                  :min="0"
-                  size="small"
-                  controls-position="right"
-                />
-                <span v-else class="value-text">{{ formDataMap[agent.id].active }}</span>
-                <span class="unit">TRX</span>
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].active"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].active }}</span>
+                  <span class="unit">TRX</span>
+                </div>
               </div>
             </div>
 
@@ -280,17 +306,19 @@
             <div class="price-item-card">
               <div class="item-title">机器人价格</div>
               <div class="item-content single-input">
-                <el-input-number
-                  v-if="editModeMap[agent.id]"
-                  v-model="formDataMap[agent.id].bot_fee"
-                  :precision="2"
-                  :step="0.1"
-                  :min="0"
-                  size="small"
-                  controls-position="right"
-                />
-                <span v-else class="value-text">{{ formDataMap[agent.id].bot_fee }}</span>
-                <span class="unit">TRX</span>
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].bot_fee"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].bot_fee }}</span>
+                  <span class="unit">TRX</span>
+                </div>
               </div>
             </div>
           </div>
@@ -316,7 +344,7 @@ const priceList = ref<V1PriceListResponse[]>([])
 const editModeMap = reactive<Record<number, boolean>>({})
 
 // 获取代理级别名称
-const getAgentLevelName = (id: number) => {
+const getAgentLevelName = (id: number): string => {
   const levelMap: Record<number, string> = {
     1: '一级代理',
     2: '二级代理',
@@ -544,14 +572,10 @@ onActivated(() => {
 </script>
 
 <style scoped>
-.app-container {
-  padding: 20px;
-}
-
 .price-cards-container {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .agent-card {
@@ -603,7 +627,7 @@ onActivated(() => {
 
 .price-items-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(180px, 1fr));
+  grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(120px, 1fr)) minmax(200px, 1fr);
   gap: 12px;
   contain: layout;
 }
@@ -669,9 +693,17 @@ onActivated(() => {
   gap: 8px;
 }
 
+.value-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
 .time-row {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
 }
 
@@ -679,7 +711,7 @@ onActivated(() => {
   min-width: 65px;
   font-size: 12px;
   color: var(--el-text-color-regular);
-  flex-shrink: 0;
+  text-align: center;
 }
 
 .unit {

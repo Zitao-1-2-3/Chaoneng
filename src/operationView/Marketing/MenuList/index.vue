@@ -3,17 +3,23 @@
     <ContentWrap>
       <SearchTable
         :columns="columns"
-        :search-schema="searchSchema"
         :fetch-data-api="fetchMenuList"
         :fetch-del-api="deleteMenu"
         :action-column="actionColumn"
+        :table-props="{ pagination: undefined }"
+        :search-schema="[]"
+        :search-props="{ showSearch: false }"
+        :immediate="true"
         @loaded="handleDataLoaded"
         ref="searchTableRef"
         @add="handleAdd"
-        @search="onSearch"
       >
-        <!-- 自定义搜索按钮 -->
-        <template #searchButtons>
+        <!-- 在工具栏左侧添加刷新按钮 -->
+        <template #leftToolbar>
+          <BaseButton @click="handleRefresh">刷新</BaseButton>
+        </template>
+        <!-- 在工具栏右侧添加预览按钮 -->
+        <template #rightToolbar>
           <BaseButton type="primary" @click="handlePreview">点我预览</BaseButton>
         </template>
       </SearchTable>
@@ -21,12 +27,7 @@
       <!-- 表单弹窗 -->
       <Dialog v-model="dialogVisible" :title="dialogTitle">
         <!-- 表单内容 -->
-        <Form
-          ref="formRef"
-          :schema="formSchema"
-          @register="formRegister"
-          @validate="formValidate"
-        />
+        <Form ref="formRef" :schema="formSchema" @register="formRegister" />
         <template #footer>
           <div class="flex justify-end">
             <ElButton @click="dialogVisible = false">取消</ElButton>
@@ -42,42 +43,21 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, onMounted, h, computed, watch, reactive, nextTick } from 'vue'
-import {
-  ElButton,
-  ElLink,
-  ElTag,
-  ElMessage,
-  ElMessageBox,
-  ElSwitch,
-  ElRow,
-  ElCol,
-  ElInput,
-  FormItemProp
-} from 'element-plus'
+import { ref, onMounted, h, reactive, nextTick } from 'vue'
+import { ElButton, ElTag, ElMessage, ElSwitch } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { Dialog } from '@/components/Dialog'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
 import { Form } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
-import { useI18n } from '@/hooks/web/useI18n'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
-import {
-  getMenuListApi,
-  v1GetMenuList,
-  v1AddMenu,
-  v1UpdateMenu,
-  deleteMenuApi,
-  saveMenuApi,
-  getCallBackListApi
-} from '@/api/menu_list'
+import { getBotMenuList, addBotMenu, deleteBotMenu, batchUpdateBotMenu } from '@/api/menu_list'
 import type {
-  MenuItem,
-  MenuListParamsV1,
-  AddMenuParamsV1,
-  UpdateMenuParamsV1
+  GetBotMenuListParams,
+  AddBotMenuParams,
+  BatchUpdateBotMenuParams
 } from '@/api/menu_list/types'
 import {
   handleListMessage,
@@ -90,34 +70,29 @@ import { useValidator } from '@/hooks/web/useValidator'
 import MenuPreview from './components/MenuPreview.vue'
 import { formatToDateTime } from '@/utils/dateUtil'
 
-const { t } = useI18n()
 const { required } = useValidator()
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 const previewVisible = ref(false)
 const { formRegister, formMethods } = useForm()
 const { getElFormExpose } = formMethods
 
-// 控制按钮类型相关表单项显示 - 转换为计算属性
-const isUrlType = computed(() => formValues.inner_type === 'url')
-
 const isLoaded = ref(false)
 
-// 回调函数列表
+// 回调函数列表（新接口不需要，保留变量以避免错误）
 const callbackList = ref<Array<{ label: string; value: string }>>([])
 
-// 添加formValues来跟踪表单值
+// 添加formValues来跟踪表单值（简化版）
 const formValues = reactive<{
-  menu_type: number
-  inner_type: string
-  inner_value: string
-  [key: string]: any
+  menu_name: string
+  order_num: number
+  status: number
 }>({
-  menu_type: 1,
-  inner_type: '',
-  inner_value: ''
+  menu_name: '',
+  order_num: 0,
+  status: 1 // 默认启用
 })
 
-// 表单配置
+// 表单配置（新接口只需要 menu_name, order_num, status）
 const formSchema = reactive<FormSchema[]>([
   {
     field: 'menu_name',
@@ -135,7 +110,7 @@ const formSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: '排序',
     componentProps: {
-      placeholder: '请输入排序',
+      placeholder: '请输入排序（数字越小越靠前）',
       min: 0
     },
     formItemProps: {
@@ -144,118 +119,23 @@ const formSchema = reactive<FormSchema[]>([
   },
   {
     field: 'status',
-    component: 'Switch' as const,
+    component: 'Select' as const,
     label: '状态',
-    value: 2,
+    value: 1,
     componentProps: {
-      activeValue: 1,
-      inactiveValue: 2
+      options: [
+        { label: '启用', value: 1 },
+        { label: '禁用', value: 2 }
+      ],
+      placeholder: '请选择状态'
     },
     formItemProps: {
       rules: required('状态不能为空')
     }
-  },
-  {
-    field: 'menu_type',
-    component: 'Select' as const,
-    label: '菜单类型',
-    componentProps: {
-      options: [
-        { label: '菜单', value: 1 },
-        { label: '内联按钮', value: 2 }
-      ],
-      placeholder: '请选择菜单类型',
-      onChange: async (value) => {
-        formValues.menu_type = value
-        await formMethods.setValues({
-          menu_type: value,
-          inner_value: ''
-        })
-      }
-    },
-    formItemProps: {
-      rules: required('菜单类型不能为空')
-    }
-  },
-  {
-    field: 'inner_type',
-    component: 'Select' as const,
-    label: '内联类型',
-    componentProps: {
-      options: [
-        { label: 'URL链接', value: 'url' },
-        { label: '回调函数', value: 'call' }
-      ],
-      placeholder: '请选择内联类型',
-      onChange: async (value) => {
-        formValues.inner_type = value
-        await formMethods.setValues({
-          inner_type: value,
-          inner_value: '' // 切换类型时清空值
-        })
-      }
-    },
-    formItemProps: {
-      // 动态规则：只有当菜单类型为内联按钮(2)时才需要验证
-      rules: [
-        {
-          required: true,
-          message: '内联类型不能为空',
-          validator: (rule, value, callback) => {
-            if (formValues.menu_type === 2 && !value) {
-              callback(new Error('内联类型不能为空'))
-            } else {
-              callback()
-            }
-          }
-        }
-      ]
-    }
-  },
-  {
-    field: 'inner_value',
-    component: 'Input' as const,
-    label: '链接地址',
-    componentProps: {
-      placeholder: '请输入链接地址',
-      remark: () => {
-        if (formValues.inner_type === 'url') {
-          return (
-            <>
-              <p>例如：https://www.123456789.com</p>
-            </>
-          )
-        } else {
-          return (
-            <>
-              <p>请选择回调函数</p>
-            </>
-          )
-        }
-      }
-    },
-    formItemProps: {
-      // 动态规则：只有当菜单类型为内联按钮(2)时才需要验证
-      rules: [
-        {
-          required: true,
-          message: '该字段不能为空',
-          validator: (rule, value, callback) => {
-            if (formValues.menu_type === 2 && !value) {
-              const errorMsg =
-                formValues.inner_type === 'url' ? '链接地址不能为空' : '回调函数名称不能为空'
-              callback(new Error(errorMsg))
-            } else {
-              callback()
-            }
-          }
-        }
-      ]
-    }
   }
 ])
 
-// 表格列配置
+// 表格列配置（简化版，只显示基本信息）
 const columns: TableColumn[] = [
   {
     field: 'menu_name',
@@ -265,7 +145,7 @@ const columns: TableColumn[] = [
         return h(
           'span',
           {
-            style: { color: '#333' }
+            style: { color: '#333', fontWeight: '500' }
           },
           data.row.menu_name
         )
@@ -273,74 +153,35 @@ const columns: TableColumn[] = [
     }
   },
   {
-    field: 'menu_type',
-    label: '类型',
+    field: 'order_num',
+    label: '排序',
+    width: 100,
     slots: {
       default: (data: any) => {
-        const typeMap = {
-          1: { label: '菜单', type: 'success' },
-          2: { label: '内联按钮', type: 'primary' }
-        }
-        const type = typeMap[data.row.menu_type] || { label: '-', type: 'info' }
         return h(
           ElTag,
           {
-            type: type.type
+            type: 'info',
+            size: 'small'
           },
-          () => type.label
+          () => data.row.order_num
         )
       }
     }
   },
-  // {
-  //   field: 'inner_type',
-  //   label: '内联类型',
-  //   slots: {
-  //     default: (data: any) => {
-  //       if (data.row.menu_type !== 2) {
-  //         return h('span', {}, '-')
-  //       }
-
-  //       const typeMap = {
-  //         url: { label: 'URL链接', type: 'warning' },
-  //         call: { label: '回调函数', type: 'info' }
-  //       }
-  //       const type = typeMap[data.row.inner_type] || { label: '-', type: 'info' }
-  //       return h(
-  //         ElTag,
-  //         {
-  //           type: type.type
-  //         },
-  //         () => type.label
-  //       )
-  //     }
-  //   }
-  // },
-  {
-    field: 'other',
-    label: '其他'
-    // formatter: (row: any) => {
-    //   if (row.menu_type === 2) {
-    //     return row.inner_value || '-'
-    //   }
-    //   return '-'
-    // }
-  },
-  { field: 'order_num', label: '排序' },
   {
     field: 'status',
     label: '状态',
+    width: 100,
     slots: {
       default: (data: any) => {
         return (
-          <>
-            <ElSwitch
-              v-model={data.row.status}
-              activeValue={1}
-              inactiveValue={2}
-              onChange={() => handleStatusChange(data.row)}
-            />
-          </>
+          <ElSwitch
+            v-model={data.row.status}
+            activeValue={1}
+            inactiveValue={2}
+            onChange={() => handleStatusChange(data.row)}
+          />
         )
       }
     }
@@ -348,6 +189,7 @@ const columns: TableColumn[] = [
   {
     field: 'created_at',
     label: '创建时间',
+    width: 180,
     sortable: 'custom',
     formatter: (row: any) => {
       return formatToDateTime(row.created_at)
@@ -356,6 +198,7 @@ const columns: TableColumn[] = [
   {
     field: 'updated_at',
     label: '更新时间',
+    width: 180,
     sortable: 'custom',
     formatter: (row: any) => {
       return formatToDateTime(row.updated_at)
@@ -368,6 +211,7 @@ const actionColumn = {
   field: 'action',
   label: '操作',
   width: 240,
+  fixed: 'right',
   slots: {
     default: (data: any) => {
       const row = data.row
@@ -376,7 +220,7 @@ const actionColumn = {
           <BaseButton type="primary" onClick={() => handleEdit(row)}>
             编辑
           </BaseButton>
-          <BaseButton type="danger" v-show={false} onClick={() => handleDelete(row)}>
+          <BaseButton type="danger" onClick={() => handleDelete(row)}>
             删除
           </BaseButton>
         </>
@@ -385,62 +229,28 @@ const actionColumn = {
   }
 }
 
-// 搜索表单配置
-const searchSchema = [
-  {
-    field: 'menu_name',
-    component: 'Input' as const,
-    label: '菜单名称',
-    componentProps: {
-      placeholder: '请输入菜单名称'
-    }
-  },
-  {
-    field: 'menu_type',
-    component: 'Select' as const,
-    label: '类型',
-    componentProps: {
-      options: [
-        { label: '全部', value: '' },
-        { label: '菜单', value: 1 },
-        { label: '内联按钮', value: 2 }
-      ],
-      placeholder: '请选择菜单类型'
-    }
-  }
-]
-
 // API 封装
 const fetchMenuList = async (params: any) => {
   try {
-    const queryParams: MenuListParamsV1 = {
-      current_page: Number(params.current_page) || 1,
-      page_size: Number(params.page_size) || 10,
-      keyword: params.menu_name || undefined,
-      menu_type: params.menu_type || undefined,
+    const queryParams: GetBotMenuListParams = {
+      bot_id: params.bot_id || 0, // 从参数获取 bot_id，默认为 0
       status: params.status || undefined
     }
 
-    // 处理排序参数
-    if (params.order) {
-      // 解析排序参数，格式：column ASC 或 column DESC
-      const orderParts = params.order.split(' ')
-      if (orderParts.length === 2) {
-        const [field, direction] = orderParts
-        queryParams.order = `${field} ${direction}`
-      }
-    }
-
-    const response = await v1GetMenuList(queryParams)
+    const response = await getBotMenuList(queryParams)
 
     if (response.code === '000000' && response.data) {
-      const list = response.data.list || []
-      const hasSearchCondition = !!(params.menu_name || params.menu_type || params.status)
+      // 新接口返回简单数组，不是分页对象
+      const list = Array.isArray(response.data) ? response.data : []
+
+      // 按 order_num 从大到小排序
+      list.sort((a, b) => b.order_num - a.order_num)
+      const hasSearchCondition = !!(params.menu_name || params.status)
       handleListMessage(list, hasSearchCondition, '菜单')
 
       return {
         list,
-        totalCount: response.data.pager?.total || 0
+        totalCount: list.length // 简单数组，总数就是数组长度
       }
     }
 
@@ -456,12 +266,12 @@ const deleteMenu = async (): Promise<boolean> => {
   const row = searchTableRef.value?.currentRow
   if (row && row.id) {
     try {
-      const res = await deleteMenuApi(row.id)
+      const res = await deleteBotMenu(row.id)
       if (res.code === '000000') {
         handleSuccessMessage('删除成功')
         return true
       }
-      handleErrorMessage(res.msg || '删除失败', '删除失败')
+      handleErrorMessage((res as any).msg || '删除失败', '删除失败')
       return false
     } catch (error) {
       handleErrorMessage(error, '删除菜单失败')
@@ -487,14 +297,11 @@ const handleAdd = () => {
   dialogVisible.value = true
   dialogTitle.value = '添加菜单'
 
-  // 重置表单
+  // 重置表单（使用新接口的字段）
   const defaultValues = {
     menu_name: '',
-    menu_type: 1,
-    inner_type: '',
-    inner_value: '',
     order_num: 0,
-    status: 1
+    status: 1 // 默认启用
   }
 
   // 更新本地响应式数据
@@ -508,28 +315,12 @@ const handleEdit = (row: any) => {
   dialogVisible.value = true
   dialogTitle.value = '编辑菜单'
 
-  // 获取inner_type和相关值
-  const innerType = row.inner_type
-
-  // 根据inner_type决定使用哪个字段的值
-  let innerValue = ''
-  if (innerType === 'call') {
-    // 如果是回调函数，使用callback_type字段
-    innerValue = row.callback_type || row.inner_value || ''
-  } else {
-    // 如果是URL，使用inner_value字段
-    innerValue = row.inner_value || ''
-  }
-
-  // 设置表单值
+  // 设置表单值（使用新接口的字段）
   const editValues = {
     id: row.id,
     menu_name: row.menu_name,
-    menu_type: row.menu_type,
     order_num: row.order_num,
-    status: row.status,
-    inner_type: innerType,
-    inner_value: innerValue
+    status: row.status
   }
 
   // 更新本地响应式数据
@@ -543,8 +334,9 @@ const handlePreview = () => {
   previewVisible.value = true
 }
 
-const formValidate = (prop: FormItemProp, isValid: boolean, message: string) => {
-  console.log(prop, isValid, message)
+const handleRefresh = () => {
+  searchTableRef.value?.reload()
+  ElMessage.success('刷新成功')
 }
 
 const handleSubmit = async () => {
@@ -566,41 +358,30 @@ const handleSubmit = async () => {
 
       // 判断是添加还是更新
       if (values.id) {
-        // 更新操作 - 使用新接口 v1UpdateMenu
-        const updateParams: UpdateMenuParamsV1 = {
-          id: values.id,
-          menu_name: values.menu_name,
-          menu_type: values.menu_type,
-          order_num: values.order_num,
-          status: values.status,
-          inner_type: values.inner_type,
-          inner_value: values.inner_value
+        // 更新操作 - 使用批量更新接口
+        const updateParams: BatchUpdateBotMenuParams = {
+          bot_id: 0, // 运营端默认 bot_id 为 0
+          menus: [
+            {
+              id: values.id,
+              menu_name: values.menu_name,
+              order_num: values.order_num,
+              status: values.status
+            }
+          ]
         }
 
-        // 如果是回调函数类型，添加callback_type字段
-        if (values.inner_type === 'call') {
-          updateParams.callback_type = values.inner_value
-        }
-
-        await v1UpdateMenu(updateParams)
+        await batchUpdateBotMenu(updateParams)
         ElMessage.success('更新成功')
       } else {
-        // 添加操作 - 使用新接口 v1AddMenu
-        const addParams: AddMenuParamsV1 = {
+        // 添加操作 - 使用新接口 addBotMenu
+        const addParams: AddBotMenuParams = {
           menu_name: values.menu_name,
-          menu_type: values.menu_type,
           order_num: values.order_num,
-          status: values.status,
-          inner_type: values.inner_type,
-          inner_value: values.inner_value
+          status: values.status
         }
 
-        // 如果是回调函数类型，添加callback_type字段
-        if (values.inner_type === 'call') {
-          addParams.callback_type = values.inner_value
-        }
-
-        await v1AddMenu(addParams)
+        await addBotMenu(addParams)
         ElMessage.success('添加成功')
       }
 
@@ -618,25 +399,10 @@ const handleSubmit = async () => {
   }
 }
 
-const onSearch = (params: any) => {
-  console.log('搜索参数:', params)
-}
-
-// 获取回调函数列表
+// 获取回调函数列表（新接口不需要）
 const fetchCallbackList = async () => {
-  try {
-    const response = await getCallBackListApi()
-    if (response.code === '000000' && response.data) {
-      callbackList.value = response.data.map((item: any) => ({
-        label: item.name || item.callback_type,
-        value: item.callback_type
-      }))
-    } else {
-      handleDataFormatError('回调函数列表')
-    }
-  } catch (error) {
-    handleErrorMessage(error, '获取回调函数列表失败')
-  }
+  // 新接口已简化，不需要回调函数列表
+  callbackList.value = []
 }
 
 // 弹窗相关
@@ -647,45 +413,6 @@ const previewHandleClose = () => {
   previewVisible.value = false
   searchTableRef.value?.reload()
 }
-
-// 监听状态变化
-watch(
-  [() => formValues.menu_type, () => formValues.inner_type],
-  () => {
-    // 更新表单配置中的disabled和hidden属性
-    formSchema.forEach((item) => {
-      if (item.field === 'inner_type') {
-        item.hidden = formValues.menu_type !== 2
-      } else if (item.field === 'inner_value') {
-        item.hidden = formValues.menu_type !== 2
-
-        // 根据inner_type动态更新组件类型、label和placeholder
-        if (formValues.inner_type === 'url') {
-          item.component = 'Input' as const
-          item.label = '链接地址'
-          if (item.componentProps) {
-            item.componentProps.placeholder = '请输入链接地址'
-            delete item.componentProps.options // 移除options属性
-          }
-          if (item.formItemProps && item.formItemProps.rules && item.formItemProps.rules[0]) {
-            item.formItemProps.rules[0].message = '链接地址不能为空'
-          }
-        } else {
-          item.component = 'Select' as const
-          item.label = '回调函数'
-          if (item.componentProps) {
-            item.componentProps.placeholder = '请选择回调函数'
-            item.componentProps.options = callbackList.value
-          }
-          if (item.formItemProps && item.formItemProps.rules && item.formItemProps.rules[0]) {
-            item.formItemProps.rules[0].message = '回调函数不能为空'
-          }
-        }
-      }
-    })
-  },
-  { immediate: true }
-)
 
 // 数据加载完成回调
 const handleDataLoaded = ({ data, total, success }) => {
@@ -702,25 +429,42 @@ const handleDataLoaded = ({ data, total, success }) => {
     ElMessage.info('未查询到符合条件的数据')
   }
 }
-// 状态切换
-const handleStatusChange = async (value) => {
+
+// 状态切换处理函数
+const handleStatusChange = async (row: any) => {
   if (!isLoaded.value) return
-  console.log('状态切换:', value)
-  // 调用API更新状态
-  const res = await saveMenuApi(value)
-  if (res.code === '000000') {
+
+  try {
+    // 使用批量更新接口更新单个菜单的状态
+    const updateParams: BatchUpdateBotMenuParams = {
+      bot_id: 0, // 运营端默认 bot_id 为 0
+      menus: [
+        {
+          id: row.id,
+          menu_name: row.menu_name,
+          order_num: row.order_num,
+          status: row.status
+        }
+      ]
+    }
+
+    await batchUpdateBotMenu(updateParams)
     ElMessage.success('状态更新成功')
-  } else {
+
+    // 刷新列表
+    searchTableRef.value?.reload()
+  } catch (error) {
+    console.error('状态更新失败:', error)
     ElMessage.error('状态更新失败')
+
+    // 恢复原状态
+    row.status = row.status === 0 ? 1 : 0
   }
-  console.log('状态切换结果:', res)
 }
 
 onMounted(async () => {
   // 获取回调函数列表
   await fetchCallbackList()
-  // 组件加载后自动调用首次查询
-  searchTableRef.value?.reload()
 })
 </script>
 

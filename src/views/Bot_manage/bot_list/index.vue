@@ -207,7 +207,7 @@ const columns = [
         return (
           <div>
             到期时间
-            <Tips content="到期后，您的机器人将会被暂停使用" />：
+            <Tips content="到期后，您的机器人将会被暂停使用" />
           </div>
         )
       }

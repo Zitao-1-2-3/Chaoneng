@@ -44,7 +44,7 @@
 
 <script setup lang="tsx">
 import { ref, onMounted, h, computed } from 'vue'
-import { ElMessage, ElTag, ElButton, ElTabs, ElTabPane, ElLink } from 'element-plus'
+import { ElButton, ElTabs, ElTabPane, ElLink, ElTag } from 'element-plus'
 import { BaseButton } from '@/components/Button'
 import { Icon } from '@/components/Icon'
 import { SearchTable } from '@/components/SearchTable'
@@ -79,7 +79,7 @@ const orderDetailSchema = computed(() => {
     {
       field: 'amount',
       label: '充值金额',
-      slots: { default: (row) => `${row.amount || '-'} USDT` }
+      slots: { default: (row) => h('span', `${row.amount || '-'} USDT`) }
     },
     {
       field: 'status',
@@ -96,7 +96,7 @@ const orderDetailSchema = computed(() => {
     {
       field: 'createTime',
       label: '创建时间',
-      slots: { default: (row) => formatToDateTime(row.createTime) || '-' }
+      slots: { default: (row) => h('span', formatToDateTime(row.createTime) || '-') }
     },
     { field: 'remark', label: '备注' }
   ]
