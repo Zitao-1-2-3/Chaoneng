@@ -90,7 +90,7 @@ const newSchema = computed(() => {
                     onSearch={search}
                   >
                     {/* 传递自定义按钮插槽 */}
-                    {slots.actionButtons?.()}
+                    {slots.actionButtons?.({})}
                   </ActionButton>
                 </div>
               )

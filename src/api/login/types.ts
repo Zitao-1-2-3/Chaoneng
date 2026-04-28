@@ -58,7 +58,8 @@ export interface VerifyCodeLoginParams {
  * 接口路径：POST /v1/user/changepasswd
  */
 export interface ChangePasswordParams {
-  email: string // 邮箱
+  email?: string // 邮箱
+  phone?: string // 手机号
   password: string // 新密码
   verify_code: string // 验证码
 }

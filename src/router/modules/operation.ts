@@ -109,7 +109,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'AgentPrice',
           meta: {
             title: '代理价格配置',
-            buttonList: ['add', 'edit']
+            buttonList: ['edit']
           }
         },
         {
@@ -137,6 +137,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           name: 'MarketingMenuList',
           meta: {
             title: '菜单列表'
+          }
+        },
+        {
+          path: 'group_list',
+          component: () => import('@/operationView/Marketing/GroupList/index.vue'),
+          name: 'MarketingGroupList',
+          meta: {
+            title: '群组列表'
           }
         }
       ]

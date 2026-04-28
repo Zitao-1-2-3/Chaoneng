@@ -72,21 +72,22 @@ export function useBotConfigV1() {
       // 保存机器人信息
       currentBot.value = botDetailRes.data
 
-      // 保存成本价数据 - 使用后端返回的 batch_flash 字段
+      // 保存成本价数据 - 统一使用后端字段名
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
-        flash_rent_price: parseFloat(systemPrice.flash) || 0,
-        day_1_price: parseFloat(systemPrice.time_1d) || 0,
-        day_3_price: parseFloat(systemPrice.time_3d) || 0,
-        day_7_price: parseFloat(systemPrice.time_7d) || 0,
-        day_15_price: parseFloat(systemPrice.time_15d) || 0,
-        day_30_price: parseFloat(systemPrice.time_30d) || 0,
-        count_price: parseFloat(systemPrice.stroke) || 0,
-        manage_price_65000: parseFloat(systemPrice.hosting_65k) || 0,
-        manage_price_13100: parseFloat(systemPrice.hosting_131k) || 0,
+        flash: parseFloat(systemPrice.flash) || 0,
+        time_1h: parseFloat(systemPrice.time_1h) || 0,
+        time_1d: parseFloat(systemPrice.time_1d) || 0,
+        time_3d: parseFloat(systemPrice.time_3d) || 0,
+        time_7d: parseFloat(systemPrice.time_7d) || 0,
+        time_15d: parseFloat(systemPrice.time_15d) || 0,
+        time_30d: parseFloat(systemPrice.time_30d) || 0,
+        stroke: parseFloat(systemPrice.stroke) || 0,
+        hosting_65k: parseFloat(systemPrice.hosting_65k) || 0,
+        hosting_131k: parseFloat(systemPrice.hosting_131k) || 0,
         batch_flash: parseFloat(systemPrice.batch_flash) || 0,
-        batch_active_price: parseFloat(systemPrice.active) || 0,
-        weal_price_trx: parseFloat(systemPrice.flash) || 0 // 使用闪租能量
+        active: parseFloat(systemPrice.active) || 0
+        // 注意:福利能量的成本价使用 time_1h,不需要单独的 weal_time_1h
       })
 
       // 设置TG同步状态
@@ -180,21 +181,22 @@ export function useBotConfigV1() {
         return false
       }
 
-      // 保存成本价数据 - 使用后端返回的 batch_flash 字段
+      // 保存成本价数据 - 统一使用后端字段名
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
-        flash_rent_price: parseFloat(systemPrice.flash) || 0,
-        day_1_price: parseFloat(systemPrice.time_1d) || 0,
-        day_3_price: parseFloat(systemPrice.time_3d) || 0,
-        day_7_price: parseFloat(systemPrice.time_7d) || 0,
-        day_15_price: parseFloat(systemPrice.time_15d) || 0,
-        day_30_price: parseFloat(systemPrice.time_30d) || 0,
-        count_price: parseFloat(systemPrice.stroke) || 0,
-        manage_price_65000: parseFloat(systemPrice.hosting_65k) || 0,
-        manage_price_13100: parseFloat(systemPrice.hosting_131k) || 0,
+        flash: parseFloat(systemPrice.flash) || 0,
+        time_1h: parseFloat(systemPrice.time_1h) || 0,
+        time_1d: parseFloat(systemPrice.time_1d) || 0,
+        time_3d: parseFloat(systemPrice.time_3d) || 0,
+        time_7d: parseFloat(systemPrice.time_7d) || 0,
+        time_15d: parseFloat(systemPrice.time_15d) || 0,
+        time_30d: parseFloat(systemPrice.time_30d) || 0,
+        stroke: parseFloat(systemPrice.stroke) || 0,
+        hosting_65k: parseFloat(systemPrice.hosting_65k) || 0,
+        hosting_131k: parseFloat(systemPrice.hosting_131k) || 0,
         batch_flash: parseFloat(systemPrice.batch_flash) || 0,
-        batch_active_price: parseFloat(systemPrice.active) || 0,
-        weal_price_trx: parseFloat(systemPrice.flash) || 0 // 使用闪租能量
+        active: parseFloat(systemPrice.active) || 0
+        // 注意:福利能量的成本价使用 time_1h,不需要单独的 weal_time_1h
       })
 
       // 保存当前价格配置
@@ -202,44 +204,44 @@ export function useBotConfigV1() {
       // 注意：新接口返回的是扁平化结构，不再有 agent_price 嵌套
       Object.assign(currentPrices, botPriceData)
 
-      // 设置表单值
+      // 设置表单值 - 统一使用后端字段名
       const formValues = {
         // 闪租能量
-        flash_price: parseFloat(botPriceData.flash) || 0,
+        flash: parseFloat(botPriceData.flash) || 0,
 
         // 时间能量
         time_1h: parseFloat(botPriceData.time_1h) || 0,
-        day_1_price: parseFloat(botPriceData.time_1d) || 0,
-        day_3_price: parseFloat(botPriceData.time_3d) || 0,
-        day_7_price: parseFloat(botPriceData.time_7d) || 0,
-        day_15_price: parseFloat(botPriceData.time_15d) || 0,
-        day_30_price: parseFloat(botPriceData.time_30d) || 0,
+        time_1d: parseFloat(botPriceData.time_1d) || 0,
+        time_3d: parseFloat(botPriceData.time_3d) || 0,
+        time_7d: parseFloat(botPriceData.time_7d) || 0,
+        time_15d: parseFloat(botPriceData.time_15d) || 0,
+        time_30d: parseFloat(botPriceData.time_30d) || 0,
 
         // 笔数能量
-        count_price_trx: parseFloat(botPriceData.stroke) || 0,
-        count_price_usdt: parseFloat(botPriceData.stroke_usdt) || 0,
+        stroke: parseFloat(botPriceData.stroke) || 0,
+        stroke_usdt: parseFloat(botPriceData.stroke_usdt) || 0,
 
         // 智能托管
-        price_trx_65000: parseFloat(botPriceData.hosting_65k) || 0,
-        price_trx_131000: parseFloat(botPriceData.hosting_131k) || 0,
+        hosting_65k: parseFloat(botPriceData.hosting_65k) || 0,
+        hosting_131k: parseFloat(botPriceData.hosting_131k) || 0,
 
         // 批量下单
         batch_flash: parseFloat(botPriceData.batch_flash) || 0,
-        batch_active_price: parseFloat(botPriceData.active) || 0,
+        active: parseFloat(botPriceData.active) || 0,
 
         // 闪兑配置
         min_trx_balance: parseFloat(botPriceData.min_trx_balance) || 0,
-        profit_usdt_to_trx: (parseFloat(botPriceData.usdt_2_trx) || 0) * 100,
-        max_usdt_to_trx: parseFloat(botPriceData.max_usdt_2_trx) || 0,
-        profit_trx_to_usdt: (parseFloat(botPriceData.trx_2_usdt) || 0) * 100,
-        max_trx_to_usdt: parseFloat(botPriceData.max_trx_2_usdt) || 0,
+        usdt_2_trx: (parseFloat(botPriceData.usdt_2_trx) || 0) * 100,
+        max_usdt_2_trx: parseFloat(botPriceData.max_usdt_2_trx) || 0,
+        trx_2_usdt: (parseFloat(botPriceData.trx_2_usdt) || 0) * 100,
+        max_trx_2_usdt: parseFloat(botPriceData.max_trx_2_usdt) || 0,
 
         // 福利板块
-        weal_price_trx: parseFloat(botPriceData.weal_time_1h) || 0,
-        hour_limit_count: botPriceData.weal_hour_limit
+        weal_time_1h: parseFloat(botPriceData.weal_time_1h) || 0,
+        weal_hour_limit: botPriceData.weal_hour_limit
           ? parseFloat(botPriceData.weal_hour_limit)
           : 0,
-        total_limit_count: botPriceData.weal_total_limit
+        weal_total_limit: botPriceData.weal_total_limit
           ? parseFloat(botPriceData.weal_total_limit)
           : 0
       }
@@ -433,37 +435,37 @@ export function useBotConfigV1() {
     try {
       const priceData = await formMethods.getFormData()
 
-      // 构建价格配置数据 - 使用扁平化结构
+      // 构建价格配置数据 - 统一使用后端字段名
       const priceConfig = {
         id: currentPrices.id, // 使用价格配置表的ID
         // 闪租能量
-        flash: priceData.flash_price || 0,
+        flash: priceData.flash || 0,
         // 时间能量
         time_1h: priceData.time_1h || 0,
-        time_1d: priceData.day_1_price || 0,
-        time_3d: priceData.day_3_price || 0,
-        time_7d: priceData.day_7_price || 0,
-        time_15d: priceData.day_15_price || 0,
-        time_30d: priceData.day_30_price || 0,
+        time_1d: priceData.time_1d || 0,
+        time_3d: priceData.time_3d || 0,
+        time_7d: priceData.time_7d || 0,
+        time_15d: priceData.time_15d || 0,
+        time_30d: priceData.time_30d || 0,
         // 笔数能量
-        stroke: priceData.count_price_trx || 0,
-        stroke_usdt: priceData.count_price_usdt || 0,
+        stroke: priceData.stroke || 0,
+        stroke_usdt: priceData.stroke_usdt || 0,
         // 智能托管
-        hosting_65k: priceData.price_trx_65000 || 0,
-        hosting_131k: priceData.price_trx_131000 || 0,
+        hosting_65k: priceData.hosting_65k || 0,
+        hosting_131k: priceData.hosting_131k || 0,
         // 批量下单
         batch_flash: priceData.batch_flash || 0,
-        active: priceData.batch_active_price || 0,
+        active: priceData.active || 0,
         // 闪兑配置
-        usdt_2_trx: (priceData.profit_usdt_to_trx || 0) / 100,
-        trx_2_usdt: (priceData.profit_trx_to_usdt || 0) / 100,
+        usdt_2_trx: (priceData.usdt_2_trx || 0) / 100,
+        trx_2_usdt: (priceData.trx_2_usdt || 0) / 100,
         min_trx_balance: priceData.min_trx_balance || 0,
-        max_usdt_2_trx: priceData.max_usdt_to_trx || 0,
-        max_trx_2_usdt: priceData.max_trx_to_usdt || 0,
+        max_usdt_2_trx: priceData.max_usdt_2_trx || 0,
+        max_trx_2_usdt: priceData.max_trx_2_usdt || 0,
         // 福利板块
-        weal_time_1h: priceData.weal_price_trx || 0,
-        weal_hour_limit: priceData.hour_limit_count || 0,
-        weal_total_limit: priceData.total_limit_count || 0
+        weal_time_1h: priceData.weal_time_1h || 0,
+        weal_hour_limit: priceData.weal_hour_limit || 0,
+        weal_total_limit: priceData.weal_total_limit || 0
       }
 
       console.log('提交价格配置数据:', priceConfig)

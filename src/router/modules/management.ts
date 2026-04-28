@@ -26,14 +26,6 @@ const managementRoutes: AppRouteRecordRaw[] = [
         }
       },
       {
-        path: 'menu_list',
-        component: () => import('@/views/Bot_manage/menu_list/index.vue'),
-        name: 'MenuList',
-        meta: {
-          title: '菜单列表'
-        }
-      },
-      {
         path: 'reply_list',
         component: () => import('@/views/Bot_manage/reply_list/index.vue'),
         name: 'ReplyList',

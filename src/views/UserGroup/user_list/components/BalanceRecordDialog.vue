@@ -183,7 +183,7 @@ const fetchData = async () => {
 
     // 使用 API 返回的数据和总数
     if (res && res.code === '000000' && res.data) {
-      let list = res.data.list || []
+      let list: any[] = res.data.list || []
 
       // 字段映射并处理数据
       list = list.map((item: any) => ({

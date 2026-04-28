@@ -108,3 +108,5 @@ export interface DepositDetailV1 {
   email: string // 用户邮箱（H5用户）
   pay_transaction?: PayTransaction // 支付交易详情（可选）
 }
+
+export type DepositDetailResponseV1 = DepositDetailV1

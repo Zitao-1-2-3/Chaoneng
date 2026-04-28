@@ -127,7 +127,7 @@ const crudSchemas = reactive<CrudSchema[]>([
       optionApi: async () => {
         const res = await getRoleListApi()
         return res.data?.list?.map((v) => ({
-          label: v.roleName,
+          label: v.name,
           value: v.id
         }))
       }

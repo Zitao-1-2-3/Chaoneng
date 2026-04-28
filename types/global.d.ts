@@ -48,6 +48,15 @@ declare global {
   declare interface IResponse<T = any> {
     code: number | string
     data: T extends any ? T : T & any
+    msg?: string
+    message?: string
+  }
+
+  declare interface PageParam {
+    page?: number
+    pageSize?: number
+    current_page?: number
+    page_size?: number
   }
 
   declare interface ThemeTypes {

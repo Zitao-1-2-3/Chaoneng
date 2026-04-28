@@ -25,6 +25,12 @@ export const getBotMenuList = (
 }
 
 /**
+ * 获取机器人菜单列表（别名，用于兼容旧代码）
+ * @deprecated 请使用 getBotMenuList
+ */
+export const getMenuListApi = getBotMenuList
+
+/**
  * 添加机器人菜单（运营端使用）
  * POST /v1/bot/menu
  */

@@ -21,6 +21,7 @@ export interface ReplyListParamsV1 {
   keyword?: string // 关键字
   page_size?: number // 每页大小
   status?: number // 状态
+  order?: string // 排序参数
 }
 
 /**

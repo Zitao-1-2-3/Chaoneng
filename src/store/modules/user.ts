@@ -105,7 +105,16 @@ export const useUserStore = defineStore('user', {
       permissionStore.setIsAddRouters(false)
 
       // 清除所有localStorage缓存
-      localStorage.clear()
+      const storageKeys = [
+        'app',
+        'lock',
+        'permission',
+        'tagsView',
+        'user',
+        'locale',
+        'dynamicRouterPath'
+      ]
+      storageKeys.forEach((key) => localStorage.removeItem(key))
 
       // 跳转到登录页
       router.replace('/login').catch(() => {

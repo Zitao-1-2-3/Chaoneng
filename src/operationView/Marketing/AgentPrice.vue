@@ -15,7 +15,12 @@
               <!-- 查看模式：显示"刷新"和"修改"按钮 -->
               <template v-if="!editModeMap[agent.id]">
                 <el-button size="default" @click="handleRefresh"> 刷新 </el-button>
-                <el-button type="primary" size="default" @click="handleEdit(agent.id)">
+                <el-button
+                  v-if="hasPermi('AgentPrice.edit')"
+                  type="primary"
+                  size="default"
+                  @click="handleEdit(agent.id)"
+                >
                   修改
                 </el-button>
               </template>
@@ -333,6 +338,7 @@ import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import { v2GetPriceList, v2UpdateSystemPrice } from '@/api/marketing/agent_price'
 import type { V1PriceListResponse } from '@/api/marketing/agent_price_types'
+import { hasPermi } from '@/components/Permission'
 
 // 加载状态
 const loading = ref(false)

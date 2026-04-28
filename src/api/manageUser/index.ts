@@ -2,6 +2,7 @@ import request from '@/axios'
 import type {
   ManageUserQueryParams,
   ManageUserListResponse,
+  ManageUserItem,
   AddManageUserPayload,
   UpdateManageUserPayload,
   DeleteManageUserPayload
@@ -31,6 +32,10 @@ export const getManageUserListApiV2 = (
   params: ManageUserQueryParams
 ): Promise<IResponse<ManageUserListResponse>> => {
   return request.get({ url: `${USER_BASE}list`, params })
+}
+
+export const getUserDetailApi = (id: number | string): Promise<IResponse<ManageUserItem>> => {
+  return request.get({ url: `${USER_BASE}detail/${id}` })
 }
 
 /**

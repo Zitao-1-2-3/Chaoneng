@@ -3,6 +3,7 @@ import { PropType, ref, unref, nextTick } from 'vue'
 import { Descriptions, DescriptionsSchema } from '@/components/Descriptions'
 import { ElTag, ElTree } from 'element-plus'
 import { findIndex } from '@/utils'
+import { getMenuListApi } from '@/api/menu'
 
 defineProps({
   currentRow: {

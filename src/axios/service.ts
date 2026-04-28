@@ -109,7 +109,7 @@ axiosInstance.interceptors.response.use(defaultResponseInterceptors)
 // Export the configured instance
 // The service object might need adjustment if its methods relied on the prefix being added here
 const service = {
-  request: (config: RequestConfig): Promise<AxiosResponse> => {
+  request: <T = any>(config: RequestConfig): Promise<T> => {
     // Keep explicit Promise type
     return new Promise((resolve, reject) => {
       // Apply per-request interceptors if provided
@@ -118,7 +118,7 @@ const service = {
       }
 
       axiosInstance
-        .request(config) // Use the globally configured axiosInstance
+        .request<any, T>(config) // Use the globally configured axiosInstance
         .then((res) => {
           resolve(res)
         })

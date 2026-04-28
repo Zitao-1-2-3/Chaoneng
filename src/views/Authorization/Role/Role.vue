@@ -20,7 +20,7 @@ const { tableRegister, tableState, tableMethods } = useTable({
     const res = await getRoleListApi()
     return {
       list: res.data.list || [],
-      total: res.data.total
+      total: res.data.pager?.total || 0
     }
   }
 })

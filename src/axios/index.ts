@@ -2,11 +2,11 @@ import service from './service'
 import { CONTENT_TYPE } from '@/constants'
 import { useUserStoreWithOut } from '@/store/modules/user'
 
-const request = (option: AxiosConfig) => {
+const request = <T = any>(option: AxiosConfig) => {
   const { url, method, params, data, headers, responseType } = option
 
   const userStore = useUserStoreWithOut()
-  return service.request({
+  return service.request<T>({
     url: url,
     method,
     params,
@@ -24,16 +24,16 @@ const request = (option: AxiosConfig) => {
 
 export default {
   get: <T = any>(option: AxiosConfig) => {
-    return request({ method: 'get', ...option }) as Promise<IResponse<T>>
+    return request<IResponse<T>>({ method: 'get', ...option })
   },
   post: <T = any>(option: AxiosConfig) => {
-    return request({ method: 'post', ...option }) as Promise<IResponse<T>>
+    return request<IResponse<T>>({ method: 'post', ...option })
   },
   delete: <T = any>(option: AxiosConfig) => {
-    return request({ method: 'delete', ...option }) as Promise<IResponse<T>>
+    return request<IResponse<T>>({ method: 'delete', ...option })
   },
   put: <T = any>(option: AxiosConfig) => {
-    return request({ method: 'put', ...option }) as Promise<IResponse<T>>
+    return request<IResponse<T>>({ method: 'put', ...option })
   },
   cancelRequest: (url: string | string[]) => {
     return service.cancelRequest(url)

@@ -35,7 +35,7 @@ const createCostPriceValidator = (costPriceKey: string, fieldName: string) => {
   }
 }
 
-// 价格配置表单 - 整合所有价格配置
+// 价格配置表单 - 整合所有价格配置,统一使用后端字段名
 const priceSchema = reactive<FormSchema[]>([
   // 闪租能量
   {
@@ -45,7 +45,7 @@ const priceSchema = reactive<FormSchema[]>([
     colProps: { span: 24 }
   },
   {
-    field: 'flash_price',
+    field: 'flash',
     component: 'InputNumber' as const,
     label: '闪租能量',
     componentProps: {
@@ -56,11 +56,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '闪租能量是必填项' },
-        createCostPriceValidator('flash_rent_price', '闪租能量价格')
+        createCostPriceValidator('flash', '闪租能量价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.flash_rent_price
+          const costPrice = computedCostPrices.value.flash
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -91,11 +91,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '1小时租赁不能为空' },
-        createCostPriceValidator('flash_rent_price', '1小时租赁价格')
+        createCostPriceValidator('time_1h', '1小时租赁价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.flash_rent_price
+          const costPrice = computedCostPrices.value.time_1h
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -107,7 +107,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'day_1_price',
+    field: 'time_1d',
     component: 'InputNumber' as const,
     label: '1天租赁',
     componentProps: {
@@ -118,11 +118,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '1天租赁不能为空' },
-        createCostPriceValidator('day_1_price', '1天租赁价格')
+        createCostPriceValidator('time_1d', '1天租赁价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.day_1_price
+          const costPrice = computedCostPrices.value.time_1d
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -134,7 +134,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'day_3_price',
+    field: 'time_3d',
     component: 'InputNumber' as const,
     label: '3天租赁',
     componentProps: {
@@ -145,11 +145,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '3天租赁不能为空' },
-        createCostPriceValidator('day_3_price', '3天租赁价格')
+        createCostPriceValidator('time_3d', '3天租赁价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.day_3_price
+          const costPrice = computedCostPrices.value.time_3d
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -161,7 +161,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'day_7_price',
+    field: 'time_7d',
     component: 'InputNumber' as const,
     label: '7天租赁',
     componentProps: {
@@ -172,11 +172,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '7天租赁不能为空' },
-        createCostPriceValidator('day_7_price', '7天租赁价格')
+        createCostPriceValidator('time_7d', '7天租赁价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.day_7_price
+          const costPrice = computedCostPrices.value.time_7d
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -188,7 +188,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'day_15_price',
+    field: 'time_15d',
     component: 'InputNumber' as const,
     label: '15天租赁',
     componentProps: {
@@ -199,11 +199,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '15天租赁不能为空' },
-        createCostPriceValidator('day_15_price', '15天租赁价格')
+        createCostPriceValidator('time_15d', '15天租赁价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.day_15_price
+          const costPrice = computedCostPrices.value.time_15d
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -215,7 +215,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'day_30_price',
+    field: 'time_30d',
     component: 'InputNumber' as const,
     label: '30天租赁',
     componentProps: {
@@ -226,11 +226,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '30天租赁不能为空' },
-        createCostPriceValidator('day_30_price', '30天租赁价格')
+        createCostPriceValidator('time_30d', '30天租赁价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.day_30_price
+          const costPrice = computedCostPrices.value.time_30d
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -250,7 +250,7 @@ const priceSchema = reactive<FormSchema[]>([
     colProps: { span: 24 }
   },
   {
-    field: 'count_price_trx',
+    field: 'stroke',
     component: 'InputNumber' as const,
     label: '[1笔]能量TRX',
     componentProps: {
@@ -261,11 +261,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '能量TRX是必填项' },
-        createCostPriceValidator('count_price', '能量TRX价格')
+        createCostPriceValidator('stroke', '能量TRX价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.count_price
+          const costPrice = computedCostPrices.value.stroke
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -277,7 +277,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'count_price_usdt',
+    field: 'stroke_usdt',
     component: 'InputNumber' as const,
     label: {
       text: '[1笔]能量USDT',
@@ -301,7 +301,7 @@ const priceSchema = reactive<FormSchema[]>([
     colProps: { span: 24 }
   },
   {
-    field: 'price_trx_65000',
+    field: 'hosting_65k',
     component: 'InputNumber' as const,
     label: '65000能量',
     componentProps: {
@@ -312,11 +312,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '65000能量是必填项' },
-        createCostPriceValidator('manage_price_65000', '65000能量价格')
+        createCostPriceValidator('hosting_65k', '65000能量价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.manage_price_65000
+          const costPrice = computedCostPrices.value.hosting_65k
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX/笔` : '成本价: N/A'
           return (
             <>
@@ -328,7 +328,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'price_trx_131000',
+    field: 'hosting_131k',
     component: 'InputNumber' as const,
     label: '131000能量',
     componentProps: {
@@ -339,11 +339,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '131000能量是必填项' },
-        createCostPriceValidator('manage_price_13100', '131000能量价格')
+        createCostPriceValidator('hosting_131k', '131000能量价格')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.manage_price_13100
+          const costPrice = computedCostPrices.value.hosting_131k
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX/笔` : '成本价: N/A'
           return (
             <>
@@ -390,7 +390,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'batch_active_price',
+    field: 'active',
     component: 'InputNumber' as const,
     label: '激活地址单价',
     componentProps: {
@@ -400,11 +400,11 @@ const priceSchema = reactive<FormSchema[]>([
     formItemProps: {
       rules: [
         { required: true, message: '激活地址单价是必填项' },
-        createCostPriceValidator('batch_active_price', '激活地址单价')
+        createCostPriceValidator('active', '激活地址单价')
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.batch_active_price
+          const costPrice = computedCostPrices.value.active
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -437,36 +437,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'profit_usdt_to_trx',
-    component: 'InputNumber' as const,
-    label: {
-      text: 'USDT兑TRX利润（百分比）',
-      tips: '例如，输入15，就是15%'
-    },
-    componentProps: {
-      placeholder: '请输入利润金额',
-      min: 0,
-      precision: 2
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '利润金额是必填项' }]
-    }
-  },
-  {
-    field: 'max_usdt_to_trx',
-    component: 'InputNumber' as const,
-    label: {
-      text: 'USDT兑TRX可兑换上限',
-      tips: '单次可兑换USDT上限(USDT兑换TRX)'
-    },
-    componentProps: {
-      placeholder: '请输入兑换上限',
-      min: 0,
-      precision: 2
-    }
-  },
-  {
-    field: 'profit_trx_to_usdt',
+    field: 'trx_2_usdt',
     component: 'InputNumber' as const,
     label: {
       text: 'TRX兑USDT利润（百分比）',
@@ -482,11 +453,40 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'max_trx_to_usdt',
+    field: 'max_trx_2_usdt',
     component: 'InputNumber' as const,
     label: {
       text: 'TRX兑USDT可兑换上限',
       tips: '单次可兑换TRX上限(TRX兑换USDT)'
+    },
+    componentProps: {
+      placeholder: '请输入兑换上限',
+      min: 0,
+      precision: 2
+    }
+  },
+  {
+    field: 'usdt_2_trx',
+    component: 'InputNumber' as const,
+    label: {
+      text: 'USDT兑TRX利润（百分比）',
+      tips: '例如，输入15，就是15%'
+    },
+    componentProps: {
+      placeholder: '请输入利润金额',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '利润金额是必填项' }]
+    }
+  },
+  {
+    field: 'max_usdt_2_trx',
+    component: 'InputNumber' as const,
+    label: {
+      text: 'USDT兑TRX可兑换上限',
+      tips: '单次可兑换USDT上限(USDT兑换TRX)'
     },
     componentProps: {
       placeholder: '请输入兑换上限',
@@ -503,7 +503,7 @@ const priceSchema = reactive<FormSchema[]>([
     colProps: { span: 24 }
   },
   {
-    field: 'weal_price_trx',
+    field: 'weal_time_1h',
     component: 'InputNumber' as const,
     label: '福利能量（TRX）',
     componentProps: {
@@ -518,7 +518,7 @@ const priceSchema = reactive<FormSchema[]>([
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.weal_price_trx
+          const costPrice = computedCostPrices.value.flash
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>
@@ -530,7 +530,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'hour_limit_count',
+    field: 'weal_hour_limit',
     component: 'InputNumber' as const,
     label: {
       text: '每小时购买限制',
@@ -546,7 +546,7 @@ const priceSchema = reactive<FormSchema[]>([
     }
   },
   {
-    field: 'total_limit_count',
+    field: 'weal_total_limit',
     component: 'InputNumber' as const,
     label: {
       text: '总购买限制',

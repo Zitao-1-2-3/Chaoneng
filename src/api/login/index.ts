@@ -82,7 +82,6 @@ export const passwordLoginApi = (
     url = '/manage/user/login'
   }
   // 整体序列化加密，iv 拼接在密文前16位
-  console.log('data', JSON.stringify(data))
   const encrypted = encryptAESCTR(JSON.stringify(data))
   return request.post({ url, data: { data: encrypted } })
 }

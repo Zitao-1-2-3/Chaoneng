@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, computed, defineExpose } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { Descriptions, DescriptionsSchema } from '@/components/Descriptions'
 import { Dialog } from '@/components/Dialog'
 import { useI18n } from '@/hooks/web/useI18n'
-// 假定有getUserDetailApi
-// import { getUserDetailApi } from '@/api/manageUser'
+import { getUserDetailApi } from '@/api/manageUser'
 
 const { t } = useI18n()
 

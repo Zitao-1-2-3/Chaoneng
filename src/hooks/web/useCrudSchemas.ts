@@ -141,7 +141,7 @@ const filterFormSchema = (crudSchema: CrudSchema[]): FormSchema[] => {
 
 // 过滤 descriptions 结构
 const filterDescriptionsSchema = (crudSchema: CrudSchema[]): DescriptionsSchema[] => {
-  const descriptionsSchema: FormSchema[] = []
+  const descriptionsSchema: DescriptionsSchema[] = []
 
   eachTree(crudSchema, (schemaItem: CrudSchema) => {
     // 判断是否隐藏
@@ -149,7 +149,7 @@ const filterDescriptionsSchema = (crudSchema: CrudSchema[]): DescriptionsSchema[
       const descriptionsSchemaItem = {
         ...schemaItem.detail,
         field: schemaItem.field,
-        label: schemaItem.detail?.label || schemaItem.label
+        label: String(schemaItem.detail?.label || schemaItem.label || '')
       }
 
       // 删除不必要的字段

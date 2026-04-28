@@ -134,7 +134,7 @@ export const usePermissionStore = defineStore('permission', {
     }
   },
   persist: {
-    pick: ['routers', 'addRouters', 'menuTabRouters', 'isAddRouters'],
+    pick: ['menuTabRouters'],
     storage: localStorage // 使用 localStorage 持久化路由配置
   }
 })

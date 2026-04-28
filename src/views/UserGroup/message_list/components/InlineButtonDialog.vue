@@ -392,17 +392,20 @@ const handleFormSubmit = async () => {
         id: formData.id,
         text: formData.menu_name,
         inner_type: formData.inner_type,
-        inner_value: formData.inner_value
+        inner_value: formData.inner_value,
+        order_num: 0,
+        status: formData.status
       }
       await v1UpdateInnerButton(updateParams)
       ElMessage.success('更新成功')
     } else {
       // 添加操作 - 使用新的创建接口
       const createParams: CreateInnerButtonParams = {
-        id: 0, // 创建时ID为0
         text: formData.menu_name,
         inner_type: formData.inner_type,
-        inner_value: formData.inner_value
+        inner_value: formData.inner_value,
+        order_num: 0,
+        status: formData.status
       }
       await v1CreateInnerButton(createParams)
       ElMessage.success('添加成功')
