@@ -219,7 +219,7 @@ const columns = [
 const actionColumn = {
   field: 'action',
   label: '操作',
-  width: 240,
+  width: 160,
   slots: {
     default: (data: any) => {
       const row = data.row

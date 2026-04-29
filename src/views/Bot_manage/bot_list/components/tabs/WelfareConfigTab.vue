@@ -71,6 +71,9 @@ const welfareSchema = reactive<FormSchema[]>([
       placeholder: '请输入最大能量',
       min: 0,
       precision: 0
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最大能量是必填项' }]
     }
   },
   {
@@ -84,6 +87,9 @@ const welfareSchema = reactive<FormSchema[]>([
       placeholder: '请输入最大带宽',
       min: 0,
       precision: 0
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最大带宽是必填项' }]
     }
   },
 
@@ -105,6 +111,9 @@ const welfareSchema = reactive<FormSchema[]>([
       placeholder: '请输入最小激活天数',
       min: 0,
       precision: 0
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最小激活天数是必填项' }]
     }
   },
   {
@@ -118,6 +127,9 @@ const welfareSchema = reactive<FormSchema[]>([
       placeholder: '请输入最小TRX余额',
       min: 0,
       precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最小余额（TRX）是必填项' }]
     }
   },
   {
@@ -131,6 +143,9 @@ const welfareSchema = reactive<FormSchema[]>([
       placeholder: '请输入最小USDT余额',
       min: 0,
       precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最小余额（USDT）是必填项' }]
     }
   },
 
@@ -152,6 +167,9 @@ const welfareSchema = reactive<FormSchema[]>([
       placeholder: '请输入最小平均转账TRX',
       min: 0,
       precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最小平均转账（TRX）是必填项' }]
     }
   },
   {
@@ -165,6 +183,9 @@ const welfareSchema = reactive<FormSchema[]>([
       placeholder: '请输入最小平均转账USDT',
       min: 0,
       precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最小平均转账（USDT）是必填项' }]
     }
   },
   {
@@ -178,6 +199,9 @@ const welfareSchema = reactive<FormSchema[]>([
       placeholder: '请输入最小发送间隔',
       min: 0,
       precision: 1
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最小发送间隔是必填项' }]
     }
   },
 
@@ -193,7 +217,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '相同金额最大次数（TRX）',
-      tips: '相同金额TRX转账的最大允许次数。注意：此字段与"相同金额最小值"必须同时填写或同时为空'
+      tips: '相同金额TRX转账的最大允许次数。注意：此字段与"相同金额最小值"是一同判断'
     },
     componentProps: {
       placeholder: '请输入最大次数',
@@ -202,6 +226,7 @@ const welfareSchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [
+        { required: true, message: '相同金额最大次数（TRX）是必填项' },
         {
           validator: (_rule: any, value: number, callback: Function) => {
             // 使用 Promise 来处理异步验证
@@ -230,7 +255,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '相同金额最小值（TRX）',
-      tips: '触发相同金额检测的最小TRX金额。注意：此字段与"相同金额最大次数"必须同时填写或同时为空'
+      tips: '触发相同金额检测的最小TRX金额。注意：此字段与"相同金额最大次数"是一同判断'
     },
     componentProps: {
       placeholder: '请输入最小金额',
@@ -239,6 +264,7 @@ const welfareSchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [
+        { required: true, message: '相同金额最小值（TRX）是必填项' },
         {
           validator: (_rule: any, value: number, callback: Function) => {
             // 使用 Promise 来处理异步验证
