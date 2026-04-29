@@ -40,13 +40,13 @@ const welfareSchema = reactive<FormSchema[]>([
     field: 'min_interval',
     component: 'InputNumber' as const,
     label: {
-      text: '最小购买间隔（秒）',
+      text: '最小购买间隔（小时）',
       tips: '两次购买之间的最小时间间隔'
     },
     componentProps: {
       placeholder: '请输入最小间隔',
       min: 0,
-      precision: 0
+      precision: 1
     },
     formItemProps: {
       rules: [{ required: true, message: '最小购买间隔是必填项' }]
@@ -171,13 +171,13 @@ const welfareSchema = reactive<FormSchema[]>([
     field: 'min_send_interval',
     component: 'InputNumber' as const,
     label: {
-      text: '最小发送间隔（秒）',
+      text: '最小发送间隔（小时）',
       tips: '两次转账之间的最小时间间隔'
     },
     componentProps: {
       placeholder: '请输入最小发送间隔',
       min: 0,
-      precision: 0
+      precision: 1
     }
   },
 

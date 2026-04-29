@@ -271,9 +271,10 @@ export function useBotConfigV1() {
       const wealData = wealConfigRes.data
 
       // 设置表单值 - 注意字符串类型需要转换为数字
+      // 时间单位转换：后端存储为秒，前端显示为小时
       const formValues = {
         max_count: wealData.max_count || 0,
-        min_interval: wealData.min_interval || 0,
+        min_interval: (wealData.min_interval || 0) / 3600, // 秒转小时
         max_energy: wealData.max_energy || 0,
         max_bandwidth: wealData.max_bandwidth || 0,
         min_active_day: wealData.min_active_day || 0,
@@ -281,7 +282,7 @@ export function useBotConfigV1() {
         min_balance_usdt: parseFloat(wealData.min_balance_usdt) || 0,
         min_avg_transfer_trx: parseFloat(wealData.min_avg_transfer_trx) || 0,
         min_avg_transfer_usdt: parseFloat(wealData.min_avg_transfer_usdt) || 0,
-        min_send_interval: wealData.min_send_interval || 0,
+        min_send_interval: (wealData.min_send_interval || 0) / 3600, // 秒转小时
         same_send_max_count_trx: wealData.same_send_max_count_trx || 0,
         same_send_min_amount_trx: parseFloat(wealData.same_send_min_amount_trx) || 0
       }
@@ -525,9 +526,10 @@ export function useBotConfigV1() {
       }
 
       // 构建福利配置数据
+      // 时间单位转换：前端输入为小时，后端存储为秒
       const welfareConfig = {
         max_count: welfareData.max_count || 0,
-        min_interval: welfareData.min_interval || 0,
+        min_interval: Math.round((welfareData.min_interval || 0) * 3600), // 小时转秒
         max_energy: welfareData.max_energy || 0,
         max_bandwidth: welfareData.max_bandwidth || 0,
         min_active_day: welfareData.min_active_day || 0,
@@ -535,7 +537,7 @@ export function useBotConfigV1() {
         min_balance_usdt: welfareData.min_balance_usdt || 0,
         min_avg_transfer_trx: welfareData.min_avg_transfer_trx || 0,
         min_avg_transfer_usdt: welfareData.min_avg_transfer_usdt || 0,
-        min_send_interval: welfareData.min_send_interval || 0,
+        min_send_interval: Math.round((welfareData.min_send_interval || 0) * 3600), // 小时转秒
         same_send_max_count_trx: welfareData.same_send_max_count_trx || 0,
         same_send_min_amount_trx: welfareData.same_send_min_amount_trx || 0
       }
