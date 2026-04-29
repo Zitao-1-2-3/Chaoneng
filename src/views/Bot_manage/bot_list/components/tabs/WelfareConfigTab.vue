@@ -25,7 +25,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '最大购买次数',
-      tips: '每个用户最多可购买的次数'
+      tips: '每个地址最多可购买的次数'
     },
     componentProps: {
       placeholder: '请输入最大次数',
@@ -65,7 +65,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '最大能量',
-      tips: '单次购买的最大能量值'
+      tips: '地址持有最大能量值'
     },
     componentProps: {
       placeholder: '请输入最大能量',
@@ -78,7 +78,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '最大带宽',
-      tips: '单次购买的最大带宽值'
+      tips: '地址持有最大带宽值'
     },
     componentProps: {
       placeholder: '请输入最大带宽',
@@ -99,7 +99,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '最小激活天数',
-      tips: '账户需要激活的最少天数'
+      tips: '地址需要激活的最少天数'
     },
     componentProps: {
       placeholder: '请输入最小激活天数',
@@ -112,7 +112,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '最小余额（TRX）',
-      tips: '账户需要的最小TRX余额'
+      tips: '地址持有最小TRX余额'
     },
     componentProps: {
       placeholder: '请输入最小TRX余额',
@@ -125,7 +125,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '最小余额（USDT）',
-      tips: '账户需要的最小USDT余额'
+      tips: '地址持有最小USDT余额'
     },
     componentProps: {
       placeholder: '请输入最小USDT余额',
@@ -146,7 +146,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '最小平均转账（TRX）',
-      tips: '账户的最小平均TRX转账金额'
+      tips: '地址的最小平均TRX转账金额'
     },
     componentProps: {
       placeholder: '请输入最小平均转账TRX',
@@ -159,7 +159,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '最小平均转账（USDT）',
-      tips: '账户的最小平均USDT转账金额'
+      tips: '地址的最小平均USDT转账金额'
     },
     componentProps: {
       placeholder: '请输入最小平均转账USDT',
@@ -171,7 +171,7 @@ const welfareSchema = reactive<FormSchema[]>([
     field: 'min_send_interval',
     component: 'InputNumber' as const,
     label: {
-      text: '最小发送间隔（小时）',
+      text: '最小发送间隔（分钟）',
       tips: '两次转账之间的最小时间间隔'
     },
     componentProps: {
@@ -193,12 +193,36 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '相同金额最大次数（TRX）',
-      tips: '相同金额TRX转账的最大允许次数'
+      tips: '相同金额TRX转账的最大允许次数。注意：此字段与"相同金额最小值"必须同时填写或同时为空'
     },
     componentProps: {
       placeholder: '请输入最大次数',
       min: 0,
       precision: 0
+    },
+    formItemProps: {
+      rules: [
+        {
+          validator: (_rule: any, value: number, callback: Function) => {
+            // 使用 Promise 来处理异步验证
+            formMethods
+              .getFormData()
+              .then((formData: any) => {
+                const minAmount = formData.same_send_min_amount_trx
+                // 如果当前字段有值（大于0），但最小金额为空或0，则报错
+                if (value && value > 0 && (!minAmount || minAmount === 0)) {
+                  callback(new Error('请同时填写相同金额最小值'))
+                } else {
+                  callback()
+                }
+              })
+              .catch(() => {
+                callback()
+              })
+          },
+          trigger: ['blur', 'change']
+        }
+      ]
     }
   },
   {
@@ -206,12 +230,36 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'InputNumber' as const,
     label: {
       text: '相同金额最小值（TRX）',
-      tips: '触发相同金额检测的最小TRX金额'
+      tips: '触发相同金额检测的最小TRX金额。注意：此字段与"相同金额最大次数"必须同时填写或同时为空'
     },
     componentProps: {
       placeholder: '请输入最小金额',
       min: 0,
       precision: 2
+    },
+    formItemProps: {
+      rules: [
+        {
+          validator: (_rule: any, value: number, callback: Function) => {
+            // 使用 Promise 来处理异步验证
+            formMethods
+              .getFormData()
+              .then((formData: any) => {
+                const maxCount = formData.same_send_max_count_trx
+                // 如果当前字段有值（大于0），但最大次数为空或0，则报错
+                if (value && value > 0 && (!maxCount || maxCount === 0)) {
+                  callback(new Error('请同时填写相同金额最大次数'))
+                } else {
+                  callback()
+                }
+              })
+              .catch(() => {
+                callback()
+              })
+          },
+          trigger: ['blur', 'change']
+        }
+      ]
     }
   }
 ])
