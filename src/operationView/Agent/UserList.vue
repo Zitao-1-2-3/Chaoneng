@@ -172,10 +172,12 @@ const columns = computed(() => {
       label: '来源',
       width: 100,
       formatter: (row) => {
-        // 根据 tg_user_name 是否存在判断来源
-        // 有 tg_user_name → 机器人
-        // 无 tg_user_name → H5
-        return row.tg_user_name ? '机器人' : 'H5'
+        // 根据 tg_user_id 和 tg_user_name 是否存在判断来源
+        // 有 tg_user_id（且不为0）或有 tg_user_name → 机器人
+        // 否则 → H5
+        const hasTgUserId = row.tg_user_id && row.tg_user_id !== 0
+        const hasTgUserName = row.tg_user_name && row.tg_user_name.trim() !== ''
+        return hasTgUserId || hasTgUserName ? '机器人' : 'H5'
       }
     },
     {
@@ -212,8 +214,10 @@ const columns = computed(() => {
       fixed: 'right',
       slots: {
         default: ({ row }) => {
-          // 判断是否为机器人用户（有 tg_user_name 且不为空）
-          const isBotUser = row.tg_user_name && row.tg_user_name.trim() !== ''
+          // 判断是否为机器人用户（有 tg_user_id 且不为0，或有 tg_user_name）
+          const hasTgUserId = row.tg_user_id && row.tg_user_id !== 0
+          const hasTgUserName = row.tg_user_name && row.tg_user_name.trim() !== ''
+          const isBotUser = hasTgUserId || hasTgUserName
           return (
             <BaseButton
               type="primary"
@@ -388,6 +392,8 @@ const handleExport = async () => {
     if (res.code === '000000' && res.data) {
       const list = (res.data.list || []).map((item: any) => {
         const botInfo = botMap.value.get(item.bot_id)
+        const hasTgUserId = item.tg_user_id && item.tg_user_id !== 0
+        const hasTgUserName = item.tg_user_name && item.tg_user_name.trim() !== ''
         return {
           TG用户ID: item.tg_user_id && item.tg_user_id !== 0 ? item.tg_user_id : '-',
           TG用户昵称: item.tg_first_name || '-',
@@ -397,7 +403,7 @@ const handleExport = async () => {
           机器人ID: item.bot_id,
           机器人用户名: botInfo?.user_name || '-',
           代理名称: botInfo?.agent_name || '-',
-          来源: item.tg_user_name ? '机器人' : 'H5',
+          来源: hasTgUserId || hasTgUserName ? '机器人' : 'H5',
           TRX余额: `${item.trx_balance || 0} TRX`,
           创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
           更新时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
