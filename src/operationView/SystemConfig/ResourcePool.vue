@@ -40,14 +40,11 @@ import ResourcePoolAccountForm from './components/ResourcePoolAccountForm.vue'
 import { SearchTable } from '@/components/SearchTable'
 import type { TableColumn } from '@/components/Table'
 import {
-  getResourcePoolAccountListApi, // 保留旧接口以便兼容，暂未使用
   deleteResourcePoolAccountApi,
   batchDeleteResourcePoolAccountApi,
-  updateResourcePoolAccountApi, // 保留旧接口以便兼容，暂未使用
   v2GetPoolList,
   v2UpdatePool
 } from '@/api/system/resource_pool_account'
-import type { V2PoolItem } from '@/api/system/resource_pool_account_types'
 import { isPermission } from '@/utils/is'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 const formRef = ref()
@@ -62,18 +59,18 @@ const resourceTypeMap = {
 
 const columns = ref<TableColumn[]>([
   {
-    field: 'resource_type',
+    field: 'kind',
     label: '配置类型',
     width: '120px',
     formatter: (row) => {
-      return resourceTypeMap[row.resource_type] || '未知类型'
+      return resourceTypeMap[row.kind] || '未知类型'
     }
   },
   {
-    field: 'public_key',
+    field: 'address',
     label: '公钥',
     minWidth: '180px',
-    formatter: (row) => row.public_key || '-'
+    formatter: (row) => row.address || '-'
   },
   {
     field: 'permission_name',
@@ -87,10 +84,10 @@ const columns = ref<TableColumn[]>([
     minWidth: '180px',
     formatter: (row) => {
       const amount = row.amount ?? '-'
-      const limit = row.amount_limit == 0 ? '-' : row.amount_limit
-      const displayValue = row.resource_type === 3 ? `${amount} / ${limit}` : `${amount}`
+      const limit = row.limit == 0 ? '-' : row.limit
+      const displayValue = row.kind === 3 ? `${amount} / ${limit}` : `${amount}`
 
-      if (row.resource_type === 3) {
+      if (row.kind === 3) {
         return (
           <span onDblclick={() => handleEditThreshold(row)} style={{ cursor: 'pointer' }}>
             {displayValue}
@@ -102,10 +99,10 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
-    field: 'create_by',
+    field: 'created_by',
     label: '创建人',
     width: '120px',
-    formatter: (row) => row.create_by || '-'
+    formatter: (row) => row.created_by || '-'
   },
   {
     field: 'status',
@@ -148,22 +145,22 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
-    field: 'create_time',
+    field: 'created_at',
     label: '创建时间',
     width: '180px',
-    formatter: (row) => (row.create_time ? formatToDateTime(new Date(row.create_time * 1000)) : '-')
+    formatter: (row) => (row.created_at ? formatToDateTime(new Date(row.created_at * 1000)) : '-')
   },
   {
-    field: 'update_time',
+    field: 'updated_at',
     label: '更新时间',
     width: '180px',
-    formatter: (row) => (row.update_time ? formatToDateTime(new Date(row.update_time * 1000)) : '-')
+    formatter: (row) => (row.updated_at ? formatToDateTime(new Date(row.updated_at * 1000)) : '-')
   }
 ])
 
 const searchSchema = reactive<FormSchema[]>([
   {
-    field: 'resource_type',
+    field: 'kind',
     component: 'Select',
     label: '配置类型：',
     componentProps: {
@@ -196,30 +193,23 @@ const searchSchema = reactive<FormSchema[]>([
 
 const getResourcePoolData = async (params) => {
   try {
-    console.log('[getResourcePoolData] 查询参数:', params)
-
-    // 构建新接口参数
     const apiParams: any = {
       current_page: params.current_page || 1,
       page_size: params.page_size || 10
     }
 
-    // 处理关键字查询
     if (params.keyword) {
       apiParams.keyword = params.keyword
     }
 
-    // 处理配置类型查询（resource_type 映射到 kind）
-    if (params.resource_type) {
-      apiParams.kind = params.resource_type
+    if (params.kind) {
+      apiParams.kind = params.kind
     }
 
-    // 处理状态查询
     if (params.status) {
       apiParams.status = params.status
     }
 
-    // 调用新接口
     const response: any = await v2GetPoolList(apiParams)
 
     if (response?.data) {
@@ -227,26 +217,8 @@ const getResourcePoolData = async (params) => {
       const list = data.list || []
       const total = data.pager?.total || 0
 
-      // 字段映射转换
-      const mappedList = list.map((item: V2PoolItem) => {
-        return {
-          id: item.id,
-          resource_type: item.kind, // 映射 kind 到 resource_type
-          public_key: item.address, // 映射 address 到 public_key
-          permission_name: item.permission_name,
-          amount: item.amount,
-          amount_limit: item.limit, // 映射 limit 到 amount_limit
-          create_by: item.created_by, // 映射 created_by 到 create_by
-          status: item.status,
-          create_time: item.created_at, // 映射 created_at 到 create_time
-          update_time: item.updated_at, // 映射 updated_at 到 update_time
-          permission_id: item.permission_id,
-          describe: item.describe
-        }
-      })
-
       return {
-        list: mappedList,
+        list: list,
         totalCount: total
       }
     } else {
@@ -267,11 +239,10 @@ const handleAdd = () => {
 }
 
 const handleEdit = (row: any) => {
-  console.log('编辑行:', row)
   const formData = {
     id: row.id,
-    configType: row.resource_type,
-    publicKey: row.public_key,
+    configType: row.kind,
+    publicKey: row.address,
     privateKey: row.private_key,
     status: row.status
   }
@@ -296,7 +267,7 @@ const handleStatusChangeAttempt = async (row, newValue) => {
   const statusMap = { 1: '启用', 2: '禁用', 3: '备用' }
   const actionText = statusMap[intendedStatus]
   let msg = `确认要将状态更改为 "${actionText}" 吗？`
-  if (row.resource_type === 3) {
+  if (row.kind === 3) {
     msg = `确认要将状态更改为 "${actionText}" ${intendedStatus === 1 ? '(设为主账户)' : intendedStatus === 3 ? '(设为备用账户)' : ''} 吗？`
   }
 
@@ -310,13 +281,12 @@ const handleStatusChangeAttempt = async (row, newValue) => {
     await v2UpdatePool({
       id: row.id,
       status: intendedStatus,
-      limit: parseFloat(row.amount_limit) || 0
+      limit: parseFloat(row.limit) || 0
     })
 
     handleSuccessMessage(`状态已更新为 "${actionText}"`)
     reloadTable()
   } catch (error) {
-    console.error('操作失败:', error)
     if (error === 'cancel') {
       ElMessage.info('操作已取消')
     } else {
@@ -338,10 +308,8 @@ const handleDelete = async (row) => {
     ElMessage.success('删除成功')
     reloadTable()
   } catch (error) {
-    console.error('删除失败:', error)
     if (error !== 'cancel') {
-      const message = error instanceof Error ? error.message : '未知错误'
-      ElMessage.error(`删除失败: ${message}`)
+      handleErrorMessage(error, '删除失败')
     }
   }
 }
@@ -359,11 +327,6 @@ const handleBatchDelete = async () => {
     return
   }
 
-  console.log('选中的行:', selections)
-  console.warn(
-    '调用 batchDeleteResourcePoolAccountApi，请确保后端已实现 /manage/resource_pool/batch-delete 或类似接口'
-  )
-
   try {
     await ElMessageBox.confirm('确认要批量删除选中的账户吗？', '提示', {
       confirmButtonText: '确定',
@@ -377,10 +340,8 @@ const handleBatchDelete = async () => {
     ElMessage.success('批量删除成功')
     reloadTable()
   } catch (error) {
-    console.error('批量删除失败:', error)
     if (error !== 'cancel') {
-      const message = error instanceof Error ? error.message : '未知错误'
-      ElMessage.error(`批量删除失败: ${message}`)
+      handleErrorMessage(error, '批量删除失败')
     }
   }
 }
@@ -390,7 +351,7 @@ const handleSuccess = () => {
 }
 
 const handleEditThreshold = async (row) => {
-  if (row.resource_type !== 3) return
+  if (row.kind !== 3) return
 
   try {
     const { value } = await ElMessageBox.prompt(
@@ -399,7 +360,7 @@ const handleEditThreshold = async (row) => {
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
-        inputValue: row.amount_limit === 0 ? '' : String(row.amount_limit),
+        inputValue: row.limit === 0 ? '' : String(row.limit),
         inputPattern: /^\d*$/,
         inputErrorMessage: '请输入有效的非负整数'
       }
@@ -411,7 +372,7 @@ const handleEditThreshold = async (row) => {
 
     const newThreshold = value === '' ? 0 : parseInt(value, 10)
 
-    if (newThreshold === row.amount_limit) {
+    if (newThreshold === row.limit) {
       ElMessage.info('阈值未改变')
       return
     }
@@ -425,7 +386,6 @@ const handleEditThreshold = async (row) => {
     handleSuccessMessage('阈值更新成功')
     reloadTable()
   } catch (error) {
-    console.error('更新阈值失败:', error)
     if (error !== 'cancel') {
       handleErrorMessage(error, '更新阈值失败')
     }
@@ -434,7 +394,6 @@ const handleEditThreshold = async (row) => {
 
 // 当页面被激活时（从缓存中恢复或首次进入），重新加载数据
 onActivated(() => {
-  console.log('[ResourcePool] 页面激活，重新加载数据')
   reloadTable()
 })
 </script>
