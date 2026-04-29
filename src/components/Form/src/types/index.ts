@@ -606,7 +606,7 @@ export interface FormSchema {
   /**
    * 标题
    */
-  label?: string | FormItemLabel
+  label?: string | FormItemLabel | (() => any)
 
   /**
    * col组件属性

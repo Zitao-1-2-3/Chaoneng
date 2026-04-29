@@ -1,5 +1,16 @@
 <template>
   <div>
+    <!-- 红色提示信息 -->
+    <div style=" margin: 0 0 16px; font-size: 14px; font-weight: bold;color: #f56c6c">
+      提示：满足以下全部条件可发放！！！
+    </div>
+
+    <!-- 购买限制标题 -->
+    <el-divider content-position="left"
+      >购买限制<span style="color: #f56c6c">(需小于以下条件)</span></el-divider
+    >
+
+    <!-- 表单 -->
     <Form labelPosition="top" :schema="welfareSchema" @register="formRegister" :gridColumns="2" />
   </div>
 </template>
@@ -8,18 +19,13 @@
 import { reactive } from 'vue'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
+import { ElDivider } from 'element-plus'
 
 const { formRegister, formMethods } = useForm()
 
-// 福利配置表单
+// 福利配置表单（移除第一个购买限制的 Divider，因为已经在模板中手动添加）
 const welfareSchema = reactive<FormSchema[]>([
-  // 购买限制
-  {
-    field: 'divider_purchase_limit',
-    component: 'Divider' as const,
-    label: '购买限制',
-    colProps: { span: 24 }
-  },
+  // 购买限制部分的字段
   {
     field: 'max_count',
     component: 'InputNumber' as const,
@@ -57,14 +63,18 @@ const welfareSchema = reactive<FormSchema[]>([
   {
     field: 'divider_energy_limit',
     component: 'Divider' as const,
-    label: '能量和带宽限制',
+    label: () => (
+      <>
+        能量和带宽限制<span style={{ color: '#f56c6c' }}>(需小于以下条件)</span>
+      </>
+    ),
     colProps: { span: 24 }
   },
   {
     field: 'max_energy',
     component: 'InputNumber' as const,
     label: {
-      text: '最大能量',
+      text: '持有最大能量',
       tips: '地址持有最大能量值'
     },
     componentProps: {
@@ -80,7 +90,7 @@ const welfareSchema = reactive<FormSchema[]>([
     field: 'max_bandwidth',
     component: 'InputNumber' as const,
     label: {
-      text: '最大带宽',
+      text: '持有最大带宽',
       tips: '地址持有最大带宽值'
     },
     componentProps: {
@@ -97,7 +107,11 @@ const welfareSchema = reactive<FormSchema[]>([
   {
     field: 'divider_account_requirement',
     component: 'Divider' as const,
-    label: '账户要求',
+    label: () => (
+      <>
+        账户要求<span style={{ color: '#f56c6c' }}>(需大于以下条件)</span>
+      </>
+    ),
     colProps: { span: 24 }
   },
   {
@@ -153,7 +167,11 @@ const welfareSchema = reactive<FormSchema[]>([
   {
     field: 'divider_transfer_requirement',
     component: 'Divider' as const,
-    label: '转账要求',
+    label: () => (
+      <>
+        转账要求<span style={{ color: '#f56c6c' }}>(需小于以下条件)</span>
+      </>
+    ),
     colProps: { span: 24 }
   },
   {
@@ -205,19 +223,23 @@ const welfareSchema = reactive<FormSchema[]>([
     }
   },
 
-  // 相同金额转账限制
+  // 相同地址转账限制
   {
     field: 'divider_same_amount_limit',
     component: 'Divider' as const,
-    label: '相同金额转账限制',
+    label: () => (
+      <>
+        相同地址转账限制<span style={{ color: '#f56c6c' }}>(需同时满足以下条件)</span>
+      </>
+    ),
     colProps: { span: 24 }
   },
   {
     field: 'same_send_max_count_trx',
     component: 'InputNumber' as const,
     label: {
-      text: '相同金额最大次数（TRX）',
-      tips: '相同金额TRX转账的最大允许次数。注意：此字段与"相同金额最小值"是一同判断'
+      text: '相同地址最大次数（TRX）',
+      tips: '相同地址TRX转账的最大允许次数。注意：此字段与"相同地址最小值"是一同判断'
     },
     componentProps: {
       placeholder: '请输入最大次数',
@@ -226,7 +248,7 @@ const welfareSchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [
-        { required: true, message: '相同金额最大次数（TRX）是必填项' },
+        { required: true, message: '相同地址最大次数（TRX）是必填项' },
         {
           validator: (_rule: any, value: number, callback: Function) => {
             // 使用 Promise 来处理异步验证
@@ -236,7 +258,7 @@ const welfareSchema = reactive<FormSchema[]>([
                 const minAmount = formData.same_send_min_amount_trx
                 // 如果当前字段有值（大于0），但最小金额为空或0，则报错
                 if (value && value > 0 && (!minAmount || minAmount === 0)) {
-                  callback(new Error('请同时填写相同金额最小值'))
+                  callback(new Error('请同时填写相同地址最小值'))
                 } else {
                   callback()
                 }
@@ -254,8 +276,8 @@ const welfareSchema = reactive<FormSchema[]>([
     field: 'same_send_min_amount_trx',
     component: 'InputNumber' as const,
     label: {
-      text: '相同金额最小值（TRX）',
-      tips: '触发相同金额检测的最小TRX金额。注意：此字段与"相同金额最大次数"是一同判断'
+      text: '相同地址最小值（TRX）',
+      tips: '触发相同地址检测的最小TRX金额。注意：此字段与"相同地址最大次数"是一同判断'
     },
     componentProps: {
       placeholder: '请输入最小金额',
@@ -264,7 +286,7 @@ const welfareSchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [
-        { required: true, message: '相同金额最小值（TRX）是必填项' },
+        { required: true, message: '相同地址最小值（TRX）是必填项' },
         {
           validator: (_rule: any, value: number, callback: Function) => {
             // 使用 Promise 来处理异步验证
