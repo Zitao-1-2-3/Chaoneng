@@ -19,6 +19,10 @@
           <PriceConfigTab ref="priceConfigTabRef" :cost-prices="costPrices" />
         </ElTabPane>
 
+        <ElTabPane label="福利配置" name="welfareConfig">
+          <WelfareConfigTab ref="welfareConfigTabRef" />
+        </ElTabPane>
+
         <ElTabPane label="菜单配置" name="menuConfig">
           <MenuConfigTab ref="menuConfigTabRef" :bot-id="currentBot.id || 0" />
         </ElTabPane>
@@ -44,12 +48,14 @@ import { useBotConfigV1 } from './composables/useBotConfigV1'
 import BotInfoTab from './tabs/BotInfoTab.vue'
 import PaymentTab from './tabs/PaymentTab.vue'
 import PriceConfigTab from './tabs/PriceConfigTab.vue'
+import WelfareConfigTab from './tabs/WelfareConfigTab.vue'
 import MenuConfigTab from './tabs/MenuConfigTab.vue'
 
 // 组件引用
 const botInfoTabRef = ref()
 const paymentTabRef = ref()
 const priceConfigTabRef = ref()
+const welfareConfigTabRef = ref()
 const menuConfigTabRef = ref()
 
 // 使用新的机器人配置组合函数 V1（使用 v1 新接口）
@@ -74,7 +80,8 @@ const getFormMethods = () => {
   return {
     botInfo: botInfoTabRef.value?.formMethods,
     payment: paymentTabRef.value?.formMethods,
-    priceConfig: priceConfigTabRef.value?.formMethods
+    priceConfig: priceConfigTabRef.value?.formMethods,
+    welfareConfig: welfareConfigTabRef.value?.formMethods
   }
 }
 

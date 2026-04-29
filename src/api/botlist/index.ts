@@ -5,11 +5,13 @@ import type {
   BotDetail,
   SystemPrice,
   BotPriceConfig,
+  BotWealConfig,
   AddressListParams,
   AddressListResponse,
   BindAddressParams,
   UpdateBotParams,
   UpdateBotPriceParams,
+  UpdateBotWealParams,
   RenewBotParams,
   BotRenewPrice,
   CreateBotParams,
@@ -162,6 +164,30 @@ export const v1GetAgentBillList = (
 export const v1BindAddress = (data: BindAddressParams): Promise<IResponse> => {
   return request.post({
     url: '/v1/address/bind',
+    data
+  })
+}
+
+/**
+ * 获取机器人福利能量限制配置 - 新接口 v1
+ * GET /v1/bot/{id}/weal
+ */
+export const v1GetBotWealConfig = (id: number | string): Promise<IResponse<BotWealConfig>> => {
+  return request.get({
+    url: `${BASE_URL}${id}/weal`
+  })
+}
+
+/**
+ * 更新机器人福利能量限制配置 - 新接口 v1
+ * PUT /v1/bot/{id}/weal
+ */
+export const v1UpdateBotWealConfig = (
+  id: number | string,
+  data: UpdateBotWealParams
+): Promise<IResponse> => {
+  return request.put({
+    url: `${BASE_URL}${id}/weal`,
     data
   })
 }

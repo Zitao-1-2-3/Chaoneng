@@ -528,38 +528,6 @@ const priceSchema = reactive<FormSchema[]>([
         }
       }
     }
-  },
-  {
-    field: 'weal_hour_limit',
-    component: 'InputNumber' as const,
-    label: {
-      text: '每小时购买限制',
-      tips: '每个用户每小时最多可购买的次数'
-    },
-    componentProps: {
-      placeholder: '请输入限制次数',
-      min: 0,
-      precision: 0
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '每小时购买限制是必填项' }]
-    }
-  },
-  {
-    field: 'weal_total_limit',
-    component: 'InputNumber' as const,
-    label: {
-      text: '总购买限制',
-      tips: '每个用户总共最多可购买的次数'
-    },
-    componentProps: {
-      placeholder: '请输入限制次数',
-      min: 0,
-      precision: 0
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '总购买限制是必填项' }]
-    }
   }
 ])
 

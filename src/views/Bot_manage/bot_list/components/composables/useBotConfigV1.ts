@@ -6,8 +6,10 @@ import {
   v1GetBotPriceConfig,
   v1GetSystemPrice,
   v1GetAddressList,
+  v1GetBotWealConfig,
   v1UpdateBot,
   v1UpdateBotPrice,
+  v1UpdateBotWealConfig,
   v1BindAddress,
   syncTgStatusApi
 } from '@/api/botlist'
@@ -72,7 +74,7 @@ export function useBotConfigV1() {
       // 保存机器人信息
       currentBot.value = botDetailRes.data
 
-      // 保存成本价数据 - 统一使用后端字段名
+      // 保存成本价数据 - 字段名与后端保持一致
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
         flash: parseFloat(systemPrice.flash) || 0,
@@ -87,7 +89,6 @@ export function useBotConfigV1() {
         hosting_131k: parseFloat(systemPrice.hosting_131k) || 0,
         batch_flash: parseFloat(systemPrice.batch_flash) || 0,
         active: parseFloat(systemPrice.active) || 0
-        // 注意:福利能量的成本价使用 time_1h,不需要单独的 weal_time_1h
       })
 
       // 设置TG同步状态
@@ -181,7 +182,7 @@ export function useBotConfigV1() {
         return false
       }
 
-      // 保存成本价数据 - 统一使用后端字段名
+      // 保存成本价数据 - 字段名与后端保持一致
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
         flash: parseFloat(systemPrice.flash) || 0,
@@ -196,7 +197,6 @@ export function useBotConfigV1() {
         hosting_131k: parseFloat(systemPrice.hosting_131k) || 0,
         batch_flash: parseFloat(systemPrice.batch_flash) || 0,
         active: parseFloat(systemPrice.active) || 0
-        // 注意:福利能量的成本价使用 time_1h,不需要单独的 weal_time_1h
       })
 
       // 保存当前价格配置
@@ -236,14 +236,8 @@ export function useBotConfigV1() {
         trx_2_usdt: (parseFloat(botPriceData.trx_2_usdt) || 0) * 100,
         max_trx_2_usdt: parseFloat(botPriceData.max_trx_2_usdt) || 0,
 
-        // 福利板块
-        weal_time_1h: parseFloat(botPriceData.weal_time_1h) || 0,
-        weal_hour_limit: botPriceData.weal_hour_limit
-          ? parseFloat(botPriceData.weal_hour_limit)
-          : 0,
-        weal_total_limit: botPriceData.weal_total_limit
-          ? parseFloat(botPriceData.weal_total_limit)
-          : 0
+        // 福利能量价格
+        weal_price_trx: parseFloat(botPriceData.weal_time_1h) || 0
       }
 
       console.log('准备设置表单值:', formValues)
@@ -258,6 +252,46 @@ export function useBotConfigV1() {
     } catch (error) {
       console.error('加载价格配置失败:', error)
       ElMessage.error('加载价格配置失败')
+      return false
+    }
+  }
+
+  // 加载福利配置
+  const loadWelfareConfig = async (id: number, formMethods: any) => {
+    try {
+      console.log('开始加载福利配置...')
+
+      const wealConfigRes = await v1GetBotWealConfig(id)
+
+      if (wealConfigRes.code !== '000000' || !wealConfigRes.data) {
+        ElMessage.error('获取福利配置失败')
+        return false
+      }
+
+      const wealData = wealConfigRes.data
+
+      // 设置表单值 - 注意字符串类型需要转换为数字
+      const formValues = {
+        max_count: wealData.max_count || 0,
+        min_interval: wealData.min_interval || 0,
+        max_energy: wealData.max_energy || 0,
+        max_bandwidth: wealData.max_bandwidth || 0,
+        min_active_day: wealData.min_active_day || 0,
+        min_balance_trx: parseFloat(wealData.min_balance_trx) || 0,
+        min_balance_usdt: parseFloat(wealData.min_balance_usdt) || 0,
+        min_avg_transfer_trx: parseFloat(wealData.min_avg_transfer_trx) || 0,
+        min_avg_transfer_usdt: parseFloat(wealData.min_avg_transfer_usdt) || 0,
+        min_send_interval: wealData.min_send_interval || 0,
+        same_send_max_count_trx: wealData.same_send_max_count_trx || 0,
+        same_send_min_amount_trx: parseFloat(wealData.same_send_min_amount_trx) || 0
+      }
+
+      formMethods.setValues(formValues)
+      console.log('福利配置加载成功')
+      return true
+    } catch (error) {
+      console.error('加载福利配置失败:', error)
+      ElMessage.error('加载福利配置失败')
       return false
     }
   }
@@ -288,6 +322,9 @@ export function useBotConfigV1() {
           break
         case 'priceConfig':
           success = await loadPriceConfig(id, formMethods)
+          break
+        case 'welfareConfig':
+          success = await loadWelfareConfig(id, formMethods)
           break
         default:
           ElMessage.warning(`未知的标签页: ${tabName}`)
@@ -462,10 +499,8 @@ export function useBotConfigV1() {
         min_trx_balance: priceData.min_trx_balance || 0,
         max_usdt_2_trx: priceData.max_usdt_2_trx || 0,
         max_trx_2_usdt: priceData.max_trx_2_usdt || 0,
-        // 福利板块
-        weal_time_1h: priceData.weal_time_1h || 0,
-        weal_hour_limit: priceData.weal_hour_limit || 0,
-        weal_total_limit: priceData.weal_total_limit || 0
+        // 福利能量价格
+        weal_time_1h: priceData.weal_price_trx || 0
       }
 
       console.log('提交价格配置数据:', priceConfig)
@@ -474,6 +509,43 @@ export function useBotConfigV1() {
       return true
     } catch (error) {
       console.error('保存价格配置失败:', error)
+      ElMessage.error('保存失败')
+      return false
+    }
+  }
+
+  // 提交福利配置
+  const submitWelfareConfig = async (formMethods: any) => {
+    try {
+      const welfareData = await formMethods.getFormData()
+
+      if (!currentBot.value.id) {
+        ElMessage.error('机器人ID不能为空')
+        return false
+      }
+
+      // 构建福利配置数据
+      const welfareConfig = {
+        max_count: welfareData.max_count || 0,
+        min_interval: welfareData.min_interval || 0,
+        max_energy: welfareData.max_energy || 0,
+        max_bandwidth: welfareData.max_bandwidth || 0,
+        min_active_day: welfareData.min_active_day || 0,
+        min_balance_trx: welfareData.min_balance_trx || 0,
+        min_balance_usdt: welfareData.min_balance_usdt || 0,
+        min_avg_transfer_trx: welfareData.min_avg_transfer_trx || 0,
+        min_avg_transfer_usdt: welfareData.min_avg_transfer_usdt || 0,
+        min_send_interval: welfareData.min_send_interval || 0,
+        same_send_max_count_trx: welfareData.same_send_max_count_trx || 0,
+        same_send_min_amount_trx: welfareData.same_send_min_amount_trx || 0
+      }
+
+      console.log('提交福利配置数据:', welfareConfig)
+      await v1UpdateBotWealConfig(currentBot.value.id, welfareConfig)
+      ElMessage.success('保存成功')
+      return true
+    } catch (error) {
+      console.error('保存福利配置失败:', error)
       ElMessage.error('保存失败')
       return false
     }
@@ -506,6 +578,9 @@ export function useBotConfigV1() {
           break
         case 'priceConfig':
           success = await submitPriceConfig(formMethods)
+          break
+        case 'welfareConfig':
+          success = await submitWelfareConfig(formMethods)
           break
         default:
           ElMessage.warning(`未知的标签页: ${tabName}`)

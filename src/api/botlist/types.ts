@@ -72,11 +72,14 @@ export type BotDetail = {
 
 /**
  * 代理成本价（系统价格）
+ * 注意：后端实际返回的字段，部分字段可能不存在
  */
 export type SystemPrice = {
   id: number // ID
   created_at: number // 创建时间（Unix时间戳）
   updated_at: number // 更新时间（Unix时间戳）
+  name: string // 名称
+  agent_id: number // 代理ID
   active: string // 激活价格
   time_1h: string // 1小时时间价格
   time_1d: string // 1天时间价格
@@ -84,16 +87,16 @@ export type SystemPrice = {
   time_7d: string // 7天时间价格
   time_15d: string // 15天时间价格
   time_30d: string // 30天时间价格
-  stroke: string // 笔数价格
-  stroke_usdt: string // 笔数USDT价格
-  flash: string // 闪兑价格
+  stroke: string // 笔数价格（TRX）
+  stroke_usdt?: string // 笔数USDT价格（后端可能不返回）
+  flash: string // 闪租能量价格
   hosting_65k: string // 托管65k价格
   hosting_131k: string // 托管131k价格
   trx_2_usdt: string // TRX转USDT价格
   usdt_2_trx: string // USDT转TRX价格
   batch_flash: string // 批量闪兑价格
-  weal_time_1h: string // 福利1小时价格
   bot_fee: string // 机器人费用
+  weal_time_1h?: string // 福利1小时价格（后端可能不返回，前端降级使用 time_1h）
 }
 
 /**
@@ -251,6 +254,45 @@ export type UpdateBotPriceParams = {
   allow_pledge?: boolean // 是否允许质押
   notice_status?: number // 通知状态
   bot_fee?: number // 机器人费用（暂未使用）
+}
+
+/**
+ * 机器人福利能量限制配置
+ */
+export type BotWealConfig = {
+  bot_id: number // 机器人ID
+  agent_id: number // 代理ID
+  max_count: number // 最大次数
+  min_interval: number // 最小间隔
+  min_active_day: number // 最小激活天数
+  max_energy: number // 最大能量
+  max_bandwidth: number // 最大带宽
+  min_balance_trx: string // 最小余额TRX（字符串类型）
+  min_balance_usdt: string // 最小余额USDT（字符串类型）
+  min_send_interval: number // 最小发送间隔
+  min_avg_transfer_trx: string // 最小平均转账TRX（字符串类型）
+  min_avg_transfer_usdt: string // 最小平均转账USDT（字符串类型）
+  same_send_max_count_trx: number // 相同发送最大次数TRX
+  same_send_min_amount_trx: string // 相同发送最小金额TRX（字符串类型）
+}
+
+/**
+ * 更新机器人福利能量限制配置请求参数
+ */
+export type UpdateBotWealParams = {
+  agent_id?: number // 代理ID
+  max_bandwidth?: number // 最大带宽
+  max_count?: number // 最大次数
+  max_energy?: number // 最大能量
+  min_active_day?: number // 最小激活天数
+  min_avg_transfer_trx?: number // 最小平均转账TRX
+  min_avg_transfer_usdt?: number // 最小平均转账USDT
+  min_balance_trx?: number // 最小余额TRX
+  min_balance_usdt?: number // 最小余额USDT
+  min_interval?: number // 最小间隔
+  min_send_interval?: number // 最小发送间隔
+  same_send_max_count_trx?: number // 相同发送最大次数TRX
+  same_send_min_amount_trx?: number // 相同发送最小金额TRX
 }
 
 /**

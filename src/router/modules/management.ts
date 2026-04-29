@@ -129,40 +129,12 @@ const managementRoutes: AppRouteRecordRaw[] = [
           title: '能量订单'
         }
       },
-      // {
-      //   path: 'hosted_order',
-      //   component: () => import('@/views/OrderManage/hosted_order/index.vue'),
-      //   name: 'HostedOrder',
-      //   meta: {
-      //     title: '托管订单'
-      //   }
-      // },
       {
         path: 'exchange_order',
         component: () => import('@/views/OrderManage/exchange_order/index.vue'),
         name: 'ExchangeOrder',
         meta: {
           title: '兑换订单'
-        }
-      }
-    ]
-  },
-  {
-    path: '/data_statistics',
-    component: Layout,
-    name: 'DataStatistics', // Note: Duplicated name with operation route, might need adjustment
-    meta: {
-      title: '数据统计',
-      icon: 'vi-carbon:chart-area',
-      alwaysShow: true
-    },
-    children: [
-      {
-        path: 'bot_summary',
-        component: () => import('@/views/DataStatistics/bot_summary/index.vue'),
-        name: 'BotSummary',
-        meta: {
-          title: '机器人汇总'
         }
       }
     ]
