@@ -156,6 +156,9 @@ const submit = async () => {
     return
   }
 
+  // 调用提交配置的方法
+  const success = await submitTabConfig(activeTab.value, currentFormMethod)
+
   if (success) {
     emit('success')
   }

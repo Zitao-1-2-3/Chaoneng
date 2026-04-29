@@ -272,12 +272,14 @@ const fetchBotList = async () => {
         label: bot.user_name,
         value: bot.id
       }))
+    } else {
+      // 接口返回失败，设置空数组
+      botList.value = []
     }
   } catch (error) {
     console.error('获取机器人列表失败:', error)
-  } finally {
-    // 无论成功或失败都标记为已加载
-    botListLoaded.value = true
+    // 接口调用失败，设置空数组
+    botList.value = []
   }
 }
 
