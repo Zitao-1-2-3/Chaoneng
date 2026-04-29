@@ -78,12 +78,12 @@ const welfareSchema = reactive<FormSchema[]>([
       tips: '地址持有最大能量值'
     },
     componentProps: {
-      placeholder: '请输入最大能量',
+      placeholder: '请输入持有最大能量',
       min: 0,
       precision: 0
     },
     formItemProps: {
-      rules: [{ required: true, message: '最大能量是必填项' }]
+      rules: [{ required: true, message: '持有最大能量是必填项' }]
     }
   },
   {
@@ -94,12 +94,12 @@ const welfareSchema = reactive<FormSchema[]>([
       tips: '地址持有最大带宽值'
     },
     componentProps: {
-      placeholder: '请输入最大带宽',
+      placeholder: '请输入持有最大带宽',
       min: 0,
       precision: 0
     },
     formItemProps: {
-      rules: [{ required: true, message: '最大带宽是必填项' }]
+      rules: [{ required: true, message: '持有最大带宽是必填项' }]
     }
   },
 
