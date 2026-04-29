@@ -25,8 +25,8 @@
 </template>
 
 <script setup lang="tsx">
-import { ref } from 'vue'
-import { ElTag, ElSwitch, ElLink, ElMessage } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
+import { ElTag, ElLink, ElMessage } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -34,13 +34,33 @@ import { Icon } from '@/components/Icon'
 import type { TableColumn } from '@/components/Table'
 import type { FormSchema } from '@/components/Form'
 import { formatToDateTime } from '@/utils/dateUtil'
-import { getGroupList, updateGroupStatus } from '@/api/group'
+import { getGroupList, getGroupBotList } from '@/api/group'
 import type { GroupListParams } from '@/api/group/types'
 
 const searchTableRef = ref()
 
-// 搜索表单配置
-const searchSchema: FormSchema[] = [
+// 机器人列表
+const botList = ref<Array<{ label: string; value: number }>>([])
+
+// 获取机器人列表
+const fetchBotList = async () => {
+  try {
+    const res = await getGroupBotList()
+    if (res.code === '000000' && res.data) {
+      botList.value = [
+        { label: '全部', value: undefined as any },
+        ...(res.data || []).map((bot: any) => ({
+          label: bot.user_name,
+          value: bot.id
+        }))
+      ]
+    }
+  } catch (error) {
+    console.error('获取机器人列表失败:', error)
+  }
+}
+
+const searchSchema = computed<FormSchema[]>(() => [
   {
     field: 'keyword',
     component: 'Input',
@@ -51,14 +71,11 @@ const searchSchema: FormSchema[] = [
     }
   },
   {
-    field: 'bot_type',
+    field: 'bot_id',
     component: 'Select',
     label: '机器人',
     componentProps: {
-      options: [
-        { label: '全部', value: undefined }
-        // TODO: 动态加载机器人列表
-      ],
+      options: botList.value,
       placeholder: '请选择机器人'
     }
   },
@@ -75,9 +92,8 @@ const searchSchema: FormSchema[] = [
       style: { width: '240px' }
     }
   }
-]
+])
 
-// 表格列配置
 const columns: TableColumn[] = [
   {
     field: 'group_id',
@@ -87,15 +103,17 @@ const columns: TableColumn[] = [
   {
     field: 'group_name',
     label: '群组名称',
-    minWidth: 180
+    minWidth: 180,
+    formatter: (row: any) => row.group_name || '-'
   },
   {
-    field: 'bot_username',
+    field: 'bot_user_name',
     label: '机器人用户名',
     width: 150,
     slots: {
       default: (data: any) => {
-        const username = data.row.bot_username
+        const username = data.row.bot_user_name
+        if (!username) return <span>-</span>
         return (
           <ElLink type="primary" onClick={() => window.open(`https://t.me/${username}`, '_blank')}>
             {username}
@@ -105,24 +123,25 @@ const columns: TableColumn[] = [
     }
   },
   {
-    field: 'bot_aid',
+    field: 'bot_id',
     label: '机器人ID',
     width: 120
   },
   {
-    field: 'bot_nickname',
+    field: 'bot_first_name',
     label: '机器人昵称',
-    width: 150
+    width: 150,
+    formatter: (row: any) => row.bot_first_name || '-'
   },
   {
-    field: 'member_count',
+    field: 'group_size',
     label: '群人数',
     width: 100,
     slots: {
       default: (data: any) => {
         return (
           <ElTag type="info" size="small">
-            {data.row.member_count}
+            {data.row.group_size || 0}
           </ElTag>
         )
       }
@@ -145,28 +164,18 @@ const columns: TableColumn[] = [
     }
   },
   {
-    field: 'status',
-    label: '状态',
-    width: 100,
-    slots: {
-      default: (data: any) => {
-        return (
-          <ElSwitch
-            v-model={data.row.status}
-            activeValue={1}
-            inactiveValue={2}
-            onChange={() => handleStatusChange(data.row)}
-          />
-        )
-      }
-    }
-  },
-  {
     field: 'created_at',
     label: '创建时间',
     width: 180,
     sortable: 'custom',
-    formatter: (row: any) => formatToDateTime(row.created_at)
+    formatter: (row: any) => (row.created_at ? formatToDateTime(row.created_at) : '-')
+  },
+  {
+    field: 'updated_at',
+    label: '更新时间',
+    width: 180,
+    sortable: 'custom',
+    formatter: (row: any) => (row.updated_at ? formatToDateTime(row.updated_at) : '-')
   }
 ]
 
@@ -187,21 +196,21 @@ const actionColumn = {
   }
 }
 
-// 获取群组列表
 const fetchGroupList = async (params: any) => {
   try {
     const requestParams: GroupListParams = {
       current_page: params.current_page || 1,
       page_size: params.page_size || 10,
       keyword: params.keyword,
-      bot_type: params.bot_type,
+      bot_id: params.bot_id,
       start_time: params.date_range?.[0],
-      end_time: params.date_range?.[1]
+      end_time: params.date_range?.[1],
+      order: params.order
     }
 
     const response = await getGroupList(requestParams)
 
-    if (response.code === 0 && response.data) {
+    if (response.code === '000000' && response.data) {
       return {
         list: response.data.list || [],
         total: response.data.pager?.total || 0
@@ -217,46 +226,22 @@ const fetchGroupList = async (params: any) => {
   }
 }
 
-// 状态切换
-const handleStatusChange = async (row: any) => {
-  try {
-    const response = await updateGroupStatus({
-      id: row.id,
-      status: row.status
-    })
-
-    if (response.code === 0) {
-      ElMessage.success('状态更新成功')
-    } else {
-      ElMessage.error((response as any).msg || '状态更新失败')
-      // 恢复原状态
-      row.status = row.status === 1 ? 2 : 1
-    }
-  } catch (error) {
-    console.error('状态更新失败:', error)
-    ElMessage.error('状态更新失败')
-    // 恢复原状态
-    row.status = row.status === 1 ? 2 : 1
-  }
-}
-
-// 查看详情/发送消息
 const handleViewDetail = (row: any) => {
   ElMessage.info(`发送消息到群组: ${row.group_name}`)
-  // TODO: 打开发送消息弹窗
 }
 
-// 群发消息
 const handleMassSend = () => {
   ElMessage.info('打开群发消息弹窗')
-  // TODO: 打开群发消息弹窗
 }
 
-// 查看群发记录
 const handleViewMassSendRecord = () => {
   ElMessage.info('打开群发记录弹窗')
-  // TODO: 打开群发记录弹窗
 }
+
+// 组件挂载时获取机器人列表
+onMounted(() => {
+  fetchBotList()
+})
 </script>
 
 <style scoped>

@@ -138,16 +138,15 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '菜单列表'
           }
+        },
+        {
+          path: 'group_list',
+          component: () => import('@/operationView/Marketing/GroupList/index.vue'),
+          name: 'MarketingGroupList',
+          meta: {
+            title: '群组列表'
+          }
         }
-        // ,
-        // {
-        //   path: 'group_list',
-        //   component: () => import('@/operationView/Marketing/GroupList/index.vue'),
-        //   name: 'MarketingGroupList',
-        //   meta: {
-        //     title: '群组列表'
-        //   }
-        // }
       ]
     },
     {

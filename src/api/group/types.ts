@@ -2,12 +2,14 @@
  * 群组列表查询参数
  */
 export type GroupListParams = {
+  agent_id?: number // 代理ID
+  bot_id?: number // 机器人ID
   current_page?: number // 当前页码
-  page_size?: number // 每页数量
-  keyword?: string // 关键字（群组ID/群组名称/机器人AID）
-  bot_type?: number | string // 机器人类型
-  start_time?: string // 开始时间
   end_time?: string // 结束时间
+  keyword?: string // 关键字
+  order?: string // 排序，单字段：column [ASC|DESC]，多字段用逗号隔开
+  page_size?: number // 每页大小
+  start_time?: string // 开始时间
 }
 
 /**
@@ -15,16 +17,15 @@ export type GroupListParams = {
  */
 export type GroupListItem = {
   id: number // 群组记录ID
-  group_id: string // 群组ID
+  bot_id: number // 机器人ID
+  bot_first_name: string // 机器人昵称
+  bot_user_name: string // 机器人用户名
+  group_id: number // 群组ID
   group_name: string // 群组名称
-  bot_username: string // 机器人用户名
-  bot_aid: string // 机器人AID
-  bot_nickname: string // 机器人昵称
-  member_count: number // 群人数
   group_link: string // 群链接
-  created_at: number // 创建时间（Unix时间戳）
-  updated_at: number // 更新时间（Unix时间戳）
-  status: number // 状态：1-启用，2-禁用
+  group_size: number // 群人数
+  created_at: string // 创建时间
+  updated_at: string // 更新时间
 }
 
 /**
