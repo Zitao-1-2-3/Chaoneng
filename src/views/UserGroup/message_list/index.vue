@@ -191,6 +191,15 @@
       :video-url="previewFileUrl"
       v-if="isPreviewVideo"
     />
+
+    <!-- 重发消息预览弹窗 -->
+    <MessagePreviewDialog
+      v-model="resendPreviewVisible"
+      :preview-data="resendPreviewData"
+      :submitting="resending"
+      @confirm="handleConfirmResend"
+      @cancel="resendPreviewVisible = false"
+    />
   </ContentWrap>
 </template>
 
@@ -215,6 +224,8 @@ import MessageDialog from '../user_list/components/MessageDialog/index.vue'
 import InlineButtonDialog from './components/InlineButtonDialog.vue'
 import AdvancedSettingsDialog from './components/AdvancedSettingsDialog.vue'
 import VideoPreviewDialog from '../user_list/components/MessageDialog/components/VideoPreviewDialog.vue'
+import MessagePreviewDialog from '../user_list/components/MessageDialog/components/MessagePreviewDialog.vue'
+import type { MessagePreviewData } from '../user_list/components/MessageDialog/components/MessagePreviewDialog.vue'
 
 // SearchTable 引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
@@ -246,6 +257,12 @@ const inlineButtonDialogVisible = ref(false)
 // 高级设置弹窗
 const advancedSettingsDialogVisible = ref(false)
 const currentEditRow = ref<any>(null)
+
+// 重发消息预览
+const resendPreviewVisible = ref(false)
+const resendPreviewData = ref<MessagePreviewData>({})
+const resending = ref(false)
+const currentResendRow = ref<any>(null)
 
 // 获取机器人列表
 const fetchBotList = async () => {
@@ -337,13 +354,48 @@ const handleAdvancedSettingsSuccess = () => {
 // 重发消息
 const handleResend = async (row: any) => {
   try {
-    await ElMessageBox.confirm('确定要立即重发这条消息吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
+    // 保存当前行数据
+    currentResendRow.value = row
 
-    // 再次调用发送消息接口，只修改 period 为 0 和 send_at 为当前时间
+    // 准备预览数据
+    const previewData: MessagePreviewData = {
+      botName: row.bot_name || '未知机器人',
+      recipientInfo:
+        !row.tg_user_ids || row.tg_user_ids.length === 0
+          ? '全部用户'
+          : row.tg_user_ids.length === 1
+            ? `用户ID: ${row.tg_user_ids[0]}`
+            : `${row.tg_user_ids.length}个用户`,
+      content: row.content || '',
+      files: (row.files || []).map((fileUrl: string) => ({
+        type: isVideo(fileUrl) ? 'video' : 'image',
+        url: fileUrl,
+        name: fileUrl.split('/').pop() || ''
+      })),
+      buttons: (row.inner_buttons || []).map((btn: any) => ({
+        text: btn.text || btn.name || '按钮',
+        url: btn.url
+      }))
+    }
+
+    resendPreviewData.value = previewData
+    resendPreviewVisible.value = true
+  } catch (error: any) {
+    console.error('打开重发预览失败:', error)
+    ElMessage.error('打开预览失败')
+  }
+}
+
+// 确认重发
+const handleConfirmResend = async () => {
+  if (!currentResendRow.value) return
+
+  try {
+    resending.value = true
+
+    const row = currentResendRow.value
+
+    // 调用发送消息接口，只修改 period 为 0 和 send_at 为当前时间
     const res = await v1SendGroupMessage({
       bot_ids: [row.bot_id],
       content: row.content || '',
@@ -357,15 +409,16 @@ const handleResend = async (row: any) => {
 
     if (res.code === '000000') {
       ElMessage.success('重发成功')
+      resendPreviewVisible.value = false
       searchTableRef.value?.reload()
     } else {
       ElMessage.error((res as any).msg || '重发失败')
     }
   } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('重发失败:', error)
-      ElMessage.error(error.message || '重发失败')
-    }
+    console.error('重发失败:', error)
+    ElMessage.error(error.message || '重发失败')
+  } finally {
+    resending.value = false
   }
 }
 
@@ -549,19 +602,8 @@ const tableColumns: TableColumn[] = [
     }
   },
   {
-    field: 'kind',
-    label: '信息类别',
-    width: 120,
-    formatter: (row) => {
-      // kind: 1-只发一次, 2-周期发送
-      if (row.kind === 1) return '只发一次'
-      if (row.kind === 2) return '周期发送'
-      return '—'
-    }
-  },
-  {
     field: 'period',
-    label: '发送周期',
+    label: '信息类别',
     width: 120,
     formatter: (row) => {
       // null、0 和 4294967295 = 只发一次, 其他 = 周期小时数

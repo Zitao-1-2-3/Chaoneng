@@ -237,7 +237,7 @@ export function useBotConfigV1() {
         max_trx_2_usdt: parseFloat(botPriceData.max_trx_2_usdt) || 0,
 
         // 福利能量价格
-        weal_price_trx: parseFloat(botPriceData.weal_time_1h) || 0
+        weal_time_1h: parseFloat(botPriceData.weal_time_1h) || 0
       }
 
       console.log('准备设置表单值:', formValues)
@@ -500,7 +500,7 @@ export function useBotConfigV1() {
         max_usdt_2_trx: priceData.max_usdt_2_trx || 0,
         max_trx_2_usdt: priceData.max_trx_2_usdt || 0,
         // 福利能量价格
-        weal_time_1h: priceData.weal_price_trx || 0
+        weal_time_1h: priceData.weal_time_1h || 0
       }
 
       console.log('提交价格配置数据:', priceConfig)
