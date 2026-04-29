@@ -326,9 +326,9 @@ export function useBotConfigV1() {
 
       // 2. 更新Site信息（客服账号和H5端开关）
       await v1UpdateSite({
-        id: currentBot.value.id, // 使用机器人ID作为Site ID
-        tg_admin: botInfoData.customer_service_account, // 客服账号
-        status: botInfoData.h5_enable === 1 ? 1 : 2 // H5端开关：1-启用，0-禁用 → 1-启用，2-禁用
+        id: currentBot.value.id,
+        tg_admin: botInfoData.tg_admin,
+        status: botInfoData.h5_enable === 1 ? 1 : 2
       })
 
       // 3. 重新获取Site详情，刷新显示数据
@@ -338,7 +338,7 @@ export function useBotConfigV1() {
           // 更新表单中的H5配置数据
           const updatedH5Config = {
             url: siteRes.data.url || '',
-            customer_service_account: siteRes.data.tg_admin || '',
+            tg_admin: siteRes.data.tg_admin || '',
             h5_enable: siteRes.data.status === 1 ? 1 : 0
           }
 

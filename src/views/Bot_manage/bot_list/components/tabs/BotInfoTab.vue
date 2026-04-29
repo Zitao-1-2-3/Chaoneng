@@ -19,7 +19,7 @@
         </ElCol>
         <ElCol :span="8">
           <ElFormItem label="客服账号：">
-            <ElInput v-model="h5Config.customer_service_account" placeholder="请输入客服账号" />
+            <ElInput v-model="h5Config.tg_admin" placeholder="请输入客服账号" />
           </ElFormItem>
         </ElCol>
         <ElCol :span="8">
@@ -61,7 +61,7 @@ const { required } = useValidator()
 const h5Config = ref({
   h5_enable: 0,
   url: '',
-  customer_service_account: ''
+  tg_admin: ''
 })
 
 // 当前机器人ID
@@ -72,10 +72,8 @@ const fetchSiteDetail = async (botId: number) => {
   try {
     const res = await v1GetSiteDetail(botId)
     if (res && res.data) {
-      // 更新H5配置数据
       h5Config.value.url = res.data.url || ''
-      h5Config.value.customer_service_account = res.data.tg_admin || ''
-      // status: 1-启用，2-禁用，转换为 h5_enable: 1-启用，0-禁用
+      h5Config.value.tg_admin = res.data.tg_admin || ''
       h5Config.value.h5_enable = res.data.status === 1 ? 1 : 0
     }
   } catch (error) {
@@ -163,28 +161,22 @@ const botInfoSchema = reactive<FormSchema[]>([
   }
 ])
 
-// 暴露表单方法，扩展以支持H5配置
 defineExpose({
   formMethods: {
     ...formMethods,
-    // 扩展setValues方法以支持H5配置
     setValues: (data: any) => {
-      // 设置基本表单数据
       formMethods.setValues(data)
 
-      // 保存机器人ID
       if (data.tg_bot_id !== undefined) {
         currentBotId.value = data.tg_bot_id
       }
 
-      // 设置H5配置数据（如果有传入）
       if (data.h5_enable !== undefined) h5Config.value.h5_enable = data.h5_enable
       if (data.url !== undefined) h5Config.value.url = data.url
-      if (data.customer_service_account !== undefined) {
-        h5Config.value.customer_service_account = data.customer_service_account
+      if (data.tg_admin !== undefined) {
+        h5Config.value.tg_admin = data.tg_admin
       }
     },
-    // 扩展getFormData方法以包含H5配置
     getFormData: async () => {
       const formData = await formMethods.getFormData()
       return {

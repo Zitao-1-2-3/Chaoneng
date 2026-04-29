@@ -5,31 +5,23 @@ import type {
   CustomerServiceListResponse,
   CreateCustomerServiceParams,
   UpdateCustomerServiceParams,
-  DeleteCustomerServiceParams,
-  // 兼容性导入
-  AddCustomerServiceParams,
-  CustomerServiceListResponseData
+  DeleteCustomerServiceParams
 } from './type'
 
-// 重新导出类型
 export type {
   CustomerServiceItem,
   CustomerServiceQueryParams,
   CustomerServiceListResponse,
   CreateCustomerServiceParams,
   UpdateCustomerServiceParams,
-  DeleteCustomerServiceParams,
-  AddCustomerServiceParams
+  DeleteCustomerServiceParams
 } from './type'
-
-// ==================== 代理端接口（v1） ====================
 
 const USER_CUSTOMER_SERVICE_BASE = '/v1/user/customer/'
 
 /**
  * 获取客服列表（代理端接口 v1）
- * 接口路径：GET /v1/user/customer/list
- * @param params 查询参数
+ * GET /v1/user/customer/list
  */
 export const getUserCustomerServiceListApi = (
   params: CustomerServiceQueryParams
@@ -37,14 +29,11 @@ export const getUserCustomerServiceListApi = (
   return request.get({ url: `${USER_CUSTOMER_SERVICE_BASE}list`, params })
 }
 
-// ==================== 运营端接口（v2） ====================
-
 const CUSTOMER_SERVICE_BASE = '/v2/manage/customer/'
 
 /**
  * 获取客服列表（运营端接口 v2）
- * 接口路径：GET /v2/manage/customer/list
- * @param params 查询参数
+ * GET /v2/manage/customer/list
  */
 export const getCustomerServiceListApi = (
   params: CustomerServiceQueryParams
@@ -54,8 +43,7 @@ export const getCustomerServiceListApi = (
 
 /**
  * 创建客服（新接口 v2）
- * 接口路径：POST /v2/manage/customer/add
- * @param data 创建参数
+ * POST /v2/manage/customer/add
  */
 export const createCustomerServiceApi = (data: CreateCustomerServiceParams): Promise<IResponse> => {
   return request.post({ url: `${CUSTOMER_SERVICE_BASE}add`, data })
@@ -63,8 +51,7 @@ export const createCustomerServiceApi = (data: CreateCustomerServiceParams): Pro
 
 /**
  * 更新客服信息（新接口 v2）
- * 接口路径：POST /v2/manage/customer/update
- * @param data 更新参数
+ * POST /v2/manage/customer/update
  */
 export const updateCustomerServiceApi = (data: UpdateCustomerServiceParams): Promise<IResponse> => {
   return request.post({ url: `${CUSTOMER_SERVICE_BASE}update`, data })
@@ -72,17 +59,8 @@ export const updateCustomerServiceApi = (data: UpdateCustomerServiceParams): Pro
 
 /**
  * 删除客服（新接口 v2）
- * 接口路径：POST /v2/manage/customer/del
- * @param data 删除参数
+ * POST /v2/manage/customer/del
  */
 export const deleteCustomerServiceApi = (data: DeleteCustomerServiceParams): Promise<IResponse> => {
   return request.post({ url: `${CUSTOMER_SERVICE_BASE}del`, data })
 }
-
-// ==================== 兼容性接口 ====================
-
-/**
- * 添加客服（兼容旧接口名称）
- * @deprecated 请使用 createCustomerServiceApi 代替
- */
-export const addCustomerServiceApi = createCustomerServiceApi

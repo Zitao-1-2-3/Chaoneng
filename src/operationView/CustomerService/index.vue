@@ -54,7 +54,6 @@ import {
   getCustomerServiceListApi,
   createCustomerServiceApi,
   updateCustomerServiceApi,
-  // deleteCustomerServiceApi, // 暂时注释，不需要删除功能
   type CustomerServiceItem,
   type CustomerServiceQueryParams,
   type CreateCustomerServiceParams,
@@ -119,7 +118,7 @@ const columns = ref<TableColumn[]>([
   {
     label: '操作',
     field: 'action',
-    width: '200px', // 调整宽度，因为移除了删除按钮
+    width: '200px',
     fixed: 'right',
     formatter: (row) => {
       const isEnabled = row.status === 1
@@ -135,10 +134,6 @@ const columns = ref<TableColumn[]>([
           <BaseButton type={statusButtonType} onClick={() => handleStatusChange(row, targetStatus)}>
             {statusButtonText}
           </BaseButton>
-          {/* 暂时注释删除功能 */}
-          {/* <BaseButton type="danger" onClick={() => handleDeleteCustomerService(row)}>
-            删除
-          </BaseButton> */}
         </>
       )
     }
@@ -206,29 +201,25 @@ const customerServiceFormSchema = reactive<FormSchema[]>([
 
 // --- 事件处理函数 ---
 
-// 新增客服
 const handleAddCustomerService = async () => {
   isEdit.value = false
   currentEditData.value = null
   dialogVisible.value = true
-  // 重置表单
   setTimeout(async () => {
     try {
       const elForm = await formMethods.getElFormExpose()
       elForm?.resetFields()
       formMethods.setValues({ status: 1 })
     } catch (e) {
-      console.error('Error resetting form:', e)
+      handleErrorMessage(e, '重置表单失败')
     }
   }, 100)
 }
 
-// 编辑客服
 const handleEditCustomerService = (row: CustomerServiceItem) => {
   isEdit.value = true
   currentEditData.value = row
   dialogVisible.value = true
-  // 设置表单值
   setTimeout(() => {
     formMethods.setValues({
       tg_name: row.tg_name,
@@ -237,7 +228,6 @@ const handleEditCustomerService = (row: CustomerServiceItem) => {
   }, 100)
 }
 
-// 状态切换
 const handleStatusChange = async (row: CustomerServiceItem, targetStatus: number) => {
   try {
     await ElMessageBox.confirm(`确定要${targetStatus === 1 ? '启用' : '禁用'}该客服吗？`, '提示', {
@@ -262,40 +252,18 @@ const handleStatusChange = async (row: CustomerServiceItem, targetStatus: number
   }
 }
 
-// 删除客服 - 暂时注释，不需要此功能
-/* const handleDeleteCustomerService = async (row: CustomerServiceItem) => {
-  try {
-    await ElMessageBox.confirm(`确定要删除客服"${row.tg_name}"吗？`, '删除确认', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
-    })
-
-    await deleteCustomerServiceApi({ id: Number(row.id) })
-    ElMessage.success('删除成功')
-    searchTableRef.value?.reload()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除客服失败:', error)
-      ElMessage.error('删除失败')
-    }
-  }
-} */
-
-// 弹窗关闭
 const handleDialogClose = async () => {
   dialogVisible.value = false
   try {
     const elForm = await formMethods.getElFormExpose()
     elForm?.resetFields()
   } catch (e) {
-    console.error('Error resetting form:', e)
+    handleErrorMessage(e, '重置表单失败')
   }
   isEdit.value = false
   currentEditData.value = null
 }
 
-// 表单提交
 const handleSubmit = async () => {
   try {
     const elForm = await formMethods.getElFormExpose()
@@ -305,7 +273,6 @@ const handleSubmit = async () => {
     submitLoading.value = true
 
     if (isEdit.value && currentEditData.value) {
-      // 编辑
       const updateData: UpdateCustomerServiceParams = {
         id: Number(currentEditData.value.id),
         tg_name: formData.tg_name,
@@ -332,6 +299,4 @@ const handleSubmit = async () => {
 }
 </script>
 
-<style scoped>
-/* 可以添加自定义样式 */
-</style>
+<style scoped></style>
