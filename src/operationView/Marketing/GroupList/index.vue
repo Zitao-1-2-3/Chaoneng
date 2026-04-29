@@ -37,7 +37,6 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import { getGroupList, updateGroupStatus } from '@/api/group'
 import type { GroupListParams } from '@/api/group/types'
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const searchTableRef = ref()
 
 // 搜索表单配置
