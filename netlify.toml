@@ -64,6 +64,12 @@
   status = 200
   force = true
 
+# 重定向 /management 路径的静态资源到根目录
+[[redirects]]
+  from = "/management/*"
+  to = "/:splat"
+  status = 200
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
