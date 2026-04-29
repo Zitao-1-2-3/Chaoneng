@@ -89,11 +89,12 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
           })
         : undefined,
       EslintPlugin({
-        cache: true,
+        cache: false,
         cacheLocation: 'node_modules/.cache/eslint',
         failOnWarning: false,
         failOnError: false,
-        include: ['src/**/*.vue', 'src/**/*.ts', 'src/**/*.tsx'] // 检查的文件
+        include: ['src/**/*.vue', 'src/**/*.ts', 'src/**/*.tsx'], // 检查的文件
+        exclude: ['**/node_modules/**', '**/dist/**']
       }),
       VueI18nPlugin({
         runtimeOnly: true,
