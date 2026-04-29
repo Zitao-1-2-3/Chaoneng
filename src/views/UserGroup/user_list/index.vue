@@ -36,19 +36,10 @@
         :type="messageDialogType"
         :user="currentAccount"
         :bot-list="botsForDialog"
-        :custom-title="messageDialogCustomTitle"
-        :is-single-user="isSingleUserMode"
         @success="handleMessageSent"
       />
 
-      <!-- 群发记录弹窗 -->
-      <MassSendRecordDialog
-        v-model="massSendRecordDialogVisible"
-        ref="massSendRecordDialogRef"
-        :bot-list="botOptions"
-      />
-
-      <!-- 新增：余额记录弹窗 -->
+      <!-- 余额记录弹窗 -->
       <BalanceRecordDialog
         v-if="currentAccountId !== null"
         v-model:visible="balanceRecordDialogVisible"
@@ -79,7 +70,6 @@ import { v1GetUserList } from '@/api/tgUser'
 import type { UserListParamsV1 } from '@/api/tgUser/types'
 import { v1GetBotList } from '@/api/botlist'
 import MessageDialog from './components/MessageDialog/index.vue'
-import MassSendRecordDialog from './components/MassSendRecordDialog.vue'
 import { useRoute, useRouter } from 'vue-router'
 import RechargeDialog from './components/RechargeDialog.vue'
 import BalanceRecordDialog from './components/BalanceRecordDialog.vue'
@@ -91,11 +81,9 @@ import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 const route = useRoute()
 const router = useRouter()
 
-// State for conditional rendering
 const isBotListLoaded = ref(false)
-
-// 机器人下拉options，全部string类型
 const botOptions = ref<{ label: string; value: string }[]>([{ label: '全部', value: '' }])
+const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(new Map())
 
 // 获取机器人列表
 const fetchBotList = async () => {
@@ -104,7 +92,6 @@ const fetchBotList = async () => {
     const res = await v1GetBotList({ page_size: 1000, current_page: 1 })
     if (res.code === '000000' && res.data) {
       const bots = (res.data.list || []).map((bot: any) => {
-        // 保存机器人信息到 Map 中
         botInfoMap.value.set(bot.id, {
           user_name: bot.user_name,
           first_name: bot.first_name
@@ -123,32 +110,17 @@ const fetchBotList = async () => {
   }
 }
 
-// 为弹窗准备的机器人列表 (不包含"全部")
 const botsForDialog = computed(() => {
   return botOptions.value.filter((option) => option.value !== '')
 })
 
-// 机器人信息映射表
-const botInfoMap = ref<Map<number, { user_name: string; first_name: string }>>(new Map())
-
-// 当前选中账户
 const currentAccount = ref<any>({})
 const currentAccountId = ref<number | string | null>(null)
-
-// 消息发送相关
 const messageDialogVisible = ref(false)
 const messageDialogType = ref<'single' | 'mass'>('single')
-const messageDialogCustomTitle = ref('') // 自定义弹窗标题
-const isSingleUserMode = ref(false) // 是否为单个用户模式
-const massSendRecordDialogVisible = ref(false)
-
-// 新增：余额记录弹窗可见状态
 const balanceRecordDialogVisible = ref(false)
-
-// 修改密码弹窗可见状态
 const changePasswordDialogVisible = ref(false)
-
-// 当前选择的来源
+const rechargeDialogVisible = ref(false)
 const selectedSource = ref<number | string>('')
 
 // 表格列配置
@@ -158,33 +130,33 @@ const columns = computed(() => {
       field: 'tg_user_id',
       label: 'TG用户ID',
       width: 120,
-      hideWhen: 2, // H5时隐藏
+      hideWhen: 2,
       formatter: (row) => (row.tg_user_id === 0 || !row.tg_user_id ? '-' : row.tg_user_id)
     },
     {
       field: 'tg_first_name',
       label: 'TG用户昵称',
-      hideWhen: 2, // H5时隐藏
+      hideWhen: 2,
       formatter: (row) => row.tg_first_name || '-'
     },
     {
       field: 'tg_user_name',
       label: 'TG用户名',
-      hideWhen: 2, // H5时隐藏
+      hideWhen: 2,
       formatter: (row) => row.tg_user_name || '-'
     },
     {
       field: 'username',
       label: '用户账号',
       width: 150,
-      hideWhen: 1, // 机器人时隐藏
+      hideWhen: 1,
       formatter: (row) => row.username || '-'
     },
     {
       field: 'email',
       label: '用户邮箱',
       width: 180,
-      hideWhen: 1, // 机器人时隐藏
+      hideWhen: 1,
       formatter: (row) => row.email || '-'
     },
     {
@@ -205,12 +177,14 @@ const columns = computed(() => {
       label: '机器人用户名'
     },
     {
-      field: 'source',
+      field: 'origin',
       label: '来源',
       width: 100,
       formatter: (row) => {
-        // 根据 tg_user_id 判断来源
-        return row.tg_user_id === 0 ? 'H5' : '机器人'
+        if ((!row.tg_user_id || row.tg_user_id === 0) && !row.tg_user_name) {
+          return 'H5'
+        }
+        return '机器人'
       }
     },
     {
@@ -245,10 +219,8 @@ const columns = computed(() => {
       fixed: 'right',
       slots: {
         default: ({ row }) => {
-          // 判断是否为H5用户（tg_user_id 为 0 或不存在）
-          const isH5User = !row.tg_user_id || row.tg_user_id === 0
-          // 判断是否为机器人用户（tg_user_id 存在且不为 0）
-          const isBotUser = row.tg_user_id && row.tg_user_id !== 0
+          const isH5User = (!row.tg_user_id || row.tg_user_id === 0) && !row.tg_user_name
+          const isBotUser = (row.tg_user_id && row.tg_user_id !== 0) || row.tg_user_name
 
           return (
             <div>
@@ -288,7 +260,6 @@ const columns = computed(() => {
     }
   ]
 
-  // 根据来源过滤列
   const filteredCols = allCols.filter((col) => {
     if (!col.hideWhen) return true
     return selectedSource.value !== col.hideWhen
@@ -326,7 +297,7 @@ const searchSchema = computed<FormSchema[]>(() => [
     }
   },
   {
-    field: 'query',
+    field: 'keyword',
     component: 'Input' as const,
     label: {
       text: '关键词',
@@ -338,10 +309,9 @@ const searchSchema = computed<FormSchema[]>(() => [
   }
 ])
 
-// API 封装 - 获取账户信息
+// 获取账户列表
 const fetchAccountList = async (params: any) => {
   try {
-    // 更新选中的来源，用于控制列的显示/隐藏
     selectedSource.value = params.origin || ''
 
     const queryParams: UserListParamsV1 = {
@@ -349,39 +319,32 @@ const fetchAccountList = async (params: any) => {
       page_size: Number(params.page_size) || 10
     }
 
-    // 处理排序参数
     if (params.order) {
       queryParams.order = params.order
     }
 
-    // 只有当 bot_id 有值时才添加参数
     if (params.bot_id !== undefined && params.bot_id !== '') {
       queryParams.bot_id = Number(params.bot_id)
     }
 
-    // 只有当 origin 有值时才添加参数
     if (params.origin !== undefined && params.origin !== '') {
       queryParams.origin = Number(params.origin)
     }
 
-    // 只有当 query 有值时才添加 keyword 参数
-    if (params.query && params.query.trim()) {
-      queryParams.keyword = params.query.trim()
+    if (params.keyword && params.keyword.trim()) {
+      queryParams.keyword = params.keyword.trim()
     }
 
-    // 使用新接口 v1GetUserList
     const response = await v1GetUserList(queryParams)
 
     if (response.code === '000000' && response.data) {
       const mappedList = (response.data.list || []).map((item: any) => {
-        // 从 botInfoMap 中获取机器人信息
         const botInfo = botInfoMap.value.get(item.bot_id)
 
         return {
-          ...item, // 保留所有原始字段
-          // 补充机器人信息
-          bot_user_name: botInfo?.user_name || '',
-          bot_first_name: botInfo?.first_name || ''
+          ...item,
+          bot_user_name: botInfo?.user_name || '-',
+          bot_first_name: botInfo?.first_name || '-'
         }
       })
 
@@ -398,12 +361,11 @@ const fetchAccountList = async (params: any) => {
   }
 }
 
-// useSearchTable hooks 只保留searchTableRef
 const { searchTableRef } = useSearchTable({
   searchSchema: searchSchema.value,
   tableColumns: columns.value,
   fetchDataApi: fetchAccountList,
-  immediate: false // 由ready事件控制首次加载
+  immediate: false
 })
 
 const openBotList = (botId: number) => {
@@ -415,52 +377,39 @@ const openBotList = (botId: number) => {
   })
 }
 
-// 充值相关
-const rechargeDialogVisible = ref(false)
-
 const openRechargeDialog = (row: any) => {
   currentAccount.value = row
   rechargeDialogVisible.value = true
 }
 
-// 充值成功回调
 const handleRechargeSuccess = () => {
   searchTableRef.value?.reload()
 }
 
-// 余额记录处理函数
 const handleBalanceRecord = (accountIdValue: number | string) => {
   if (!accountIdValue) {
     ElMessage.warning('无法获取用户ID，无法查看余额记录')
     return
   }
-  console.log(`Opening balance record for account ID: ${accountIdValue}`)
   currentAccountId.value = accountIdValue
   balanceRecordDialogVisible.value = true
 }
 
-// 修改密码处理函数
 const handleChangePassword = (row: any) => {
   currentAccount.value = row
   changePasswordDialogVisible.value = true
 }
 
-// 修改密码成功回调
 const handlePasswordChangeSuccess = () => {
   searchTableRef.value?.reload()
 }
 
-// 发送消息相关
 const openSendMessageDialog = (row: any) => {
   currentAccount.value = row
-  // 统一使用群发消息布局（包含机器人选择、接受用户类型、上传图片等字段）
   messageDialogType.value = 'mass'
-  messageDialogCustomTitle.value = '发送消息' // 设置自定义标题为"发送消息"
-  isSingleUserMode.value = true // 设置为单个用户模式（机器人信息只读）
   messageDialogVisible.value = true
 }
 
-// 消息发送成功处理
 const handleMessageSent = () => {
   messageDialogVisible.value = false
 }
@@ -468,43 +417,38 @@ const handleMessageSent = () => {
 // 处理导出
 const handleExport = async () => {
   try {
-    // 获取当前搜索条件
     const params = await searchTableRef.value?.searchMethods.getFormData()
 
-    // 构建查询参数
     const queryParams: any = {}
     if (params?.bot_id !== undefined && params.bot_id !== '') {
       queryParams.bot_id = Number(params.bot_id)
     }
-    if (params?.query && params.query.trim()) {
-      queryParams.keyword = params.query.trim()
+    if (params?.keyword && params.keyword.trim()) {
+      queryParams.keyword = params.keyword.trim()
     }
 
-    // 使用获取列表的接口，传入搜索条件
     const res = await v1GetUserList(queryParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为 Excel 格式，字段与列表显示完全一致
       const list = res.data.list.map((item: any) => {
         const botInfo = botInfoMap.value.get(item.bot_id)
-        // 判断来源：tg_user_id === 0 为 H5，否则为机器人
-        const source = item.tg_user_id === 0 ? 'H5' : '机器人'
+        const origin =
+          (!item.tg_user_id || item.tg_user_id === 0) && !item.tg_user_name ? 'H5' : '机器人'
         return {
-          TG用户ID: item.tg_user_id,
-          TG用户昵称: item.tg_first_name,
-          TG用户名: item.tg_user_name,
+          TG用户ID: item.tg_user_id === 0 || !item.tg_user_id ? '-' : item.tg_user_id,
+          TG用户昵称: item.tg_first_name || '-',
+          TG用户名: item.tg_user_name || '-',
           用户账号: item.username || '-',
           用户邮箱: item.email || '-',
           机器人ID: item.bot_id,
-          机器人用户名: botInfo ? botInfo.user_name : '',
-          来源: source,
+          机器人用户名: botInfo ? botInfo.user_name : '-',
+          来源: origin,
           TRX余额: `${item.trx_balance || 0} TRX`,
           创建时间: item.created_at ? formatToDateTime(item.created_at * 1000) : '-',
           更新时间: item.updated_at ? formatToDateTime(item.updated_at * 1000) : '-'
         }
       })
 
-      // 导出为 Excel
       simpleExportToExcel(list, 'TG用户列表')
       handleSuccessMessage('用户列表导出成功')
     } else {
@@ -515,9 +459,7 @@ const handleExport = async () => {
   }
 }
 
-// SearchTable ready事件处理
 function onSearchTableReady(instance: any) {
-  // 只在没有 query 参数时才自动加载
   const query = route.query
   if (!query.bot_id && !query.tg_id) {
     instance.reload()
@@ -527,7 +469,6 @@ function onSearchTableReady(instance: any) {
 onMounted(async () => {
   await fetchBotList()
   const query = route.query
-  // 只在options加载后做筛选，类型严格一致
   if (query.bot_id) {
     const botId = botOptions.value.find((opt) => opt.value === String(query.bot_id))?.value
     if (botId !== undefined) {
