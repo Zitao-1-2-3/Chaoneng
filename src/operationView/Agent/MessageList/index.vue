@@ -216,24 +216,19 @@ import InlineButtonDialog from './components/InlineButtonDialog.vue'
 import AdvancedSettingsDialog from './components/AdvancedSettingsDialog.vue'
 import VideoPreviewDialog from '@/views/UserGroup/user_list/components/MessageDialog/components/VideoPreviewDialog.vue'
 
-// 辅助函数：格式化发送时间
 const formatSentTime = (sentAt: string | number): string => {
   if (!sentAt) return '—'
 
   let timestamp: number
 
-  // 处理不同的时间格式
   if (typeof sentAt === 'number') {
-    // 如果是数字，判断是秒还是毫秒
     timestamp = sentAt < 10000000000 ? sentAt * 1000 : sentAt
   } else if (typeof sentAt === 'string') {
-    // 如果是字符串，尝试解析
     timestamp = new Date(sentAt).getTime()
   } else {
     return '—'
   }
 
-  // 检查时间是否有效
   if (isNaN(timestamp) || timestamp <= 0) return '—'
 
   return formatToDateTime(timestamp)
@@ -270,7 +265,6 @@ const inlineButtonDialogVisible = ref(false)
 const advancedSettingsDialogVisible = ref(false)
 const currentEditRow = ref<any>(null)
 
-// 获取机器人列表
 const fetchBotList = async () => {
   try {
     const res = await v1GetMessageBotList()
@@ -279,12 +273,9 @@ const fetchBotList = async () => {
         label: bot.user_name,
         value: bot.id
       }))
-      // 标记机器人列表已加载
       botListLoaded.value = true
     }
   } catch (error) {
-    console.error('获取机器人列表失败:', error)
-    // 即使失败也要显示表格
     botListLoaded.value = true
   }
 }
@@ -357,7 +348,6 @@ const handleAdvancedSettingsSuccess = () => {
   searchTableRef.value?.reload()
 }
 
-// 重发消息
 const handleResend = async (row: any) => {
   try {
     await ElMessageBox.confirm('确定要立即重发这条消息吗？', '提示', {
@@ -366,15 +356,14 @@ const handleResend = async (row: any) => {
       type: 'warning'
     })
 
-    // 再次调用发送消息接口，只修改 period 为 0 和 send_at 为当前时间
     const res = await v1SendGroupMessage({
       bot_ids: [row.bot_id],
       content: row.content || '',
       delete_sent: row.delete_sent || 2,
       files: row.files || [],
       inner_buttons: (row.inner_buttons || []).map((btn: any) => btn.id),
-      period: 0, // 重发时周期改为0（只发一次）
-      send_at: Math.floor(Date.now() / 1000), // 发送时间改为当前时间
+      period: 0,
+      send_at: Math.floor(Date.now() / 1000),
       tg_user_ids: row.tg_user_ids || []
     })
 
@@ -386,13 +375,11 @@ const handleResend = async (row: any) => {
     }
   } catch (error: any) {
     if (error !== 'cancel') {
-      console.error('重发失败:', error)
       ElMessage.error(error.message || '重发失败')
     }
   }
 }
 
-// 删除消息
 const handleDelete = async (row: any) => {
   try {
     await ElMessageBox.confirm('确定要删除这条发送消息记录吗？', '提示', {
@@ -401,7 +388,6 @@ const handleDelete = async (row: any) => {
       type: 'warning'
     })
 
-    // 调用删除接口
     const res = await v1DeleteMassSend(row.id)
     if (res.code === '000000') {
       ElMessage.success('删除成功')
@@ -411,15 +397,12 @@ const handleDelete = async (row: any) => {
     }
   } catch (error: any) {
     if (error !== 'cancel') {
-      console.error('删除失败:', error)
       ElMessage.error(error.message || '删除失败')
     }
   }
 }
 
-// 搜索表单配置
 const searchSchema = computed<FormSchema[]>(() => {
-  // 创建一个新的数组引用，确保响应式更新
   const botOptions = [...botList.value]
   return [
     {
@@ -451,7 +434,6 @@ const searchSchema = computed<FormSchema[]>(() => {
   ]
 })
 
-// 表格列配置
 const tableColumns: TableColumn[] = [
   {
     field: 'bot_id',
@@ -518,30 +500,23 @@ const tableColumns: TableColumn[] = [
       const now = Date.now()
       let sentTime: number
 
-      // 处理不同的时间格式
       if (typeof row.send_at === 'number') {
-        // 如果是数字，判断是秒还是毫秒
         sentTime = row.send_at < 10000000000 ? row.send_at * 1000 : row.send_at
       } else if (typeof row.send_at === 'string') {
-        // 如果是字符串，尝试解析
         sentTime = new Date(row.send_at).getTime()
       } else {
         return '—'
       }
 
-      // 检查时间是否有效
       if (isNaN(sentTime) || sentTime <= 0) return '—'
 
       const diffMs = now - sentTime
-      // 如果是未来时间，显示"未发送"
       if (diffMs < 0) return '未发送'
 
       const diffMinutes = Math.floor(diffMs / 1000 / 60)
-      // 小于1小时，显示分钟
       if (diffMinutes < 60) return `${diffMinutes}分钟`
 
       const diffHours = Math.floor(diffMinutes / 60)
-      // 小于24小时，显示小时
       if (diffHours < 24) return `${diffHours}小时`
 
       const diffDays = Math.floor(diffHours / 24)
@@ -561,7 +536,6 @@ const tableColumns: TableColumn[] = [
     label: '信息类别',
     width: 120,
     formatter: (row) => {
-      // kind: 1-只发一次, 2-周期发送
       if (row.kind === 1) return '只发一次'
       if (row.kind === 2) return '周期发送'
       return '—'
@@ -572,7 +546,6 @@ const tableColumns: TableColumn[] = [
     label: '发送周期',
     width: 120,
     formatter: (row) => {
-      // null、0 和 4294967295 = 只发一次, 其他 = 周期小时数
       if (row.period === null || row.period === 0 || row.period === 4294967295) return '只发一次'
       return `${row.period}小时`
     }
@@ -613,7 +586,6 @@ const tableColumns: TableColumn[] = [
   }
 ]
 
-// API 封装 - 获取消息列表
 const fetchMessageList = async (params: any) => {
   try {
     const queryParams: MassSendListParamsV1 = {
@@ -621,18 +593,14 @@ const fetchMessageList = async (params: any) => {
       page_size: Number(params.page_size) || 10
     }
 
-    // 添加可选参数
     if (params.bot_id) {
       queryParams.bot_id = Number(params.bot_id)
     }
 
-    // 处理信息类别筛选：0-全部（不传参数），1-只发一次，2-周期发送
-    // 只有当 kind 为 1 或 2 时才传递给后端
     if (params.kind && (params.kind === 1 || params.kind === 2)) {
       queryParams.kind = Number(params.kind)
     }
 
-    // 处理排序参数
     if (params.order) {
       queryParams.order = params.order
     }
@@ -648,14 +616,12 @@ const fetchMessageList = async (params: any) => {
 
     return { list: [], total: 0 }
   } catch (error) {
-    console.error('获取消息列表失败:', error)
     ElMessage.error('获取消息列表失败')
     return { list: [], total: 0 }
   }
 }
 
-// 组件挂载时获取机器人列表
-onMounted(() => {
+const onMounted(() => {
   fetchBotList()
 })
 </script>

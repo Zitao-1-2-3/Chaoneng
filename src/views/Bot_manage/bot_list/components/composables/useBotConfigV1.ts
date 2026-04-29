@@ -488,6 +488,7 @@ export function useBotConfigV1() {
       // min_interval: 前端小时 → 后端秒
       // min_send_interval: 前端分钟 → 后端秒
       const welfareConfig = {
+        bot_id: currentBot.value.id,
         max_count: welfareData.max_count || 0,
         min_interval: Math.round((welfareData.min_interval || 0) * 3600),
         max_energy: welfareData.max_energy || 0,

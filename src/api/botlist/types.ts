@@ -280,6 +280,7 @@ export type BotWealConfig = {
  * 更新机器人福利能量限制配置请求参数
  */
 export type UpdateBotWealParams = {
+  bot_id: number // 机器人ID（必填）
   agent_id?: number // 代理ID
   max_bandwidth?: number // 最大带宽
   max_count?: number // 最大次数
