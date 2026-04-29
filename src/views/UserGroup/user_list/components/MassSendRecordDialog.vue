@@ -46,7 +46,7 @@
             </div>
             <div class="info-item">
               <span class="info-label">创建时间:</span>
-              <span class="info-value">{{ formatTime(currentRecord.create_time) }}</span>
+              <span class="info-value">{{ formatTime(currentRecord.created_at) }}</span>
             </div>
           </div>
         </div>
@@ -255,11 +255,11 @@ const tableColumns: TableColumn[] = [
     formatter: (row) => `${row.fail_num === undefined ? 'N/A' : row.fail_num + '个用户'}`
   },
   {
-    field: 'create_time',
+    field: 'created_at',
     label: '创建时间',
     sortable: 'custom',
     width: 180,
-    formatter: (row) => (row.create_time ? formatToDateTime(row.create_time * 1000) : '-')
+    formatter: (row) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
   },
   {
     field: 'action',
@@ -308,16 +308,7 @@ const fetchMassSendRecords = async (params: any) => {
 
     // 处理排序参数
     if (params.order) {
-      const fieldMapping: Record<string, string> = {
-        create_time: 'created_at'
-      }
-
-      const orderParts = params.order.split(' ')
-      if (orderParts.length === 2) {
-        const [field, direction] = orderParts
-        const mappedField = fieldMapping[field] || field
-        queryParams.order = `${mappedField} ${direction}`
-      }
+      queryParams.order = params.order
     }
 
     // 使用新接口 v1GetMassSendList
@@ -336,7 +327,7 @@ const fetchMassSendRecords = async (params: any) => {
           Percent: item.percent,
           ok_num: item.ok_num,
           fail_num: item.fail_num,
-          create_time: item.created_at,
+          created_at: item.created_at,
           // 详情字段 - 完整映射所有字段
           content: item.content,
           keyboards: item.keyboards, // 内联按钮数组

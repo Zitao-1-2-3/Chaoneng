@@ -54,8 +54,6 @@ export function useBotConfigV1() {
   // 加载机器人基本信息
   const loadBotInfo = async (id: number, formMethods: any) => {
     try {
-      console.log('开始加载机器人基本信息...')
-
       const [botDetailRes, systemPriceRes] = await Promise.all([
         v1GetBotDetail(id),
         v1GetSystemPrice()
@@ -74,7 +72,7 @@ export function useBotConfigV1() {
       // 保存机器人信息
       currentBot.value = botDetailRes.data
 
-      // 保存成本价数据 - 字段名与后端保持一致
+      // 保存成本价数据
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
         flash: parseFloat(systemPrice.flash) || 0,
@@ -92,7 +90,7 @@ export function useBotConfigV1() {
       })
 
       // 设置TG同步状态
-      tgStatus.value = 'pending' // BotDetail doesn't have tgVerifyStatus field
+      tgStatus.value = 'pending'
 
       // 设置表单值
       formMethods.setValues({
@@ -100,13 +98,12 @@ export function useBotConfigV1() {
         firstname: botDetailRes.data.first_name || '',
         name: botDetailRes.data.user_name || '',
         token: botDetailRes.data.token || '',
-        api_key: '', // BotDetail doesn't have apiKey field
+        api_key: '',
         tg_admin: botDetailRes.data.tg_admin || '',
         describe: botDetailRes.data.describe || '',
         status: botDetailRes.data.status || 2
       })
 
-      console.log('机器人基本信息加载成功')
       return true
     } catch (error) {
       console.error('加载机器人基本信息失败:', error)
@@ -118,8 +115,6 @@ export function useBotConfigV1() {
   // 加载收款配置
   const loadPaymentConfig = async (id: number, formMethods: any) => {
     try {
-      console.log('开始加载收款配置...')
-
       const addressListRes = await v1GetAddressList({
         bot_id: id,
         current_page: 1,
@@ -138,11 +133,11 @@ export function useBotConfigV1() {
       }
 
       // 根据 kind 类型提取不同的地址
-      const timeEnergyAddress = addressList.find((item) => Number(item.kind) === 4) // 时间能量
-      const userDepositAddress = addressList.find((item) => Number(item.kind) === 2) // 余额充值
-      const strokeEnergyAddress = addressList.find((item) => Number(item.kind) === 5) // 按笔数购买
-      const exchangeAddress = addressList.find((item) => Number(item.kind) === 3) // 闪兑
-      const welfareAddress = addressList.find((item) => Number(item.kind) === 6) // 福利
+      const timeEnergyAddress = addressList.find((item) => Number(item.kind) === 4)
+      const userDepositAddress = addressList.find((item) => Number(item.kind) === 2)
+      const strokeEnergyAddress = addressList.find((item) => Number(item.kind) === 5)
+      const exchangeAddress = addressList.find((item) => Number(item.kind) === 3)
+      const welfareAddress = addressList.find((item) => Number(item.kind) === 6)
 
       formMethods.setValues({
         energy_address: timeEnergyAddress?.address || '',
@@ -153,7 +148,6 @@ export function useBotConfigV1() {
         notice_order_tg_admin: 2
       })
 
-      console.log('收款配置加载成功')
       return true
     } catch (error) {
       console.error('加载收款配置失败:', error)
@@ -165,8 +159,6 @@ export function useBotConfigV1() {
   // 加载价格配置
   const loadPriceConfig = async (id: number, formMethods: any) => {
     try {
-      console.log('开始加载价格配置...')
-
       const [systemPriceRes, botPriceRes] = await Promise.all([
         v1GetSystemPrice(),
         v1GetBotPriceConfig(id)
@@ -182,7 +174,7 @@ export function useBotConfigV1() {
         return false
       }
 
-      // 保存成本价数据 - 字段名与后端保持一致
+      // 保存成本价数据
       const systemPrice = systemPriceRes.data
       Object.assign(costPrices, {
         flash: parseFloat(systemPrice.flash) || 0,
@@ -201,53 +193,31 @@ export function useBotConfigV1() {
 
       // 保存当前价格配置
       const botPriceData = botPriceRes.data
-      // 注意：新接口返回的是扁平化结构，不再有 agent_price 嵌套
       Object.assign(currentPrices, botPriceData)
 
-      // 设置表单值 - 统一使用后端字段名
-      const formValues = {
-        // 闪租能量
+      // 设置表单值
+      formMethods.setValues({
         flash: parseFloat(botPriceData.flash) || 0,
-
-        // 时间能量
         time_1h: parseFloat(botPriceData.time_1h) || 0,
         time_1d: parseFloat(botPriceData.time_1d) || 0,
         time_3d: parseFloat(botPriceData.time_3d) || 0,
         time_7d: parseFloat(botPriceData.time_7d) || 0,
         time_15d: parseFloat(botPriceData.time_15d) || 0,
         time_30d: parseFloat(botPriceData.time_30d) || 0,
-
-        // 笔数能量
         stroke: parseFloat(botPriceData.stroke) || 0,
         stroke_usdt: parseFloat(botPriceData.stroke_usdt) || 0,
-
-        // 智能托管
         hosting_65k: parseFloat(botPriceData.hosting_65k) || 0,
         hosting_131k: parseFloat(botPriceData.hosting_131k) || 0,
-
-        // 批量下单
         batch_flash: parseFloat(botPriceData.batch_flash) || 0,
         active: parseFloat(botPriceData.active) || 0,
-
-        // 闪兑配置
         min_trx_balance: parseFloat(botPriceData.min_trx_balance) || 0,
         usdt_2_trx: (parseFloat(botPriceData.usdt_2_trx) || 0) * 100,
         max_usdt_2_trx: parseFloat(botPriceData.max_usdt_2_trx) || 0,
         trx_2_usdt: (parseFloat(botPriceData.trx_2_usdt) || 0) * 100,
         max_trx_2_usdt: parseFloat(botPriceData.max_trx_2_usdt) || 0,
-
-        // 福利能量价格
         weal_time_1h: parseFloat(botPriceData.weal_time_1h) || 0
-      }
+      })
 
-      console.log('准备设置表单值:', formValues)
-      console.log('botPriceData 原始数据:', botPriceData)
-      formMethods.setValues(formValues)
-      console.log('表单值设置完成')
-
-      console.log('价格配置加载成功')
-      console.log('成本价数据:', costPrices)
-      console.log('当前价格数据:', currentPrices)
       return true
     } catch (error) {
       console.error('加载价格配置失败:', error)
@@ -259,8 +229,6 @@ export function useBotConfigV1() {
   // 加载福利配置
   const loadWelfareConfig = async (id: number, formMethods: any) => {
     try {
-      console.log('开始加载福利配置...')
-
       const wealConfigRes = await v1GetBotWealConfig(id)
 
       if (wealConfigRes.code !== '000000' || !wealConfigRes.data) {
@@ -270,11 +238,12 @@ export function useBotConfigV1() {
 
       const wealData = wealConfigRes.data
 
-      // 设置表单值 - 注意字符串类型需要转换为数字
-      // 时间单位转换：后端存储为秒，前端显示为小时
-      const formValues = {
+      // 设置表单值，时间单位转换：
+      // min_interval: 后端秒 → 前端小时
+      // min_send_interval: 后端秒 → 前端分钟
+      formMethods.setValues({
         max_count: wealData.max_count || 0,
-        min_interval: (wealData.min_interval || 0) / 3600, // 秒转小时
+        min_interval: (wealData.min_interval || 0) / 3600,
         max_energy: wealData.max_energy || 0,
         max_bandwidth: wealData.max_bandwidth || 0,
         min_active_day: wealData.min_active_day || 0,
@@ -282,13 +251,11 @@ export function useBotConfigV1() {
         min_balance_usdt: parseFloat(wealData.min_balance_usdt) || 0,
         min_avg_transfer_trx: parseFloat(wealData.min_avg_transfer_trx) || 0,
         min_avg_transfer_usdt: parseFloat(wealData.min_avg_transfer_usdt) || 0,
-        min_send_interval: (wealData.min_send_interval || 0) / 3600, // 秒转小时
+        min_send_interval: (wealData.min_send_interval || 0) / 60,
         same_send_max_count_trx: wealData.same_send_max_count_trx || 0,
         same_send_min_amount_trx: parseFloat(wealData.same_send_min_amount_trx) || 0
-      }
+      })
 
-      formMethods.setValues(formValues)
-      console.log('福利配置加载成功')
       return true
     } catch (error) {
       console.error('加载福利配置失败:', error)
@@ -473,38 +440,30 @@ export function useBotConfigV1() {
     try {
       const priceData = await formMethods.getFormData()
 
-      // 构建价格配置数据 - 统一使用后端字段名
+      // 构建价格配置数据
       const priceConfig = {
-        id: currentPrices.id, // 使用价格配置表的ID
-        // 闪租能量
+        id: currentPrices.id,
         flash: priceData.flash || 0,
-        // 时间能量
         time_1h: priceData.time_1h || 0,
         time_1d: priceData.time_1d || 0,
         time_3d: priceData.time_3d || 0,
         time_7d: priceData.time_7d || 0,
         time_15d: priceData.time_15d || 0,
         time_30d: priceData.time_30d || 0,
-        // 笔数能量
         stroke: priceData.stroke || 0,
         stroke_usdt: priceData.stroke_usdt || 0,
-        // 智能托管
         hosting_65k: priceData.hosting_65k || 0,
         hosting_131k: priceData.hosting_131k || 0,
-        // 批量下单
         batch_flash: priceData.batch_flash || 0,
         active: priceData.active || 0,
-        // 闪兑配置
         usdt_2_trx: (priceData.usdt_2_trx || 0) / 100,
         trx_2_usdt: (priceData.trx_2_usdt || 0) / 100,
         min_trx_balance: priceData.min_trx_balance || 0,
         max_usdt_2_trx: priceData.max_usdt_2_trx || 0,
         max_trx_2_usdt: priceData.max_trx_2_usdt || 0,
-        // 福利能量价格
         weal_time_1h: priceData.weal_time_1h || 0
       }
 
-      console.log('提交价格配置数据:', priceConfig)
       await v1UpdateBotPrice(priceConfig)
       ElMessage.success('保存成功')
       return true
@@ -525,11 +484,12 @@ export function useBotConfigV1() {
         return false
       }
 
-      // 构建福利配置数据
-      // 时间单位转换：前端输入为小时，后端存储为秒
+      // 构建福利配置数据，时间单位转换：
+      // min_interval: 前端小时 → 后端秒
+      // min_send_interval: 前端分钟 → 后端秒
       const welfareConfig = {
         max_count: welfareData.max_count || 0,
-        min_interval: Math.round((welfareData.min_interval || 0) * 3600), // 小时转秒
+        min_interval: Math.round((welfareData.min_interval || 0) * 3600),
         max_energy: welfareData.max_energy || 0,
         max_bandwidth: welfareData.max_bandwidth || 0,
         min_active_day: welfareData.min_active_day || 0,
@@ -537,12 +497,11 @@ export function useBotConfigV1() {
         min_balance_usdt: welfareData.min_balance_usdt || 0,
         min_avg_transfer_trx: welfareData.min_avg_transfer_trx || 0,
         min_avg_transfer_usdt: welfareData.min_avg_transfer_usdt || 0,
-        min_send_interval: Math.round((welfareData.min_send_interval || 0) * 3600), // 小时转秒
+        min_send_interval: Math.round((welfareData.min_send_interval || 0) * 60),
         same_send_max_count_trx: welfareData.same_send_max_count_trx || 0,
         same_send_min_amount_trx: welfareData.same_send_min_amount_trx || 0
       }
 
-      console.log('提交福利配置数据:', welfareConfig)
       await v1UpdateBotWealConfig(currentBot.value.id, welfareConfig)
       ElMessage.success('保存成功')
       return true

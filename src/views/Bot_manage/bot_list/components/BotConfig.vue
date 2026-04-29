@@ -87,8 +87,6 @@ const getFormMethods = () => {
 
 // Tab切换处理
 const handleTabChange = async (tabName: string) => {
-  console.log('切换到标签页:', tabName)
-
   if (tabName === 'menuConfig') {
     await new Promise((resolve) => setTimeout(resolve, 50))
     await menuConfigTabRef.value?.fetchMenuData()
@@ -104,19 +102,14 @@ const handleTabChange = async (tabName: string) => {
   await new Promise((resolve) => setTimeout(resolve, 50))
 
   const formMethods = getFormMethods()
-  console.log('获取到的 formMethods:', formMethods)
   const currentFormMethod = formMethods[tabName]
-  console.log('当前标签页的 formMethod:', currentFormMethod)
 
   if (!currentFormMethod) {
     console.warn(`Tab ${tabName} 的formMethods未找到`)
     return
   }
 
-  // 使用新的加载函数
-  console.log('准备调用 loadTabConfig')
   await loadTabConfig(currentBot.value.id, tabName, currentFormMethod)
-  console.log('loadTabConfig 调用完成')
 }
 
 // 打开弹窗

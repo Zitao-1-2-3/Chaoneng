@@ -78,13 +78,13 @@ export interface DeleteReplyParamsV1 {
 // 关键词回复项类型
 export interface ReplyItem {
   id: number // from backend: id
-  tg_bot_id: number // from backend: tg_bot_id
+  tg_bot_id: number // from backend: bot_id
   bot_name: string // from backend: name (for bot_username display)
   key_name: string // from backend: key_name (for keyword display)
   content?: string // from backend: content
   status: number // from backend: status
-  create_time: number // from backend: create_time (timestamp)
-  update_time: number // from backend: update_time (timestamp)
+  created_at: string // from backend: created_at (直接使用后端字段)
+  updated_at: string // from backend: updated_at (直接使用后端字段)
 
   // These fields are used by the form/table logic and will be populated from the fields above
   // or are specific to frontend state. They might not directly map to a single backend field on GET.

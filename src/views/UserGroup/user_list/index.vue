@@ -349,19 +349,9 @@ const fetchAccountList = async (params: any) => {
       page_size: Number(params.page_size) || 10
     }
 
-    // 处理排序参数 - 字段名映射
+    // 处理排序参数
     if (params.order) {
-      const fieldMapping: Record<string, string> = {
-        // 前端显示字段 -> API字段（已经使用API原始字段，无需映射）
-      }
-
-      // 解析排序参数，格式：column ASC 或 column DESC
-      const orderParts = params.order.split(' ')
-      if (orderParts.length === 2) {
-        const [field, direction] = orderParts
-        const mappedField = fieldMapping[field] || field
-        queryParams.order = `${mappedField} ${direction}`
-      }
+      queryParams.order = params.order
     }
 
     // 只有当 bot_id 有值时才添加参数

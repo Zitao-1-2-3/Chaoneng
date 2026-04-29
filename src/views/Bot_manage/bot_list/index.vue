@@ -126,7 +126,7 @@ const columns = [
   {
     field: 'first_name',
     label: '机器人昵称',
-    formatter: (row) => row.first_name
+    formatter: (row: any) => row.first_name
   },
   {
     field: 'status',
@@ -195,13 +195,13 @@ const columns = [
     field: 'created_at',
     label: '创建时间',
     sortable: 'custom',
-    formatter: (row) => formatToDateTime(row.created_at)
+    formatter: (row: any) => formatToDateTime(row.created_at)
   },
   {
     field: 'expired_at',
     label: '到期时间',
     sortable: 'custom',
-    formatter: (row) => formatToDateTime(row.expired_at),
+    formatter: (row: any) => formatToDateTime(row.expired_at),
     slots: {
       header: () => {
         return (
@@ -368,7 +368,6 @@ const handleAdd = () => {
   formMethods.setValues({
     fee: botPrice.value?.amount || 100,
     token: '',
-    api_key: '',
     tg_admin: '',
     describe: '',
     status: 2
@@ -376,12 +375,11 @@ const handleAdd = () => {
 }
 
 // 状态切换
-const handleStatusChange = async (value) => {
+const handleStatusChange = async (row: any) => {
   if (!isLoaded.value) return
-  console.log('状态切换:', value)
+
   try {
-    // 调用API更新状态
-    const res = await v1UpdateBot(value)
+    const res = await v1UpdateBot(row)
     if (res.code === '000000') {
       handleSuccessMessage('状态更新成功')
     } else {
@@ -392,14 +390,14 @@ const handleStatusChange = async (value) => {
   }
 }
 // 编辑
-const handleEdit = (row) => {
+const handleEdit = (row: any) => {
   if (botConfigRef.value) {
     botConfigRef.value.open(row)
   }
 }
 
 // 续费
-const handleRenew = (row) => {
+const handleRenew = (row: any) => {
   // 确保机器人费用信息被正确传递给续费组件
   const botInfo = {
     ...row,
@@ -421,8 +419,6 @@ const handleSubmit = async () => {
     const formData = await formMethods.getFormData()
 
     try {
-      // 使用新接口 v1CreateBot
-      // 注意：agent_id 需要从当前登录用户信息中获取，这里暂时设置为 0，需要根据实际情况调整
       const res = await v1CreateBot({
         agent_id: 0, // TODO: 从当前登录用户信息中获取代理ID
         token: formData.token,
@@ -431,9 +427,6 @@ const handleSubmit = async () => {
         status: formData.status
       })
 
-      console.log('创建机器人结果:', res)
-
-      // 检查响应 code
       if (res.code === '000000') {
         handleSuccessMessage(dialogType.value === 'add' ? '添加成功' : '编辑成功')
         dialogVisible.value = false
@@ -468,36 +461,23 @@ const handleSubmit = async () => {
 }
 
 const totalCount = ref(0)
-// 修改 fetchBotList 函数，使用新接口 v1GetBotList
-const fetchBotList = async (params) => {
-  console.log('fetchBotList 调用参数:', params)
+
+// 获取机器人列表
+const fetchBotList = async (params: any) => {
   try {
-    // 构建新接口参数
+    // 构建接口参数
     const apiParams: any = {
       current_page: params.page || 1,
-      page_size: params.limit || 10,
-      keyword: params.keyword || undefined,
-      agent_name: params.agent_name || undefined,
-      status: params.status || undefined
+      page_size: params.limit || 10
     }
 
-    // 处理排序参数
-    if (params.order) {
-      const fieldMapping: Record<string, string> = {
-        created_at: 'created_at',
-        expired_at: 'expired_at'
-      }
-
-      const orderParts = params.order.split(' ')
-      if (orderParts.length === 2) {
-        const [field, direction] = orderParts
-        const mappedField = fieldMapping[field] || field
-        apiParams.order = `${mappedField} ${direction}`
-      }
-    }
+    // 只有当参数有值时才添加
+    if (params.keyword) apiParams.keyword = params.keyword
+    if (params.agent_name) apiParams.agent_name = params.agent_name
+    if (params.status !== undefined && params.status !== '') apiParams.status = params.status
+    if (params.order) apiParams.order = params.order
 
     const response = await v1GetBotList(apiParams)
-    console.log('v1GetBotList 响应:', response)
 
     if (response.code === '000000' && response.data) {
       const list = response.data.list || []
@@ -509,10 +489,7 @@ const fetchBotList = async (params) => {
       const hasSearchCondition = !!(params.keyword || params.agent_name || params.status)
       handleListMessage(list, hasSearchCondition, '机器人')
 
-      return {
-        list,
-        total
-      }
+      return { list, total }
     } else {
       handleErrorMessage(response, '获取机器人列表失败')
       return { list: [], total: 0 }
@@ -540,16 +517,9 @@ const fetchBotDelete = async () => {
 
 // 数据加载完成回调
 const handleDataLoaded = ({ data, total, success }) => {
-  console.log('数据加载完成:', {
-    总条数: total,
-    成功: success,
-    数据: data,
-    条数: data?.length || 0
-  })
   nextTick(() => {
     isLoaded.value = true
   })
-  // 移除这里的提示，因为已经在 fetchBotList 中处理
 }
 
 // 数据加载错误回调
@@ -579,16 +549,12 @@ const openConsumptionRecord = () => {
 
 // 续费成功回调
 const handleRenewSuccess = () => {
-  if (searchTableRef.value) {
-    searchTableRef.value.reload()
-  }
+  searchTableRef.value?.reload()
 }
 
 // 配置成功回调
 const handleConfigSuccess = () => {
-  if (searchTableRef.value) {
-    searchTableRef.value.reload()
-  }
+  searchTableRef.value?.reload()
 }
 
 const getBotPrice = async () => {
@@ -609,14 +575,14 @@ onMounted(async () => {
   await getBotPrice()
   const route = useRoute()
   const query = route?.query || {}
-  console.log('query', query)
+
   // 确保组件挂载后可以访问表格实例
   setTimeout(() => {
     if (searchTableRef.value) {
-      searchTableRef.value.setSearchParams({
-        keyword: (query.tg_bot_id as string) || (query.name as string) || undefined
-      })
-      console.log('手动触发数据刷新')
+      const keyword = (query.tg_bot_id as string) || (query.name as string)
+      if (keyword) {
+        searchTableRef.value.setSearchParams({ keyword })
+      }
       searchTableRef.value.reload()
     }
   }, 100)

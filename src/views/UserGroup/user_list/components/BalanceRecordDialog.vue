@@ -143,11 +143,11 @@ const tableColumns = ref<TableColumn[]>([
     minWidth: 180
   },
   {
-    field: 'create_time',
+    field: 'created_at',
     label: '创建时间',
     width: 180,
     formatter: (row) => {
-      return row.create_time ? formatToDateTime(row.create_time * 1000) : '-'
+      return row.created_at ? formatToDateTime(row.created_at * 1000) : '-'
     }
   }
 ])
@@ -174,9 +174,6 @@ const fetchData = async () => {
     apiParams.coin = searchParams.value.unit
   }
 
-  // 注意：新接口没有 change_type 参数，如果需要筛选收入/支出，需要在前端根据 amount 正负判断
-  // 暂时保留筛选逻辑，但不传递给后端
-
   try {
     // 使用新接口 v1GetUserBillList
     const res = await v1GetUserBillList(apiParams)
@@ -192,14 +189,18 @@ const fetchData = async () => {
         amount: Math.abs(parseFloat(item.amount)).toString(), // 取绝对值
         after_amount: item.balance, // balance -> after_amount
         describe: item.describe,
-        create_time: item.created_at, // created_at -> create_time
+        created_at: item.created_at, // 直接使用后端字段
         order_id: item.order_id,
         kind: item.kind
       }))
 
       // 前端筛选 change_type（如果有选择）
+      // 注意：这会导致分页不准确，因为是在前端过滤
+      // 如果后端支持 change_type 参数，应该在 apiParams 中传递
       if (searchParams.value?.change_type) {
         list = list.filter((item: any) => item.change_type === searchParams.value.change_type)
+        // 前端筛选后，total 不准确，但暂时保持后端返回的 total
+        // 更好的方案是后端支持 change_type 筛选
       }
 
       recordList.value = list
