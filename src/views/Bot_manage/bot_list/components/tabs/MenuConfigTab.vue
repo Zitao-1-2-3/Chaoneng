@@ -19,17 +19,14 @@
               <div
                 v-if="item"
                 class="menu-item"
-                :class="{ 'is-dragging': isDragging && dragItem?.id === item?.id }"
+                :class="{ 'is-dragging': isDragging && dragItem?.menu_name === item?.menu_name }"
+                draggable="true"
+                @dragstart="(e) => handleEnabledItemDragStart(item, rowIndex, colIndex, e)"
+                @dragend="handleDragEnd"
                 @dragover="handleEnabledItemDragOver"
                 @drop="(e) => handleEnabledItemDrop(e, rowIndex, colIndex)"
               >
-                <el-button
-                  type="info"
-                  class="menu-button"
-                  draggable="true"
-                  @dragstart="(e) => handleEnabledItemDragStart(item, rowIndex, colIndex, e)"
-                  @dragend="handleDragEnd"
-                >
+                <el-button type="info" class="menu-button">
                   {{ item.menu_name }}
                 </el-button>
               </div>
@@ -57,9 +54,9 @@
         <div v-else class="disabled-menu-list">
           <div
             v-for="item in disabledMenus"
-            :key="item.id"
+            :key="item.menu_name"
             class="disabled-menu-item"
-            :class="{ 'is-dragging': isDragging && dragItem?.id === item?.id }"
+            :class="{ 'is-dragging': isDragging && dragItem?.menu_name === item?.menu_name }"
             draggable="true"
             @dragstart="(e) => handleDisabledItemDragStart(item, e)"
             @dragend="handleDragEnd"
@@ -274,14 +271,18 @@ const handleEnabledItemDragStart = (
   dragStartPosition.value = { row: rowIndex, col: colIndex }
 
   e.dataTransfer.effectAllowed = 'move'
-  e.dataTransfer.setData('text/plain', JSON.stringify({ fromEnabled: true, id: item.id }))
+  e.dataTransfer.setData(
+    'text/plain',
+    JSON.stringify({ fromEnabled: true, menu_name: item.menu_name })
+  )
 }
 
 /**
  * 启用区域：拖拽悬停
+ * 接受从启用区域和禁用区域的拖拽
  */
 const handleEnabledItemDragOver = (e: DragEvent) => {
-  if (!isDragging.value || !dragItem.value || !(dragItem.value as any)._fromEnabled) return
+  if (!isDragging.value || !dragItem.value) return
 
   e.preventDefault()
   if (e.dataTransfer) {
@@ -290,50 +291,82 @@ const handleEnabledItemDragOver = (e: DragEvent) => {
 }
 
 /**
- * 启用区域：放置（排序）
- * 只有在启用区域内拖拽时才交换 order_num
+ * 启用区域：放置
+ * 处理两种情况：
+ * 1. 从禁用区域拖到启用区域（启用菜单）
+ * 2. 在启用区域内拖拽（排序）
  */
 const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: number) => {
   e.preventDefault()
 
-  if (!isDragging.value || !dragItem.value || !dragStartPosition.value) {
+  if (!isDragging.value || !dragItem.value) {
     resetDragState()
     return
   }
 
-  if (!(dragItem.value as any)._fromEnabled) {
+  const isFromDisabled = (dragItem.value as any)._fromDisabled
+  const isFromEnabled = (dragItem.value as any)._fromEnabled
+
+  // 情况1：从禁用区域拖到启用区域
+  if (isFromDisabled) {
+    const itemToEnable = dragItem.value
+    const itemMenuName = itemToEnable.menu_name
+
+    // 从禁用列表中移除（使用 menu_name 识别）
+    const indexToRemove = disabledMenus.value.findIndex((item) => item.menu_name === itemMenuName)
+    if (indexToRemove === -1) {
+      resetDragState()
+      return
+    }
+
+    disabledMenus.value.splice(indexToRemove, 1)
+
+    // 添加到启用列表，保持原来的 order_num，只改变 status
+    const allEnabledItems = collectMenuItems(keyboardLayout.value)
+    allEnabledItems.push({
+      ...itemToEnable,
+      status: 1 // 只改变状态为启用
+    })
+
+    // 按 order_num 从大到小排序后重新布局
+    allEnabledItems.sort((a, b) => b.order_num - a.order_num)
+    keyboardLayout.value = compactLayout(allEnabledItems)
+
     resetDragState()
     return
   }
 
-  const { row: startRow, col: startCol } = dragStartPosition.value
+  // 情况2：在启用区域内拖拽排序
+  if (isFromEnabled && dragStartPosition.value) {
+    const { row: startRow, col: startCol } = dragStartPosition.value
 
-  // 拖到同一位置，不处理
-  if (startRow === targetRow && startCol === targetCol) {
+    // 拖到同一位置，不处理
+    if (startRow === targetRow && startCol === targetCol) {
+      resetDragState()
+      return
+    }
+
+    // 收集所有启用的菜单项
+    const allEnabledItems = collectMenuItems(keyboardLayout.value)
+    const draggedItem = allEnabledItems.find((item) => item.menu_name === dragItem.value!.menu_name)
+    const targetItem = keyboardLayout.value[targetRow]?.[targetCol]
+
+    if (!draggedItem || !targetItem) {
+      resetDragState()
+      return
+    }
+
+    // 交换 order_num（只在启用区域内互换时交换）
+    const tempOrderNum = draggedItem.order_num
+    draggedItem.order_num = targetItem.order_num
+    targetItem.order_num = tempOrderNum
+
+    // 重新排序并布局（从大到小排序）
+    allEnabledItems.sort((a, b) => b.order_num - a.order_num)
+    keyboardLayout.value = compactLayout(allEnabledItems)
+
     resetDragState()
-    return
   }
-
-  // 收集所有启用的菜单项
-  const allEnabledItems = collectMenuItems(keyboardLayout.value)
-  const draggedItem = allEnabledItems.find((item) => item.id === dragItem.value!.id)
-  const targetItem = keyboardLayout.value[targetRow]?.[targetCol]
-
-  if (!draggedItem || !targetItem) {
-    resetDragState()
-    return
-  }
-
-  // 交换 order_num（只在启用区域内互换时交换）
-  const tempOrderNum = draggedItem.order_num
-  draggedItem.order_num = targetItem.order_num
-  targetItem.order_num = tempOrderNum
-
-  // 重新排序并布局（从大到小排序）
-  allEnabledItems.sort((a, b) => b.order_num - a.order_num)
-  keyboardLayout.value = compactLayout(allEnabledItems)
-
-  resetDragState()
 }
 
 /**
@@ -394,18 +427,18 @@ const handleDisabledZoneDrop = (e: DragEvent) => {
   }
 
   const itemToDisable = dragItem.value
-  const itemId = itemToDisable.id
+  const itemMenuName = itemToDisable.menu_name
 
-  // 从启用列表中移除
+  // 从启用列表中移除（使用 menu_name 识别）
   const allEnabledItems = collectMenuItems(keyboardLayout.value)
-  const itemIndex = allEnabledItems.findIndex((item) => item.id === itemId)
+  const itemIndex = allEnabledItems.findIndex((item) => item.menu_name === itemMenuName)
 
   if (itemIndex === -1) {
     resetDragState()
     return
   }
 
-  const updatedEnabledItems = allEnabledItems.filter((item) => item.id !== itemId)
+  const updatedEnabledItems = allEnabledItems.filter((item) => item.menu_name !== itemMenuName)
 
   // 添加到禁用列表，保持原来的 order_num，只改变 status
   disabledMenus.value.push({
@@ -432,7 +465,10 @@ const handleDisabledItemDragStart = (item: MenuItemWithExtras, e: DragEvent) => 
   dragItem.value = { ...item, _fromDisabled: true } as MenuItemWithExtras
 
   e.dataTransfer.effectAllowed = 'move'
-  e.dataTransfer.setData('text/plain', JSON.stringify({ fromDisabled: true, id: item.id }))
+  e.dataTransfer.setData(
+    'text/plain',
+    JSON.stringify({ fromDisabled: true, menu_name: item.menu_name })
+  )
 }
 
 /**
@@ -481,10 +517,10 @@ const handlePreviewDrop = (e: DragEvent) => {
   }
 
   const itemToEnable = dragItem.value
-  const itemId = itemToEnable.id
+  const itemMenuName = itemToEnable.menu_name
 
-  // 从禁用列表中移除
-  const indexToRemove = disabledMenus.value.findIndex((item) => item.id === itemId)
+  // 从禁用列表中移除（使用 menu_name 识别）
+  const indexToRemove = disabledMenus.value.findIndex((item) => item.menu_name === itemMenuName)
   if (indexToRemove === -1) {
     resetDragState()
     return
@@ -571,6 +607,7 @@ defineExpose({ fetchMenuData, saveMenuConfig })
   min-height: 36px;
   padding: 0 8px;
   margin-bottom: 12px;
+  cursor: move;
   transition: all 0.3s;
 }
 
@@ -581,17 +618,18 @@ defineExpose({ fetchMenuData, saveMenuConfig })
   font-size: 13px;
   word-break: break-all;
   white-space: normal;
+  pointer-events: none;
   cursor: move;
   border-radius: 6px;
   transition: all 0.3s;
 }
 
-.menu-button:hover {
+.menu-item:hover .menu-button {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgb(0 0 0 / 10%);
 }
 
-.is-dragging .menu-button {
+.is-dragging {
   opacity: 0.5;
   transform: scale(0.95);
 }
@@ -633,6 +671,7 @@ defineExpose({ fetchMenuData, saveMenuConfig })
 }
 
 .disabled-menu-item {
+  cursor: move;
   transition: all 0.3s;
 }
 
@@ -648,12 +687,13 @@ defineExpose({ fetchMenuData, saveMenuConfig })
   height: 32px;
   padding: 6px 12px;
   font-size: 13px;
+  pointer-events: none;
   cursor: move;
   border-radius: 4px;
   transition: all 0.3s;
 }
 
-.disabled-menu-button:hover {
+.disabled-menu-item:hover .disabled-menu-button {
   box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
 }
 
