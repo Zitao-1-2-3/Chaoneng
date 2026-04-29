@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 红色提示信息 -->
-    <div style=" margin: 0 0 16px; font-size: 14px; font-weight: bold;color: #f56c6c">
+    <div style="margin: 0 0 16px; font-size: 14px; font-weight: bold; color: #f56c6c">
       提示：满足以下全部条件可发放！！！
     </div>
 
@@ -103,66 +103,6 @@ const welfareSchema = reactive<FormSchema[]>([
     }
   },
 
-  // 账户要求
-  {
-    field: 'divider_account_requirement',
-    component: 'Divider' as const,
-    label: () => (
-      <>
-        账户要求<span style={{ color: '#f56c6c' }}>(需大于以下条件)</span>
-      </>
-    ),
-    colProps: { span: 24 }
-  },
-  {
-    field: 'min_active_day',
-    component: 'InputNumber' as const,
-    label: {
-      text: '最小激活天数',
-      tips: '地址需要激活的最少天数'
-    },
-    componentProps: {
-      placeholder: '请输入最小激活天数',
-      min: 0,
-      precision: 0
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '最小激活天数是必填项' }]
-    }
-  },
-  {
-    field: 'min_balance_trx',
-    component: 'InputNumber' as const,
-    label: {
-      text: '最小余额（TRX）',
-      tips: '地址持有最小TRX余额'
-    },
-    componentProps: {
-      placeholder: '请输入最小TRX余额',
-      min: 0,
-      precision: 2
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '最小余额（TRX）是必填项' }]
-    }
-  },
-  {
-    field: 'min_balance_usdt',
-    component: 'InputNumber' as const,
-    label: {
-      text: '最小余额（USDT）',
-      tips: '地址持有最小USDT余额'
-    },
-    componentProps: {
-      placeholder: '请输入最小USDT余额',
-      min: 0,
-      precision: 2
-    },
-    formItemProps: {
-      rules: [{ required: true, message: '最小余额（USDT）是必填项' }]
-    }
-  },
-
   // 转账要求
   {
     field: 'divider_transfer_requirement',
@@ -220,6 +160,66 @@ const welfareSchema = reactive<FormSchema[]>([
     },
     formItemProps: {
       rules: [{ required: true, message: '最小发送间隔是必填项' }]
+    }
+  },
+
+  // 账户要求
+  {
+    field: 'divider_account_requirement',
+    component: 'Divider' as const,
+    label: () => (
+      <>
+        账户要求<span style={{ color: '#f56c6c' }}>(需大于以下条件)</span>
+      </>
+    ),
+    colProps: { span: 24 }
+  },
+  {
+    field: 'min_active_day',
+    component: 'InputNumber' as const,
+    label: {
+      text: '最小激活天数',
+      tips: '地址需要激活的最少天数'
+    },
+    componentProps: {
+      placeholder: '请输入最小激活天数',
+      min: 0,
+      precision: 0
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最小激活天数是必填项' }]
+    }
+  },
+  {
+    field: 'min_balance_trx',
+    component: 'InputNumber' as const,
+    label: {
+      text: '最小余额（TRX）',
+      tips: '地址持有最小TRX余额'
+    },
+    componentProps: {
+      placeholder: '请输入最小TRX余额',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最小余额（TRX）是必填项' }]
+    }
+  },
+  {
+    field: 'min_balance_usdt',
+    component: 'InputNumber' as const,
+    label: {
+      text: '最小余额（USDT）',
+      tips: '地址持有最小USDT余额'
+    },
+    componentProps: {
+      placeholder: '请输入最小USDT余额',
+      min: 0,
+      precision: 2
+    },
+    formItemProps: {
+      rules: [{ required: true, message: '最小余额（USDT）是必填项' }]
     }
   },
 

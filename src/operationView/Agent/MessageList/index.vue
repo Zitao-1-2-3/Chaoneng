@@ -195,7 +195,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -621,7 +621,7 @@ const fetchMessageList = async (params: any) => {
   }
 }
 
-const onMounted(() => {
+onMounted(() => {
   fetchBotList()
 })
 </script>
