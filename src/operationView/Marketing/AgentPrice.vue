@@ -12,11 +12,10 @@
               </el-text>
             </div>
             <div class="header-actions">
-              <!-- 查看模式：显示"刷新"和"修改"按钮 -->
               <template v-if="!editModeMap[agent.id]">
                 <el-button size="default" @click="handleRefresh"> 刷新 </el-button>
                 <el-button
-                  v-if="hasPermi('AgentPrice.edit')"
+                  v-if="hasEditPermission"
                   type="primary"
                   size="default"
                   @click="handleEdit(agent.id)"
@@ -24,7 +23,6 @@
                   修改
                 </el-button>
               </template>
-              <!-- 编辑模式：显示"保存"和"取消"按钮 -->
               <template v-else>
                 <el-button size="default" @click="handleCancel(agent.id)"> 取消 </el-button>
                 <el-button
@@ -338,18 +336,18 @@ import { ref, reactive, computed, onMounted, onActivated } from 'vue'
 import { ElMessage } from 'element-plus'
 import { v2GetPriceList, v2UpdateSystemPrice } from '@/api/marketing/agent_price'
 import type { V1PriceListResponse } from '@/api/marketing/agent_price_types'
-import { hasPermi } from '@/components/Permission'
+import { useRoute } from 'vue-router'
 
-// 加载状态
+const route = useRoute()
 const loading = ref(false)
-
-// 代理价格列表数据
 const priceList = ref<V1PriceListResponse[]>([])
-
-// 编辑模式映射 - 记录每个代理是否处于编辑模式
 const editModeMap = reactive<Record<number, boolean>>({})
 
-// 获取代理级别名称
+const hasEditPermission = computed(() => {
+  const buttonList = (route.meta.buttonList || []) as string[]
+  return buttonList.includes('edit')
+})
+
 const getAgentLevelName = (id: number): string => {
   const levelMap: Record<number, string> = {
     1: '一级代理',
@@ -367,10 +365,8 @@ const getAgentLevelName = (id: number): string => {
   return levelMap[id] || `${id}级代理`
 }
 
-// 表单数据映射 - 每个代理级别一个表单
 const formDataMap = reactive<Record<number, any>>({})
 
-// 获取指定代理的闪兑显示值
 const getTrx2UsdtDisplay = (agentId: number) => {
   return computed({
     get: () => {
@@ -401,7 +397,6 @@ const getUsdt2TrxDisplay = (agentId: number) => {
   })
 }
 
-// 检查指定代理是否有修改
 const hasChanges = (agentId: number) => {
   const original = priceList.value.find((item) => item.id === agentId)
   const formData = formDataMap[agentId]
@@ -427,18 +422,15 @@ const hasChanges = (agentId: number) => {
   )
 }
 
-// 进入编辑模式
 const handleEdit = (agentId: number) => {
   editModeMap[agentId] = true
 }
 
-// 刷新数据
 const handleRefresh = async () => {
   await loadPriceData()
   ElMessage.success('刷新成功')
 }
 
-// 取消编辑
 const handleCancel = (agentId: number) => {
   // 恢复原始数据
   const original = priceList.value.find((item) => item.id === agentId)
@@ -461,11 +453,9 @@ const handleCancel = (agentId: number) => {
       batch_flash: Number(original.batch_flash || 0)
     }
   }
-  // 退出编辑模式
   editModeMap[agentId] = false
 }
 
-// 格式化时间
 const formatTime = (agentId: number) => {
   const agent = priceList.value.find((item) => item.id === agentId)
   if (!agent || !agent.updated_at) return '-'
@@ -480,7 +470,6 @@ const formatTime = (agentId: number) => {
   })
 }
 
-// 加载价格数据
 const loadPriceData = async () => {
   loading.value = true
   try {
@@ -490,12 +479,9 @@ const loadPriceData = async () => {
       page_size: 3
     })
 
-    // 后端返回的数据在 data.list 中
     priceList.value = res.data.list || []
 
-    // 为每个代理级别初始化表单数据
     priceList.value.forEach((item) => {
-      // 初始化编辑模式为 false
       editModeMap[item.id] = false
 
       formDataMap[item.id] = {
@@ -524,7 +510,6 @@ const loadPriceData = async () => {
   }
 }
 
-// 保存修改
 const handleSave = async (agentId: number) => {
   const formData = formDataMap[agentId]
   if (!formData) {
@@ -554,9 +539,7 @@ const handleSave = async (agentId: number) => {
     })
 
     ElMessage.success('保存成功')
-    // 退出编辑模式
     editModeMap[agentId] = false
-    // 重新加载数据
     await loadPriceData()
   } catch (error) {
     console.error('保存失败:', error)
@@ -566,12 +549,10 @@ const handleSave = async (agentId: number) => {
   }
 }
 
-// 组件挂载时加载数据
 onMounted(() => {
   loadPriceData()
 })
 
-// 组件激活时重新加载数据（用于 keep-alive 缓存的组件）
 onActivated(() => {
   loadPriceData()
 })

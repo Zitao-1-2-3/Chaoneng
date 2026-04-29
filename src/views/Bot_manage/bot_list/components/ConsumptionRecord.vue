@@ -42,7 +42,6 @@ const pageSize = ref(10)
 const currentPage = ref(1)
 const total = ref(0)
 
-// 表格列配置
 const columns = [
   {
     field: 'bot_id',
@@ -52,7 +51,8 @@ const columns = [
   {
     field: 'bot_name',
     label: '机器人昵称',
-    width: 180
+    width: 180,
+    formatter: (row: ConsumptionRecord) => row.bot_name || '-'
   },
   {
     field: 'amount',
@@ -61,8 +61,7 @@ const columns = [
     slots: {
       default: ({ row }: { row: ConsumptionRecord }) => (
         <span style={{ color: 'red' }}>
-          {row.amount}
-          {row.coin}
+          {row.amount} {row.coin}
         </span>
       )
     }
@@ -74,8 +73,7 @@ const columns = [
     slots: {
       default: ({ row }: { row: ConsumptionRecord }) => (
         <span>
-          {row.balance}
-          {row.coin}
+          {row.balance} {row.coin}
         </span>
       )
     }
@@ -83,25 +81,25 @@ const columns = [
   {
     field: 'describe',
     label: '描述',
-    minWidth: 150
+    minWidth: 150,
+    formatter: (row: ConsumptionRecord) => row.describe || '-'
   },
   {
     field: 'created_at',
     label: '创建时间',
     width: 180,
-    formatter: (row: ConsumptionRecord) => formatToDateTime(row.created_at * 1000)
+    formatter: (row: ConsumptionRecord) =>
+      row.created_at ? formatToDateTime(row.created_at * 1000) : '-'
   }
 ]
 
-// 获取列表数据
 const getList = async () => {
   loading.value = true
   try {
-    // 使用新接口 v1GetAgentBillList，固定查询 kind=11（机器人付费）
     const res = await v1GetAgentBillList({
       current_page: currentPage.value,
       page_size: pageSize.value,
-      kinds: [11] // 只查询机器人付费类型
+      kinds: [11]
     })
 
     if (res.code === '000000' && res.data) {
@@ -115,7 +113,6 @@ const getList = async () => {
   }
 }
 
-// Watch for pagination changes
 watch(currentPage, (newPage, oldPage) => {
   if (newPage !== oldPage) {
     getList()
@@ -132,7 +129,6 @@ watch(pageSize, (newPageSize, oldPageSize) => {
   }
 })
 
-// 打开弹窗方法
 const open = () => {
   currentPage.value = 1
   pageSize.value = 10
@@ -142,7 +138,6 @@ const open = () => {
   getList()
 }
 
-// 对外暴露方法
 defineExpose({
   open
 })

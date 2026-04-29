@@ -1,7 +1,6 @@
 <template>
   <div class="app-container">
     <ContentWrap>
-      <!-- 使用优化后的SearchTable组件 -->
       <SearchTable
         :columns="columns"
         :search-schema="searchSchema"
@@ -28,15 +27,8 @@
         <template #searchButtons>
           <BaseButton type="primary" @click="openConsumptionRecord">消费记录</BaseButton>
         </template>
-        <!-- 自定义表格列 -->
-        <template #botUsername="{ row }">
-          <ElLink type="primary" :href="`https://t.me/${row.botUsername}`" target="_blank">
-            {{ row.botUsername || '未命名' }}
-          </ElLink>
-        </template>
       </SearchTable>
 
-      <!-- 详情弹窗 -->
       <Dialog v-model="dialogVisible" title="添加机器人">
         <Form :isCol="false" :schema="formSchema" @register="formRegister" />
         <template #footer>
@@ -49,11 +41,9 @@
         </template>
       </Dialog>
     </ContentWrap>
-    <!-- 添加消费记录组件 -->
+
     <ConsumptionRecord ref="consumptionRecordRef" />
-    <!-- 添加续费组件 -->
     <RenewBot ref="renewBotRef" @success="handleRenewSuccess" />
-    <!-- 添加机器人配置组件 -->
     <BotConfig ref="botConfigRef" @success="handleConfigSuccess" />
   </div>
 </template>
@@ -77,6 +67,7 @@ import { Tips } from '@/components/Tips'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute, useRouter } from 'vue-router'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+
 interface SearchTableInstance {
   reload: () => Promise<void>
   reset: () => Promise<any>
@@ -90,15 +81,20 @@ interface SearchTableInstance {
   setSearchParams: (params: any) => any
 }
 
-const searchTableRef = ref<SearchTableInstance | null>(null)
-
+const route = useRoute()
+const router = useRouter()
 const { t } = useI18n()
 const { required } = useValidator()
+
+const searchTableRef = ref<SearchTableInstance | null>(null)
 const consumptionRecordRef = ref()
 const renewBotRef = ref()
 const botConfigRef = ref()
 const isLoaded = ref(false)
-const botPrice = ref<any>(null) // 机器人续费价格
+const botPrice = ref<any>(null)
+const totalCount = ref(0)
+const dialogVisible = ref(false)
+const dialogType = ref<'add' | 'edit'>('add')
 
 // 表格列配置
 const columns = [
@@ -110,15 +106,13 @@ const columns = [
       default: (data: any) => {
         const username = data.row.user_name
         return (
-          <>
-            <ElLink
-              type="primary"
-              onClick={() => window.open(`https://t.me/${username}`, '_blank')}
-              style="cursor: pointer"
-            >
-              {username}
-            </ElLink>
-          </>
+          <ElLink
+            type="primary"
+            onClick={() => window.open(`https://t.me/${username}`, '_blank')}
+            style="cursor: pointer"
+          >
+            {username}
+          </ElLink>
         )
       }
     }
@@ -126,31 +120,26 @@ const columns = [
   {
     field: 'first_name',
     label: '机器人昵称',
-    formatter: (row: any) => row.first_name
+    formatter: (row: any) => row.first_name || '-'
   },
   {
     field: 'status',
     label: '状态',
-    // formatter: (row) => (row.status === 1 ? '是' : '否'),
     slots: {
       default: (data: any) => {
         return (
-          <>
-            <ElSwitch
-              v-model={data.row.status}
-              activeValue={1}
-              inactiveValue={2}
-              onChange={() => handleStatusChange(data.row)}
-            />
-          </>
+          <ElSwitch
+            v-model={data.row.status}
+            activeValue={1}
+            inactiveValue={2}
+            onChange={() => handleStatusChange(data.row)}
+          />
         )
       }
     }
   },
   {
     field: 'auto_renew',
-    // label: '自动续费',
-    // formatter: (row) => (row.auto_renew === 1 ? '是' : '否'),
     slots: {
       header: () => {
         return (
@@ -162,14 +151,12 @@ const columns = [
       },
       default: (data: any) => {
         return (
-          <>
-            <ElSwitch
-              v-model={data.row.auto_renew}
-              activeValue={1}
-              inactiveValue={2}
-              onChange={() => handleStatusChange(data.row)}
-            />
-          </>
+          <ElSwitch
+            v-model={data.row.auto_renew}
+            activeValue={1}
+            inactiveValue={2}
+            onChange={() => handleStatusChange(data.row)}
+          />
         )
       }
     }
@@ -195,13 +182,13 @@ const columns = [
     field: 'created_at',
     label: '创建时间',
     sortable: 'custom',
-    formatter: (row: any) => formatToDateTime(row.created_at)
+    formatter: (row: any) => (row.created_at ? formatToDateTime(row.created_at * 1000) : '-')
   },
   {
     field: 'expired_at',
     label: '到期时间',
     sortable: 'custom',
-    formatter: (row: any) => formatToDateTime(row.expired_at),
+    formatter: (row: any) => (row.expired_at ? formatToDateTime(row.expired_at * 1000) : '-'),
     slots: {
       header: () => {
         return (
@@ -255,7 +242,6 @@ const formSchema = reactive<FormSchema[]>([
   {
     field: 'fee',
     component: 'InputNumber' as const,
-    // label: '机器人费用：',
     componentProps: {
       placeholder: '请输入机器人费用',
       min: 0,
@@ -283,7 +269,6 @@ const formSchema = reactive<FormSchema[]>([
   {
     field: 'token',
     component: 'Input' as const,
-    // label: '机器人token：',
     componentProps: {
       placeholder: '请输入机器人token'
     },
@@ -301,17 +286,6 @@ const formSchema = reactive<FormSchema[]>([
       }
     }
   },
-  // {
-  //   field: 'api_key',
-  //   component: 'Input' as const,
-  //   label: 'API秘钥：',
-  //   componentProps: {
-  //     placeholder: '请输入API秘钥'
-  //   },
-  //   formItemProps: {
-  //     rules: [required()]
-  //   }
-  // },
   {
     field: 'tg_admin',
     component: 'Input' as const,
@@ -353,18 +327,11 @@ const formSchema = reactive<FormSchema[]>([
   }
 ]) as FormSchema[]
 
-// 表单Hook
 const { formRegister, formMethods } = useForm()
 
-// 弹窗相关
-const dialogVisible = ref(false)
-const dialogType = ref<'add' | 'edit'>('add')
-
-// 添加
 const handleAdd = () => {
   dialogType.value = 'add'
   dialogVisible.value = true
-  // 重置表单
   formMethods.setValues({
     fee: botPrice.value?.amount || 100,
     token: '',
@@ -374,7 +341,6 @@ const handleAdd = () => {
   })
 }
 
-// 状态切换
 const handleStatusChange = async (row: any) => {
   if (!isLoaded.value) return
 
@@ -389,16 +355,14 @@ const handleStatusChange = async (row: any) => {
     handleErrorMessage(error, '状态更新失败')
   }
 }
-// 编辑
+
 const handleEdit = (row: any) => {
   if (botConfigRef.value) {
     botConfigRef.value.open(row)
   }
 }
 
-// 续费
 const handleRenew = (row: any) => {
-  // 确保机器人费用信息被正确传递给续费组件
   const botInfo = {
     ...row,
     fee: row.fee || botPrice.value?.amount || 100
@@ -409,7 +373,6 @@ const handleRenew = (row: any) => {
   }
 }
 
-// 提交表单
 const handleSubmit = async () => {
   const elForm = await formMethods.getElFormExpose()
 
@@ -420,7 +383,7 @@ const handleSubmit = async () => {
 
     try {
       const res = await v1CreateBot({
-        agent_id: 0, // TODO: 从当前登录用户信息中获取代理ID
+        agent_id: 0,
         token: formData.token,
         tg_admin: formData.tg_admin,
         describe: formData.describe || '',
@@ -432,7 +395,6 @@ const handleSubmit = async () => {
         dialogVisible.value = false
         searchTableRef.value?.reload()
       } else {
-        // 检查是否是重复错误
         const errorMsg = (res as any)?.msg || (res as any)?.message || ''
         if (
           errorMsg.includes('Duplicate entry') ||
@@ -445,7 +407,6 @@ const handleSubmit = async () => {
         }
       }
     } catch (error: any) {
-      // 处理重复机器人的错误
       const errorMsg = error?.message || error?.msg || String(error)
       if (
         errorMsg.includes('Duplicate entry') ||
@@ -460,18 +421,13 @@ const handleSubmit = async () => {
   })
 }
 
-const totalCount = ref(0)
-
-// 获取机器人列表
 const fetchBotList = async (params: any) => {
   try {
-    // 构建接口参数
     const apiParams: any = {
       current_page: params.page || 1,
       page_size: params.limit || 10
     }
 
-    // 只有当参数有值时才添加
     if (params.keyword) apiParams.keyword = params.keyword
     if (params.agent_name) apiParams.agent_name = params.agent_name
     if (params.status !== undefined && params.status !== '') apiParams.status = params.status
@@ -485,7 +441,6 @@ const fetchBotList = async (params: any) => {
 
       totalCount.value = total
 
-      // 添加数据为空提示
       const hasSearchCondition = !!(params.keyword || params.agent_name || params.status)
       handleListMessage(list, hasSearchCondition, '机器人')
 
@@ -500,59 +455,36 @@ const fetchBotList = async (params: any) => {
   }
 }
 
-// 模拟删除API
 const fetchBotDelete = async () => {
   try {
-    // 这里应该是调用真实的API
     return new Promise<boolean>((resolve) => {
       setTimeout(() => {
         resolve(true)
       }, 500)
     })
   } catch (error) {
-    console.error('删除失败:', error)
     return false
   }
 }
 
-// 数据加载完成回调
 const handleDataLoaded = ({ data, total, success }) => {
   nextTick(() => {
     isLoaded.value = true
   })
 }
 
-// 数据加载错误回调
 const handleLoadError = () => {
   ElMessage.error('加载数据失败')
 }
 
-// 消费记录
 const openConsumptionRecord = () => {
   consumptionRecordRef.value?.open()
 }
 
-// 处理删除
-// const handleDelete = async (row) => {
-//   try {
-//     await ElMessageBox.confirm(`确认删除机器人 ${row.botUsername || 'BOT'} 吗？`, '提示', {
-//       type: 'warning'
-//     })
-//     const result = await searchTableRef.value?.delete(row)
-//     if (result) {
-//       ElMessage.success(t('common.deleteSuccess'))
-//     }
-//   } catch (error) {
-//     console.error('删除操作被取消或出错:', error)
-//   }
-// }
-
-// 续费成功回调
 const handleRenewSuccess = () => {
   searchTableRef.value?.reload()
 }
 
-// 配置成功回调
 const handleConfigSuccess = () => {
   searchTableRef.value?.reload()
 }
@@ -570,13 +502,14 @@ const getBotPrice = async () => {
   }
 }
 
-// 手动触发加载
+const handleUserCountClick = (botId: number | string) => {
+  router.push({ path: '/user_group/user_list', query: { bot_id: botId } })
+}
+
 onMounted(async () => {
   await getBotPrice()
-  const route = useRoute()
   const query = route?.query || {}
 
-  // 确保组件挂载后可以访问表格实例
   setTimeout(() => {
     if (searchTableRef.value) {
       const keyword = (query.tg_bot_id as string) || (query.name as string)
@@ -587,10 +520,4 @@ onMounted(async () => {
     }
   }, 100)
 })
-
-const router = useRouter()
-
-const handleUserCountClick = (botId: number | string) => {
-  router.push({ path: '/user_group/user_list', query: { bot_id: botId } })
-}
 </script>

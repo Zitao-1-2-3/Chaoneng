@@ -29,9 +29,6 @@ const { required } = useValidator()
 const { formRegister, formMethods } = useForm()
 const botPrice = ref<any>(null)
 
-// 移除 onMounted，改为在 open 方法中调用
-
-// 表单配置
 const formSchema = reactive<FormSchema[]>([
   {
     field: 'month_num',
@@ -52,12 +49,9 @@ const formSchema = reactive<FormSchema[]>([
   }
 ])
 
-// 打开弹窗
 const open = async (botInfo: Record<string, any>) => {
   currentBot.value = botInfo
-  console.log('currentBot', botInfo.fee)
 
-  // 获取续费价格
   try {
     const res = await v1GetBotRenewPrice()
     if (res && res.data) {
@@ -71,19 +65,16 @@ const open = async (botInfo: Record<string, any>) => {
 
   dialogVisible.value = true
 
-  // 设置表单数据
   formMethods.setValues({
     month_num: 1
   })
 }
 
-// 关闭弹窗
 const close = () => {
   dialogVisible.value = false
   emit('close')
 }
 
-// 提交表单
 const submit = async () => {
   const elForm = await formMethods.getElFormExpose()
 
@@ -93,20 +84,16 @@ const submit = async () => {
     const formData = await formMethods.getFormData()
 
     try {
-      // 使用新接口 v1RenewBot
       const res = await v1RenewBot({
         id: currentBot.value.id,
         month_num: formData.month_num
       })
-      console.log('续费结果:', res)
 
-      // 检查响应 code
       if (res.code === '000000') {
         handleSuccessMessage('续费成功')
         dialogVisible.value = false
         emit('success')
       } else {
-        // 后端返回的业务错误
         handleErrorMessage(res, '续费失败')
       }
     } catch (error) {
@@ -115,7 +102,6 @@ const submit = async () => {
   })
 }
 
-// 暴露方法
 defineExpose({
   open
 })

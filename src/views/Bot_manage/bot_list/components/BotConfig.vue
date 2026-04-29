@@ -85,7 +85,6 @@ const getFormMethods = () => {
   }
 }
 
-// Tab切换处理
 const handleTabChange = async (tabName: string) => {
   if (tabName === 'menuConfig') {
     await new Promise((resolve) => setTimeout(resolve, 50))
@@ -94,25 +93,21 @@ const handleTabChange = async (tabName: string) => {
   }
 
   if (!currentBot.value.id) {
-    console.warn('currentBot.value.id 不存在')
     return
   }
 
-  // 等待组件渲染完成
   await new Promise((resolve) => setTimeout(resolve, 50))
 
   const formMethods = getFormMethods()
   const currentFormMethod = formMethods[tabName]
 
   if (!currentFormMethod) {
-    console.warn(`Tab ${tabName} 的formMethods未找到`)
     return
   }
 
   await loadTabConfig(currentBot.value.id, tabName, currentFormMethod)
 }
 
-// 打开弹窗
 const open = async (botInfo: Record<string, any>) => {
   currentBot.value = botInfo || {}
   dialogVisible.value = true
@@ -123,23 +118,19 @@ const open = async (botInfo: Record<string, any>) => {
     return
   }
 
-  // 等待组件加载完成
   await new Promise((resolve) => setTimeout(resolve, 100))
 
-  // 加载当前tab的配置信息
   const formMethods = getFormMethods()
   if (formMethods.botInfo) {
     await loadTabConfig(botInfo.id, 'botInfo', formMethods.botInfo)
   }
 }
 
-// 关闭弹窗
 const close = () => {
   dialogVisible.value = false
   emit('close')
 }
 
-// 提交表单
 const submit = async () => {
   if (submitting.value) return
 
@@ -165,22 +156,17 @@ const submit = async () => {
     return
   }
 
-  // 使用新的提交函数
-  const success = await submitTabConfig(activeTab.value, currentFormMethod)
-
   if (success) {
     emit('success')
   }
 }
 
-// 暴露方法
 defineExpose({
   open
 })
 </script>
 
 <style scoped>
-/* 改进标签页样式 */
 .el-tabs__nav {
   margin-bottom: 20px;
 }
