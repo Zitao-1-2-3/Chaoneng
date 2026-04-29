@@ -54,40 +54,15 @@ export function useBotConfigV1() {
   // 加载机器人基本信息
   const loadBotInfo = async (id: number, formMethods: any) => {
     try {
-      const [botDetailRes, systemPriceRes] = await Promise.all([
-        v1GetBotDetail(id),
-        v1GetSystemPrice()
-      ])
+      const botDetailRes = await v1GetBotDetail(id)
 
       if (botDetailRes.code !== '000000' || !botDetailRes.data) {
         ElMessage.error('获取机器人详情失败')
         return false
       }
 
-      if (systemPriceRes.code !== '000000' || !systemPriceRes.data) {
-        ElMessage.error('获取系统成本价失败')
-        return false
-      }
-
       // 保存机器人信息
       currentBot.value = botDetailRes.data
-
-      // 保存成本价数据
-      const systemPrice = systemPriceRes.data
-      Object.assign(costPrices, {
-        flash: parseFloat(systemPrice.flash) || 0,
-        time_1h: parseFloat(systemPrice.time_1h) || 0,
-        time_1d: parseFloat(systemPrice.time_1d) || 0,
-        time_3d: parseFloat(systemPrice.time_3d) || 0,
-        time_7d: parseFloat(systemPrice.time_7d) || 0,
-        time_15d: parseFloat(systemPrice.time_15d) || 0,
-        time_30d: parseFloat(systemPrice.time_30d) || 0,
-        stroke: parseFloat(systemPrice.stroke) || 0,
-        hosting_65k: parseFloat(systemPrice.hosting_65k) || 0,
-        hosting_131k: parseFloat(systemPrice.hosting_131k) || 0,
-        batch_flash: parseFloat(systemPrice.batch_flash) || 0,
-        active: parseFloat(systemPrice.active) || 0
-      })
 
       // 设置TG同步状态
       tgStatus.value = 'pending'
