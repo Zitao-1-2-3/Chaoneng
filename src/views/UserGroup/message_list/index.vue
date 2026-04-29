@@ -1,7 +1,6 @@
 <template>
   <ContentWrap>
     <SearchTable
-      v-if="botListLoaded"
       :columns="tableColumns"
       :search-schema="searchSchema"
       :fetch-data-api="fetchMessageList"
@@ -273,12 +272,11 @@ const fetchBotList = async () => {
         label: bot.user_name,
         value: bot.id
       }))
-      // 标记机器人列表已加载
-      botListLoaded.value = true
     }
   } catch (error) {
     console.error('获取机器人列表失败:', error)
-    // 即使失败也要显示表格
+  } finally {
+    // 无论成功或失败都标记为已加载
     botListLoaded.value = true
   }
 }
