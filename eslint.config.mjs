@@ -31,7 +31,12 @@ export default tseslint.config({
     }
   },
   rules: {
-    'prettier/prettier': 'warn',
+    'prettier/prettier': [
+      'warn',
+      {
+        endOfLine: 'auto'
+      }
+    ],
     'no-useless-escape': 0,
     'no-undef': 0,
     '@typescript-eslint/no-unused-expressions': 0,
