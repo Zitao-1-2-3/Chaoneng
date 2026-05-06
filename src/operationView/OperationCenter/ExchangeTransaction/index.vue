@@ -58,7 +58,7 @@ const totalCount = ref(0)
 // 保存当前搜索参数
 const currentSearchParams = ref<any>({})
 
-// 导出
+// 导出 - 直接使用后端字段名
 const handleExport = async () => {
   try {
     // 尝试获取当前搜索条件，如果失败则使用保存的参数
@@ -80,18 +80,13 @@ const handleExport = async () => {
     }
 
     // 处理关键词查询
-    if (params?.query) {
-      apiParams.keyword = params.query
-    }
-
-    // 处理来源
-    if (params?.source) {
-      apiParams.source = params.source
+    if (params?.keyword) {
+      apiParams.keyword = params.keyword
     }
 
     // 处理交易类型查询
-    if (params?.coin) {
-      apiParams.keyword = params.coin
+    if (params?.in_coin) {
+      apiParams.in_coin = params.in_coin
     }
 
     // 处理状态
@@ -105,7 +100,7 @@ const handleExport = async () => {
     const res = await v2GetExchangeList(apiParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为导出格式，字段顺序与表格列一致
+      // 将数据转换为导出格式，直接使用后端字段名
       const list = res.data.list.map((item: any) => {
         // 状态映射
         let statusText = '未知'
@@ -139,22 +134,27 @@ const handleExport = async () => {
             break
         }
 
+        // 交易类型判断
+        let transactionType = '未知'
+        if (item.in_coin === 'USDT' && item.out_coin === 'TRX') {
+          transactionType = 'USDT → TRX'
+        } else if (item.in_coin === 'TRX' && item.out_coin === 'USDT') {
+          transactionType = 'TRX → USDT'
+        }
+
         return {
-          日期: item.paid_at ? formatToDate(item.paid_at * 1000) : '-',
-          订单ID: item.id,
+          日期: item.paid_at ? formatToDate(item.paid_at) : '-',
+          订单ID: item.id || '-',
           代理名称: item.agent_name || '-',
-          // 用户账号: item.account || '-',
-          // 用户邮箱: item.email || '-',
-          // 来源: item.source || '-',
-          支付金额: `${item.amount} ${item.in_coin}`,
+          支付金额: `${item.amount || ''} ${item.in_coin || ''}`.trim(),
           兑换汇率: item.actual_rate || '-',
           实时汇率: item.real_rate || '-',
-          支出金额: `${item.out_amount} ${item.out_coin}`,
-          交易类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
+          支出金额: `${item.out_amount || ''} ${item.out_coin || ''}`.trim(),
+          交易类型: transactionType,
           平台利润: item.plate_profit ? `${item.plate_profit}TRX` : '-',
-          代理扣款: item.amount ? `${item.amount}TRX` : '-',
+          代理扣款: item.agent_cost ? `${item.agent_cost}TRX` : '-',
           交易状态: statusText,
-          完成时间: item.paid_at ? formatToDateTime(item.paid_at * 1000) : '-',
+          完成时间: item.paid_at ? formatToDateTime(item.paid_at) : '-',
           描述: item.describe || '-',
           _timestamp: item.paid_at || 0 // 用于排序的时间戳
         }
@@ -177,88 +177,77 @@ const handleExport = async () => {
   }
 }
 
-// 表格列配置 (根据截图更新)
+// 表格列配置 - 使用后端字段名
 const columns = reactive<TableColumn[]>([
   {
-    field: 'finish_time',
+    field: 'paid_at',
     label: '日期',
     minWidth: 120,
-    formatter: (row) => (row.finish_time ? formatToDate(row.finish_time * 1000) : '-')
+    formatter: (row) => (row.paid_at ? formatToDate(row.paid_at) : '-')
   },
   {
-    field: 'order_id',
+    field: 'id',
     label: '订单ID',
     minWidth: 180,
-    formatter: (row) => row.order_id || '-'
+    formatter: (row) => row.id || '-'
   },
   {
-    field: 'username',
+    field: 'agent_name',
     label: '代理名称',
     minWidth: 150,
-    formatter: (row) => row.username || '-'
+    formatter: (row) => row.agent_name || '-'
   },
-  // {
-  //   field: 'account',
-  //   label: '用户账号',
-  //   minWidth: 120,
-  //   formatter: (row) => row.account || '-'
-  // },
-  // {
-  //   field: 'email',
-  //   label: '用户邮箱',
-  //   minWidth: 150,
-  //   formatter: (row) => row.email || '-'
-  // },
-  // {
-  //   field: 'source',
-  //   label: '来源',
-  //   width: 100,
-  //   formatter: (row) => row.source || '-'
-  // },
   {
-    field: 'order_amount',
+    field: 'amount',
     label: '支付金额',
     minWidth: 120,
     formatter: (row) => {
-      const amount = row.order_amount || ''
-      const unit = row.pay_unit || ''
+      const amount = row.amount || ''
+      const unit = row.in_coin || row.coin || ''
       return amount || unit ? `${amount}${unit}`.trim() : '-'
     }
   },
   {
-    field: 'trx_price',
+    field: 'actual_rate',
     label: '兑换汇率',
     minWidth: 120,
-    formatter: (row) => row.trx_price || '-'
+    formatter: (row) => row.actual_rate || '-'
   },
   {
-    field: 'real_price',
+    field: 'real_rate',
     label: '实时汇率',
     minWidth: 100,
-    formatter: (row) => row.real_price || '-'
+    formatter: (row) => row.real_rate || '-'
   },
   {
-    field: 'exchange_amount',
+    field: 'out_amount',
     label: '支出数量',
     minWidth: 150,
     formatter: (row) => {
-      const amount = row.exchange_amount || ''
-      const unit = row.exchange_unit || ''
+      const amount = row.out_amount || ''
+      const unit = row.out_coin || ''
       return amount || unit ? `${amount}${unit}`.trim() : '-'
     }
   },
   {
-    field: 'order_type',
+    field: 'in_coin',
     label: '交易类型',
     minWidth: 140,
     slots: {
-      default: ({ row }: { row: ExchangeOrderListItem }) => {
-        const orderTypeMap: Record<number, { label: string; color: string }> = {
-          1: { label: 'USDT  → TRX', color: '#67C23A' },
-          2: { label: 'TRX  → USDT', color: '#409EFF' }
+      default: ({ row }: { row: V2ExchangeItem }) => {
+        // 根据 in_coin 和 out_coin 判断交易类型
+        let label = '未知'
+        let color = '#909399'
+
+        if (row.in_coin === 'USDT' && row.out_coin === 'TRX') {
+          label = 'USDT  → TRX'
+          color = '#67C23A'
+        } else if (row.in_coin === 'TRX' && row.out_coin === 'USDT') {
+          label = 'TRX  → USDT'
+          color = '#409EFF'
         }
-        const typeInfo = orderTypeMap[row.order_type] || { label: '未知', color: '#909399' }
-        return <span style={{ color: typeInfo.color, fontWeight: '500' }}>{typeInfo.label}</span>
+
+        return <span style={{ color: color, fontWeight: '500' }}>{label}</span>
       }
     }
   },
@@ -269,13 +258,13 @@ const columns = reactive<TableColumn[]>([
     formatter: (row) => (row.plate_profit ? `${row.plate_profit}TRX`.trim() : '-')
   },
   {
-    field: 'agent_out_amount',
+    field: 'agent_cost',
     label: '代理扣款',
     minWidth: 150,
     formatter: (row) => {
-      if (!row.agent_out_amount) return '-'
+      if (!row.agent_cost) return '-'
       // 去掉负号，因为"代理扣款"本身就表示支出
-      const amount = Math.abs(Number(row.agent_out_amount))
+      const amount = Math.abs(Number(row.agent_cost))
       return `${amount}TRX`
     }
   },
@@ -284,7 +273,7 @@ const columns = reactive<TableColumn[]>([
     label: '交易状态',
     minWidth: 100,
     slots: {
-      default: ({ row }: { row: ExchangeOrderListItem }) => {
+      default: ({ row }: { row: V2ExchangeItem }) => {
         let type: 'success' | 'warning' | 'info' | 'danger' = 'info'
         let label = '未知'
         switch (row.status) {
@@ -330,11 +319,11 @@ const columns = reactive<TableColumn[]>([
     }
   },
   {
-    field: 'finish_time',
+    field: 'paid_at',
     label: '完成时间',
     sortable: 'custom',
     minWidth: 160,
-    formatter: (row) => (row.finish_time ? formatToDateTime(row.finish_time * 1000) : '-')
+    formatter: (row) => (row.paid_at ? formatToDateTime(row.paid_at) : '-')
   },
   {
     field: 'describe',
@@ -344,10 +333,10 @@ const columns = reactive<TableColumn[]>([
   }
 ])
 
-// 搜索表单配置 (根据截图更新)
+// 搜索表单配置 - 使用后端字段名
 const searchSchema = reactive<FormSchema[]>([
   {
-    field: 'query',
+    field: 'keyword',
     component: 'Input',
     label: {
       tips: 'TG用户ID/TG用户名/TG用户昵称/机器人名称/代理名称/用户账号/用户邮箱',
@@ -358,22 +347,8 @@ const searchSchema = reactive<FormSchema[]>([
       clearable: true
     }
   },
-  // {
-  //   field: 'source',
-  //   component: 'Select',
-  //   label: '来源',
-  //   componentProps: {
-  //     placeholder: '请选择来源',
-  //     clearable: true,
-  //     options: [
-  //       { label: '全部', value: '' },
-  //       { label: 'H5', value: 'H5' },
-  //       { label: '机器人', value: '机器人' }
-  //     ]
-  //   }
-  // },
   {
-    field: 'coin',
+    field: 'in_coin',
     component: 'Select',
     label: '交易类型:',
     componentProps: {
@@ -391,7 +366,7 @@ const searchSchema = reactive<FormSchema[]>([
     component: 'Select',
     label: '交易状态:',
     componentProps: {
-      placeholder: '全部', // 匹配截图 placeholder
+      placeholder: '全部',
       options: [
         { label: '全部', value: '' },
         { label: '已支付', value: 2 },
@@ -415,38 +390,31 @@ const searchSchema = reactive<FormSchema[]>([
   }
 ])
 
-// 操作列配置
+// 操作列配置 - 使用后端字段名
 const actionColumn = {
   field: 'action',
   label: '操作',
   minWidth: 120,
   fixed: 'right' as const,
   slots: {
-    default: ({ row }: { row: ExchangeOrderListItem }) => {
+    default: ({ row }: { row: V2ExchangeItem }) => {
       return (
         <>
           <BaseButton type="primary" onClick={() => handleDetail(row)}>
             详情
           </BaseButton>
-          {/* <BaseButton
-            type="primary"
-            onClick={() => handleResend(row)}
-            disabled={row.status !== 1 && row.status !== 2}
-          >
-            补发TRX
-          </BaseButton> */}
         </>
       )
     }
   }
 }
 
-// 处理详情查看
-const handleDetail = (row: ExchangeOrderListItem) => {
+// 处理详情查看 - 使用后端字段名
+const handleDetail = (row: V2ExchangeItem) => {
   orderDetailRef.value?.open(row.id)
 }
 
-// 请求闪兑明细列表数据
+// 请求闪兑明细列表数据 - 直接使用后端字段名
 const fetchExchangeTransactionList = async (params: any) => {
   try {
     // 保存当前搜索参数（用于导出）
@@ -467,18 +435,13 @@ const fetchExchangeTransactionList = async (params: any) => {
     }
 
     // 处理关键词查询
-    if (params.query) {
-      apiParams.keyword = params.query
+    if (params.keyword) {
+      apiParams.keyword = params.keyword
     }
 
-    // 处理来源
-    if (params.source) {
-      apiParams.source = params.source
-    }
-
-    // 处理交易类型查询
-    if (params.coin) {
-      apiParams.keyword = params.coin
+    // 处理交易类型查询（使用 in_coin）
+    if (params.in_coin) {
+      apiParams.in_coin = params.in_coin
     }
 
     // 处理状态
@@ -486,10 +449,10 @@ const fetchExchangeTransactionList = async (params: any) => {
       apiParams.status = params.status
     }
 
-    // 处理排序参数 - 字段名映射
+    // 处理排序参数 - 使用后端字段名
     if (params.order) {
       const fieldMapping: Record<string, string> = {
-        finish_time: 'paid_at'
+        paid_at: 'paid_at'
       }
 
       // 解析排序参数，格式：column ASC 或 column DESC
@@ -511,61 +474,22 @@ const fetchExchangeTransactionList = async (params: any) => {
       const list = data.list || []
       const total = data.pager?.total || 0
 
-      // 字段映射转换
-      const mappedList = list.map((item: V2ExchangeItem) => {
-        // 判断订单类型：kind=3 表示兑换
-        // 根据 in_coin 和 out_coin 判断兑换方向
-        let orderType = 1 // 默认 USDT → TRX
-        if (item.in_coin === 'TRX' && item.out_coin === 'USDT') {
-          orderType = 2 // TRX → USDT
-        } else if (item.in_coin === 'USDT' && item.out_coin === 'TRX') {
-          orderType = 1 // USDT → TRX
-        }
-
-        return {
-          id: item.id, // 订单ID（保持字符串类型）
-          order_id: item.id, // 订单号
-          username: item.agent_name || '', // 代理名称
-          account: item.account || '-', // 用户账号
-          email: item.email || '-', // 用户邮箱
-          source: item.source || '-', // 来源
-          order_amount: String(item.amount), // 支付金额
-          trx_price: String(item.actual_rate || 0), // 对话汇率（实际成交汇率）
-          real_price: String(item.real_rate || 0), // 实时汇率
-          user_id: item.user_id,
-          order_type: orderType, // 订单类型：1-USDT→TRX, 2-TRX→USDT
-          pay_unit: item.in_coin || item.coin, // 支付单位（输入币种）
-          exchange_amount: String(item.out_amount || 0), // 支出数量（使用out_amount字段）
-          agent_out_amount: String(item.agent_cost || 0), // 代理扣款（使用agent_cost字段）
-          plate_profit: String(item.plate_profit || 0), // 平台利润
-          agent_profit: String(item.agent_profit || 0), // 代理利润
-          exchange_unit: item.out_coin || (item.coin === 'TRX' ? 'USDT' : 'TRX'), // 兑换单位（输出币种）
-          receive_address: item.receive_address, // 接收地址
-          status: item.status, // 状态
-          create_time: item.created_at, // 创建时间（Unix时间戳-秒）
-          finish_time: item.paid_at || item.completed_at || 0, // 完成时间（Unix时间戳-秒）
-          describe: item.describe || '', // 描述
-          in_txid: item.pay_id || '', // 支付交易hash
-          out_txid: '' // 新接口没有返回
-        }
-      })
-
+      // 直接使用后端返回的数据，不进行字段映射
       totalCount.value = total
 
-      console.log('[fetchExchangeTransactionList] 返回数据:', { total, count: mappedList.length })
+      console.log('[fetchExchangeTransactionList] 返回数据:', { total, count: list.length })
 
       // 添加数据为空提示
       const hasSearchCondition = !!(
-        params.query ||
-        params.source ||
-        params.coin ||
+        params.keyword ||
+        params.in_coin ||
         params.status ||
         params.dateRange
       )
-      handleListMessage(mappedList, hasSearchCondition, '闪兑订单')
+      handleListMessage(list, hasSearchCondition, '闪兑订单')
 
       return {
-        list: mappedList,
+        list: list,
         totalCount: total
       }
     } else {
