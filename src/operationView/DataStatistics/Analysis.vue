@@ -4,38 +4,12 @@ import { ElRow, ElCol, ElCard, ElSkeleton } from 'element-plus'
 import { Echart } from '@/components/Echart'
 import { pieOptions, barOptions, lineOptions } from './echarts-data'
 import { ref, reactive, onMounted } from 'vue'
-import { getDailyStatisticsApi, v2GetStats } from '@/api/statistics' // 保留旧接口以便兼容
+import { v2GetStats } from '@/api/statistics'
 import type { V2StatsData } from '@/api/statistics/types'
 import { set } from 'lodash-es'
 import { EChartsOption } from 'echarts'
 import { useI18n } from '@/hooks/web/useI18n'
 import { handleErrorMessage } from '@/utils/messageHelper'
-
-// Move Interface definition to the top
-interface ApiStatisticsData {
-  day_energy_income?: string
-  total_energy_income?: string
-  day_flash_change_cost?: string
-  total_flash_change_cost?: string
-  day_flash_change_income?: string
-  total_flash_change_income?: string
-  day_profit?: string
-  total_profit?: string
-  day_user_num?: number
-  total_user_num?: number
-  day_bot_income?: string
-  total_bot_income?: string
-  day_bot_num?: number
-  total_bot_num?: number
-  day_active_income?: string
-  total_active_income?: string
-  day_active_cost?: string
-  total_active_cost?: string
-  day_bandwidth_cost?: string
-  total_bandwidth_cost?: string
-  day_total?: { day: string; energy_income: string }[]
-  last_week_user_num?: { day: string; num: number }[]
-}
 
 const { t } = useI18n()
 
@@ -53,8 +27,8 @@ const formatDateLabel = (dateStr: string): string => {
 
 const loading = ref(true)
 
-// Now the interface is defined before use
-const panelStatsData = reactive<Partial<ApiStatisticsData>>({})
+// 使用后端返回的数据结构
+const panelStatsData = reactive<Partial<V2StatsData>>({})
 
 // --- Chart Options ---
 const pieOptionsData = reactive<EChartsOption>(pieOptions) as EChartsOption
@@ -85,47 +59,14 @@ const fetchDashboardData = async () => {
     console.log('[fetchDashboardData] 最终解析的数据:', responseData)
 
     if (responseData) {
-      // 字段映射转换
-      const mappedData: Partial<ApiStatisticsData> = {
-        day_energy_income: responseData.today_energy_in,
-        total_energy_income: responseData.total_energy_in,
-        day_flash_change_cost: responseData.today_exchange_out,
-        total_flash_change_cost: responseData.total_exchange_out,
-        day_flash_change_income: responseData.today_exchange_in,
-        total_flash_change_income: responseData.total_exchange_in,
-        day_profit: responseData.today_profit,
-        total_profit: responseData.total_profit,
-        day_user_num: responseData.today_agent_add,
-        total_user_num: responseData.total_agent_add,
-        day_bot_income: responseData.today_bot_in,
-        total_bot_income: responseData.total_bot_in,
-        day_bot_num: responseData.today_bot_add,
-        total_bot_num: responseData.total_bot_add,
-        day_active_income: responseData.today_active_in,
-        total_active_income: responseData.total_active_in,
-        day_bandwidth_cost: responseData.today_bandwidth_out,
-        total_bandwidth_cost: responseData.total_bandwidth_out,
-        // 映射每日能量收入数据
-        day_total:
-          responseData.daily_energy_in?.map((item) => ({
-            day: item.date,
-            energy_income: item.energy_in
-          })) || [],
-        // 映射每日活跃代理数据
-        last_week_user_num:
-          responseData.daily_active_agent?.map((item) => ({
-            day: item.date,
-            num: item.active_agent
-          })) || []
-      }
+      // 直接使用后端返回的数据,不进行字段映射
+      Object.assign(panelStatsData, responseData)
 
-      console.log('[fetchDashboardData] 映射后的数据:', mappedData)
-      Object.assign(panelStatsData, mappedData)
-
-      if (mappedData.day_total && mappedData.day_total.length > 0) {
-        const dailyData = mappedData.day_total.filter((item) => item && item.day).reverse()
-        const dates = dailyData.map((v) => v.day)
-        const incomeValues = dailyData.map((v) => parseNum(v.energy_income))
+      // 处理能量收入图表数据
+      if (responseData.daily_energy_in && responseData.daily_energy_in.length > 0) {
+        const dailyData = responseData.daily_energy_in.filter((item) => item && item.date).reverse()
+        const dates = dailyData.map((v) => v.date)
+        const incomeValues = dailyData.map((v) => parseNum(v.energy_in))
         set(energyIncomeChartOptions, 'title.text', '能量收入')
         set(energyIncomeChartOptions, 'xAxis.data', dates)
         set(energyIncomeChartOptions, 'yAxis.name', 'TRX')
@@ -135,10 +76,11 @@ const fetchDashboardData = async () => {
         set(energyIncomeChartOptions, 'tooltip.formatter', '{b0}<br />{a0}: {c0} TRX')
       }
 
-      if (mappedData.last_week_user_num && mappedData.last_week_user_num.length > 0) {
-        const weeklyData = [...mappedData.last_week_user_num].reverse()
-        const dates = weeklyData.map((v) => formatDateLabel(v.day))
-        const numValues = weeklyData.map((v) => v.num)
+      // 处理代理活跃数图表数据
+      if (responseData.daily_active_agent && responseData.daily_active_agent.length > 0) {
+        const weeklyData = [...responseData.daily_active_agent].reverse()
+        const dates = weeklyData.map((v) => formatDateLabel(v.date))
+        const numValues = weeklyData.map((v) => v.active_agent)
         set(agentActivityChartOptions, 'title.text', '近一周代理活跃数')
         set(agentActivityChartOptions, 'xAxis.data', dates)
         set(agentActivityChartOptions, 'yAxis', { type: 'value', name: '', minInterval: 1 })

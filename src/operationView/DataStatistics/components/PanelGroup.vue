@@ -8,31 +8,11 @@ import Icon from '@/components/Icon/src/Icon.vue'
 const { getPrefixCls } = useDesign()
 const prefixCls = getPrefixCls('panel')
 
-// Define Interface (ensure this matches the structure passed from Analysis.vue)
-interface ApiStatisticsData {
-  day_energy_income?: string
-  total_energy_income?: string
-  day_flash_change_cost?: string
-  total_flash_change_cost?: string
-  day_flash_change_income?: string
-  total_flash_change_income?: string
-  day_profit?: string
-  total_profit?: string
-  day_user_num?: number
-  total_user_num?: number
-  day_bot_income?: string
-  total_bot_income?: string
-  day_bot_num?: number
-  total_bot_num?: number
-  day_active_income?: string
-  total_active_income?: string
-  day_bandwidth_cost?: string
-  total_bandwidth_cost?: string
-}
+import type { V2StatsData } from '@/api/statistics/types'
 
-// Define props
+// Define props - 使用后端字段名
 const props = defineProps<{
-  statistics: Partial<ApiStatisticsData>
+  statistics: Partial<V2StatsData>
   isLoading: boolean
 }>()
 
@@ -42,29 +22,29 @@ const parseNum = (val: string | number | undefined): number => {
   return parseFloat(val || '0') || 0
 }
 
-// Update computed properties to use props.statistics
-const dayEnergyIncome = computed(() => parseNum(props.statistics.day_energy_income))
-const totalEnergyIncome = computed(() => parseNum(props.statistics.total_energy_income))
-const dayExchangeIncome = computed(() => parseNum(props.statistics.day_flash_change_income))
-const totalExchangeIncome = computed(() => parseNum(props.statistics.total_flash_change_income))
-const dayExchangeCost = computed(() => parseNum(props.statistics.day_flash_change_cost))
-const totalExchangeCost = computed(() => parseNum(props.statistics.total_flash_change_cost))
-const dayNetProfit = computed(() => parseNum(props.statistics.day_profit))
+// Update computed properties to use backend field names (后端字段名)
+const dayEnergyIncome = computed(() => parseNum(props.statistics.today_energy_in))
+const totalEnergyIncome = computed(() => parseNum(props.statistics.total_energy_in))
+const dayExchangeIncome = computed(() => parseNum(props.statistics.today_exchange_in))
+const totalExchangeIncome = computed(() => parseNum(props.statistics.total_exchange_in))
+const dayExchangeCost = computed(() => parseNum(props.statistics.today_exchange_out))
+const totalExchangeCost = computed(() => parseNum(props.statistics.total_exchange_out))
+const dayNetProfit = computed(() => parseNum(props.statistics.today_profit))
 const totalProfit = computed(() => parseNum(props.statistics.total_profit))
-const dayNewAgents = computed(() => props.statistics.day_user_num ?? 0)
-const totalAgents = computed(() => props.statistics.total_user_num ?? 0)
-const dayBotIncome = computed(() => parseNum(props.statistics.day_bot_income))
-const totalBotIncome = computed(() => parseNum(props.statistics.total_bot_income))
-const dayBotNum = computed(() => props.statistics.day_bot_num ?? 0)
-const totalBotNum = computed(() => props.statistics.total_bot_num ?? 0)
-const dayActiveIncome = computed(() => parseNum(props.statistics.day_active_income))
-const totalActiveIncome = computed(() => parseNum(props.statistics.total_active_income))
+const dayNewAgents = computed(() => props.statistics.today_agent_add ?? 0)
+const totalAgents = computed(() => props.statistics.total_agent_add ?? 0)
+const dayBotIncome = computed(() => parseNum(props.statistics.today_bot_in))
+const totalBotIncome = computed(() => parseNum(props.statistics.total_bot_in))
+const dayBotNum = computed(() => props.statistics.today_bot_add ?? 0)
+const totalBotNum = computed(() => props.statistics.total_bot_add ?? 0)
+const dayActiveIncome = computed(() => parseNum(props.statistics.today_active_in))
+const totalActiveIncome = computed(() => parseNum(props.statistics.total_active_in))
 const dayBandwidthCost = computed(() => {
-  const value = props.statistics.day_bandwidth_cost
+  const value = props.statistics.today_bandwidth_out
   return value !== undefined ? String(value) : '0'
 })
 const totalBandwidthCost = computed(() => {
-  const value = props.statistics.total_bandwidth_cost
+  const value = props.statistics.total_bandwidth_out
   return value !== undefined ? String(value) : '0'
 })
 </script>
