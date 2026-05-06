@@ -87,7 +87,8 @@ export interface V2DepositDetail {
   cost: string // 成本
   describe: string // 描述
   agent_name: string // 代理名称
-  bot_name: string // 机器人名称
+  bot_user_name: string // 机器人用户名
+  bot_first_name: string // 机器人昵称
   tg_user_name: string // TG用户名
   tg_first_name: string // TG名字
   pay_transaction: V2PayTransaction | null // 支付交易信息
