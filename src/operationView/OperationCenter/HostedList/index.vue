@@ -31,16 +31,17 @@ import {
   v2RecycleOrder
 } from '@/api/trust_transaction'
 import type {
-  AutoManageAddressItem,
+  HostingItemV2,
   BotOption,
   HostingListParamsV2,
   V2AgentBotListParams
 } from '@/api/trust_transaction/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { getSourceText, SOURCE_TYPE_OPTIONS } from '@/utils/sourceFilter'
 
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
-const currentRowForDelete = ref<AutoManageAddressItem | null>(null)
+const currentRowForDelete = ref<HostingItemV2 | null>(null)
 
 const botOptions = ref<BotOption[]>([])
 const isBotOptionsLoaded = ref(false)
@@ -87,62 +88,60 @@ const columns = computed(() => {
       field: 'bot_id',
       label: '机器人ID',
       width: 120,
-      formatter: (row: AutoManageAddressItem) => row.bot_id || '-'
+      formatter: (row: HostingItemV2) => row.bot_id || '-'
     },
     {
       field: 'bot_name',
       label: '机器人用户名',
       width: 150,
-      formatter: (row: AutoManageAddressItem) => row.bot_name || '-'
+      formatter: (row: HostingItemV2) => row.bot_name || '-'
     },
     {
       field: 'user_name',
       label: '用户名',
       width: 150,
       hideWhen: 2, // H5时隐藏
-      formatter: (row: AutoManageAddressItem) => row.user_name || '-'
+      formatter: (row: HostingItemV2) => row.user_name || '-'
     },
     {
-      field: 'account',
+      field: 'username',
       label: '用户账号',
       width: 120,
       hideWhen: 1, // 机器人时隐藏
-      formatter: (row: AutoManageAddressItem) => row.account || '-'
+      formatter: (row: HostingItemV2) => row.username || '-'
     },
     {
       field: 'email',
       label: '用户邮箱',
       minWidth: 150,
       hideWhen: 1, // 机器人时隐藏
-      formatter: (row: AutoManageAddressItem) => row.email || '-'
+      formatter: (row: HostingItemV2) => row.email || '-'
     },
     {
-      field: 'source',
+      field: 'origin',
       label: '来源',
       width: 100,
-      formatter: (row: AutoManageAddressItem) => row.source || '-'
+      formatter: (row: HostingItemV2) => getSourceText(row.origin, row.user_name)
     },
     {
       field: 'address',
       label: '托管地址',
       minWidth: 250,
-      formatter: (row: AutoManageAddressItem) => row.address || '-'
+      formatter: (row: HostingItemV2) => row.address || '-'
     },
     {
-      field: 'create_time',
+      field: 'created_at',
       label: '创建时间',
       sortable: 'custom',
       width: 180,
-      formatter: (row: AutoManageAddressItem) =>
-        row.create_time ? formatToDateTime(row.create_time) : '-'
+      formatter: (row: HostingItemV2) => (row.created_at ? formatToDateTime(row.created_at) : '-')
     },
     {
-      field: 'finish_time',
+      field: 'updated_at',
       label: '更新时间',
       sortable: 'custom',
       width: 180,
-      formatter: (row: AutoManageAddressItem) =>
-        row.finish_time ? formatToDateTime(row.finish_time) : '-'
+      formatter: (row: HostingItemV2) => (row.updated_at ? formatToDateTime(row.updated_at) : '-')
     },
     // 操作列直接包含在 columns 中，而不是单独的 actionColumn
     {
@@ -151,7 +150,7 @@ const columns = computed(() => {
       width: 240,
       fixed: 'right',
       slots: {
-        default: (data: { row: AutoManageAddressItem }) => {
+        default: (data: { row: HostingItemV2 }) => {
           return (
             <div style="display: flex; gap: 8px;">
               <BaseButton type="primary" onClick={() => handleRecycleAndReset(data.row)}>
@@ -207,17 +206,13 @@ const searchSchema = computed<FormSchema[]>(() => [
     }
   },
   {
-    field: 'source',
+    field: 'origin',
     label: '来源',
     component: 'Select',
     componentProps: {
       placeholder: '请选择来源',
       clearable: true,
-      options: [
-        { label: '全部', value: '' },
-        { label: '机器人', value: 1 },
-        { label: 'H5', value: 2 }
-      ]
+      options: SOURCE_TYPE_OPTIONS
     }
   }
 ])
@@ -225,12 +220,12 @@ const searchSchema = computed<FormSchema[]>(() => [
 const fetchAutoManageList = async (params: any) => {
   try {
     // 更新选中的来源，用于控制列的显示/隐藏
-    selectedSource.value = params?.source || ''
+    selectedSource.value = params?.origin || ''
     console.log(
       '[fetchAutoManageList] selectedSource:',
       selectedSource.value,
-      'params.source:',
-      params?.source
+      'params.origin:',
+      params?.origin
     )
 
     const queryParams: HostingListParamsV2 = {
@@ -249,15 +244,15 @@ const fetchAutoManageList = async (params: any) => {
     }
 
     // 处理来源参数：直接传递数字值
-    if (params.source !== undefined && params.source !== '') {
-      queryParams.origin = Number(params.source)
+    if (params.origin !== undefined && params.origin !== '') {
+      queryParams.origin = Number(params.origin)
     }
 
-    // 处理排序参数
+    // 处理排序参数 - 使用后端字段名
     if (params.order) {
       const fieldMapping: Record<string, string> = {
-        create_time: 'created_at',
-        finish_time: 'updated_at'
+        created_at: 'created_at',
+        updated_at: 'updated_at'
       }
 
       const orderParts = params.order.split(' ')
@@ -274,35 +269,19 @@ const fetchAutoManageList = async (params: any) => {
     const res = await v2GetHostingList(queryParams)
 
     if (res.code === '000000' && res.data) {
-      const mappedList = (res.data.list || []).map((item: any): AutoManageAddressItem => {
-        return {
-          id: item.id,
-          tg_bot_id: item.bot_id,
-          bot_id: item.bot_id,
-          address: item.address,
-          create_time: item.created_at,
-          finish_time: item.updated_at,
-          bot_name: item.bot_name,
-          user_name: item.user_name,
-          tg_name: item.user_name,
-          order_id: item.order_id,
-          account: item.username || '-', // 用户账号（使用 username 字段）
-          email: item.email || '-', // 用户邮箱
-          source: item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-' // 来源（根据 origin 判断）
-        }
-      })
+      const list = res.data.list || []
 
       console.log('[fetchAutoManageList] 返回数据:', {
         total: res.data.pager?.total,
-        count: mappedList.length
+        count: list.length
       })
 
       // 添加数据为空提示
-      const hasSearchCondition = !!(params.bot_id || params.keyword || params.source)
-      handleListMessage(mappedList, hasSearchCondition, '托管地址')
+      const hasSearchCondition = !!(params.bot_id || params.keyword || params.origin)
+      handleListMessage(list, hasSearchCondition, '托管地址')
 
       return {
-        list: mappedList,
+        list: list,
         total: res.data.pager?.total || 0
       }
     }
@@ -333,7 +312,7 @@ const deleteAddressAction = async () => {
   return false
 }
 
-const handleDeleteConfirmation = (row: AutoManageAddressItem) => {
+const handleDeleteConfirmation = (row: HostingItemV2) => {
   currentRowForDelete.value = row
   if (searchTableRef.value) {
     searchTableRef.value.delete(row)
@@ -342,7 +321,7 @@ const handleDeleteConfirmation = (row: AutoManageAddressItem) => {
   }
 }
 
-const handleRecycleAndReset = async (row: AutoManageAddressItem) => {
+const handleRecycleAndReset = async (row: HostingItemV2) => {
   if (!row.address) {
     ElMessage.warning('托管地址不存在，无法执行回收与重置操作')
     return
