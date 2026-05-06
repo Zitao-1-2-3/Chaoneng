@@ -79,22 +79,13 @@ const getAgentBotList = async (params?: any): Promise<{ list: AgentBotItem[]; to
     }
 
     const res = await getAgentBotListApi(apiParams)
-    // 适配新的分页格式：从 pager 对象中获取 total
-    // 字段映射：将后端返回的字段名映射到前端使用的字段名
-    const mappedList = (res.data.list || []).map((item: any) => ({
-      ...item,
-      username: item.user_name, // 映射 user_name -> username
-      firstname: item.first_name, // 映射 first_name -> firstname
-      account_num: item.user_count || 0, // 映射 user_count -> account_num（用户数量）
-      order_count: item.order_count || 0 // 交易订单数
-    }))
 
     // 添加数据为空提示
     const hasSearchCondition = !!(params?.keyword || params?.status)
-    handleListMessage(mappedList, hasSearchCondition, '机器人')
+    handleListMessage(res.data.list || [], hasSearchCondition, '机器人')
 
     return {
-      list: mappedList,
+      list: res.data.list || [],
       total: res.data.pager?.total || 0
     }
   } catch (error) {
@@ -152,31 +143,30 @@ const searchSchema = ref<FormSchema[]>([
 // 表格列配置
 const columns = ref<TableColumn[]>([
   {
-    field: 'id', // 新接口字段：id (原来是tg_bot_id)
+    field: 'id',
     label: '机器人ID'
   },
   {
-    field: 'username', // 新接口字段：username (原来是name)
+    field: 'user_name',
     label: '机器人用户名'
   },
   {
-    field: 'agent_name', // 新接口字段：agent_name (原来是username)
+    field: 'agent_name',
     label: '代理名称'
   },
   {
-    field: 'firstname',
+    field: 'first_name',
     label: '机器人昵称',
     formatter: (row: AgentBotItem) => {
-      return <span>{row.firstname}</span>
+      return <span>{row.first_name}</span>
     }
   },
   {
     field: 'tg_admin',
     label: '管理员TG号'
   },
-  // API密钥列已删除
   {
-    field: 'account_num',
+    field: 'user_count',
     label: '用户数量',
     sortable: 'custom',
     slots: {
@@ -187,7 +177,7 @@ const columns = ref<TableColumn[]>([
             style="cursor:pointer"
             onClick={() => handleUserCountClick(data.row.id)}
           >
-            {data.row.account_num}
+            {data.row.user_count}
           </ElLink>
         )
       }
@@ -218,7 +208,7 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
-    field: 'created_at', // 新接口字段：created_at (原来是create_time)
+    field: 'created_at',
     label: '创建时间',
     minWidth: 160,
     sortable: 'custom',
@@ -227,7 +217,7 @@ const columns = ref<TableColumn[]>([
       row.created_at ? formatToDateTime(row.created_at * 1000) : '-'
   },
   {
-    field: 'updated_at', // 新接口字段：updated_at (原来是update_time)
+    field: 'updated_at',
     label: '最后活动时间',
     minWidth: 160,
     sortable: 'custom',

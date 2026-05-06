@@ -69,13 +69,13 @@ const activeTab = ref('order')
 const orderDetail = ref<any>({})
 const rechargeDetail = ref<any>({})
 
-// 订单详情schema（基于用户字段调整）
+// 订单详情schema
 const orderDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
-    { field: 'orderNo', label: '订单号' },
-    { field: 'agentName', label: '代理名称' },
+    { field: 'order_no', label: '订单号' },
+    { field: 'agent_name', label: '代理名称' },
     { field: 'contact', label: '联系方式' },
-    { field: 'rechargeType', label: '充值订单类型' },
+    { field: 'recharge_type', label: '充值订单类型' },
     {
       field: 'amount',
       label: '充值金额',
@@ -94,22 +94,21 @@ const orderDetailSchema = computed(() => {
       }
     },
     {
-      field: 'createTime',
+      field: 'created_at',
       label: '创建时间',
-      slots: { default: (row) => h('span', formatToDateTime(row.createTime) || '-') }
+      slots: { default: (row) => h('span', formatToDateTime(row.created_at) || '-') }
     },
     { field: 'remark', label: '备注' }
   ]
   return schema
 })
 
-// 充值详情schema（假设一些字段，参考原文件调整）
+// 充值详情schema
 const rechargeDetailSchema = computed(() => {
   const schema: DescriptionsSchema[] = [
-    { field: 'toAddress', label: '收款地址' }, // 假设字段
-    { field: 'fromAddress', label: '支付地址' }, // 假设字段
-    { field: 'hash', label: '交易哈希' } // 假设字段
-    // 如果后端返回更多字段，可以在这里添加
+    { field: 'to_address', label: '收款地址' },
+    { field: 'from_address', label: '支付地址' },
+    { field: 'hash', label: '交易哈希' }
   ]
   return schema
 })
@@ -134,15 +133,15 @@ const getStatusText = (status: number): string => {
   return statusMap[status] || '未知'
 }
 
-// 表格列配置（同之前）
+// 表格列配置
 const columns = ref<TableColumn[]>([
   {
-    field: 'orderNo',
+    field: 'order_no',
     label: '订单号',
     minWidth: 120
   },
   {
-    field: 'agentName',
+    field: 'agent_name',
     label: '代理名称',
     minWidth: 120
   },
@@ -152,10 +151,10 @@ const columns = ref<TableColumn[]>([
     minWidth: 150
   },
   {
-    field: 'rechargeType',
+    field: 'recharge_type',
     label: '充值订单类型',
     minWidth: 120,
-    formatter: () => '充值USDT' // 固定为'充值USDT'
+    formatter: () => '充值USDT'
   },
   {
     field: 'amount',
@@ -173,10 +172,10 @@ const columns = ref<TableColumn[]>([
     }
   },
   {
-    field: 'createTime',
+    field: 'created_at',
     label: '创建时间',
     minWidth: 150,
-    formatter: (row) => formatToDateTime(row.createTime)
+    formatter: (row) => formatToDateTime(row.created_at)
   },
   {
     field: 'remark',
