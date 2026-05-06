@@ -2,7 +2,6 @@
   <div class="app-container">
     <ContentWrap>
       <SearchTable
-        ref="searchTableRef"
         :columns="columns"
         :search-schema="searchSchema"
         :fetch-data-api="fetchGroupList"
@@ -25,7 +24,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElTag, ElLink, ElMessage } from 'element-plus'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
@@ -37,8 +36,6 @@ import { formatToDateTime } from '@/utils/dateUtil'
 import { getGroupList, getGroupBotList } from '@/api/group'
 import type { GroupListParams } from '@/api/group/types'
 
-const searchTableRef = ref()
-
 // 机器人列表
 const botList = ref<Array<{ label: string; value: number }>>([])
 
@@ -46,21 +43,22 @@ const botList = ref<Array<{ label: string; value: number }>>([])
 const fetchBotList = async () => {
   try {
     const res = await getGroupBotList()
+
     if (res.code === '000000' && res.data) {
-      botList.value = [
-        { label: '全部', value: undefined as any },
-        ...(res.data || []).map((bot: any) => ({
-          label: bot.user_name,
-          value: bot.id
-        }))
-      ]
+      botList.value = (res.data || []).map((bot: any) => ({
+        label: bot.user_name,
+        value: bot.id
+      }))
+    } else {
+      botList.value = []
     }
   } catch (error) {
-    console.error('获取机器人列表失败:', error)
+    botList.value = []
   }
 }
 
-const searchSchema = computed<FormSchema[]>(() => [
+// 使用 reactive 而不是 computed
+const searchSchema = reactive<FormSchema[]>([
   {
     field: 'keyword',
     component: 'Input',
@@ -75,8 +73,9 @@ const searchSchema = computed<FormSchema[]>(() => [
     component: 'Select',
     label: '机器人',
     componentProps: {
-      options: botList.value,
-      placeholder: '请选择机器人'
+      options: botList,
+      placeholder: '请选择机器人',
+      clearable: true
     }
   },
   {
@@ -200,12 +199,31 @@ const fetchGroupList = async (params: any) => {
   try {
     const requestParams: GroupListParams = {
       current_page: params.current_page || 1,
-      page_size: params.page_size || 10,
-      keyword: params.keyword,
-      bot_id: params.bot_id,
-      start_time: params.date_range?.[0],
-      end_time: params.date_range?.[1],
-      order: params.order
+      page_size: params.page_size || 10
+    }
+
+    // 只在有值时添加可选参数
+    if (params.keyword) {
+      requestParams.keyword = params.keyword
+    }
+
+    if (params.bot_id) {
+      requestParams.bot_id = params.bot_id
+    }
+
+    if (params.date_range && params.date_range.length === 2) {
+      // 将日期字符串转换为 Unix 时间戳（秒）
+      // 开始时间：当天 00:00:00
+      const startDate = new Date(`${params.date_range[0]} 00:00:00`)
+      requestParams.start_time = Math.floor(startDate.getTime() / 1000).toString()
+
+      // 结束时间：当天 23:59:59
+      const endDate = new Date(`${params.date_range[1]} 23:59:59`)
+      requestParams.end_time = Math.floor(endDate.getTime() / 1000).toString()
+    }
+
+    if (params.order) {
+      requestParams.order = params.order
     }
 
     const response = await getGroupList(requestParams)

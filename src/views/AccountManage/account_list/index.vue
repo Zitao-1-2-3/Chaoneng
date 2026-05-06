@@ -386,13 +386,32 @@ const handleUpdatePassword = async () => {
 }
 
 // 打开充值弹窗
-const openRechargeDialog = () => {
+const openRechargeDialog = async () => {
   if (!userData.value.id) {
     ElMessage.warning('账户信息不完整，请刷新页面后重试')
     return
   }
 
-  rechargeDialogVisible.value = true
+  // 调用接口获取充值地址信息
+  try {
+    const response = await getAccountListApi({ address: true })
+
+    if (response && response.data) {
+      // 更新 userData，包含充值地址和二维码
+      userData.value = {
+        ...userData.value,
+        pay_address: (response.data as any).pay_address,
+        qr_address: (response.data as any).qr_address
+      }
+
+      rechargeDialogVisible.value = true
+    } else {
+      ElMessage.error('获取充值地址失败')
+    }
+  } catch (error) {
+    console.error('获取充值地址失败:', error)
+    ElMessage.error('获取充值地址失败，请稍后重试')
+  }
 }
 
 // 充值记录 - 打开充值记录弹窗
