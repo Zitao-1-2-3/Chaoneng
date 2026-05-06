@@ -23,14 +23,25 @@ export const SOURCE_TYPE_TEXT: Record<number, string> = {
  * 获取来源文本
  * @param origin 来源类型
  * @param tgUserName TG用户名（可选）
+ * @param username 用户账号（可选）
  * @returns 来源文本
  */
-export function getSourceText(origin: number | undefined, tgUserName?: string): string {
-  // 如果 TG 用户名不为空，显示为机器人
+export function getSourceText(
+  origin: number | undefined,
+  tgUserName?: string,
+  username?: string
+): string {
+  // 优先级1: 如果用户账号不为空，显示为 H5
+  if (username && username.trim() !== '') {
+    return SOURCE_TYPE_TEXT[SourceType.H5]
+  }
+
+  // 优先级2: 如果 TG 用户名不为空，显示为机器人
   if (tgUserName && tgUserName.trim() !== '') {
     return SOURCE_TYPE_TEXT[SourceType.BOT]
   }
 
+  // 优先级3: 使用 origin 字段
   if (origin === undefined || origin === null) return '-'
   return SOURCE_TYPE_TEXT[origin] || '-'
 }
@@ -74,14 +85,25 @@ export function shouldHideColumn(
  * 根据来源类型获取标签类型（用于 ElTag）
  * @param origin 来源类型
  * @param tgUserName TG用户名（可选）
+ * @param username 用户账号（可选）
  * @returns 标签类型
  */
-export function getSourceTagType(origin: number | undefined, tgUserName?: string): string {
-  // 如果 TG 用户名不为空，返回机器人的标签类型
+export function getSourceTagType(
+  origin: number | undefined,
+  tgUserName?: string,
+  username?: string
+): string {
+  // 优先级1: 如果用户账号不为空，返回 H5 的标签类型
+  if (username && username.trim() !== '') {
+    return 'success'
+  }
+
+  // 优先级2: 如果 TG 用户名不为空，返回机器人的标签类型
   if (tgUserName && tgUserName.trim() !== '') {
     return 'primary'
   }
 
+  // 优先级3: 使用 origin 字段
   if (origin === undefined || origin === null) return 'info'
 
   switch (origin) {

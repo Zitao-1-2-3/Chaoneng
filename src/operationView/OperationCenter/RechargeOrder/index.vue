@@ -263,7 +263,7 @@ const columns = computed(() => {
       field: 'origin',
       label: '来源',
       width: 100,
-      formatter: (row) => getSourceText(row.origin, row.tg_user_name)
+      formatter: (row) => getSourceText(row.origin, row.tg_user_name, row.username)
     },
     {
       field: 'coin',
@@ -647,7 +647,7 @@ const handleExport = async () => {
         用户账号: item.username || '-',
         用户邮箱: item.email || '-',
         机器人名称: item.bot_name || '-',
-        来源: getSourceText(item.origin, item.tg_user_name),
+        来源: getSourceText(item.origin, item.tg_user_name, item.username),
         订单类型: item.coin ? `充值${item.coin}` : '-',
         金额: item.amount ? `${item.amount} ${item.coin || ''}` : '-',
         订单状态: getStatusText(item.status),

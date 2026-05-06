@@ -159,7 +159,7 @@ const handleExport = async () => {
         代理名称: item.agent_name || '-',
         用户账号: item.username || '-',
         用户邮箱: item.email || '-',
-        来源: getSourceText(item.origin, item.tg_user_name),
+        来源: getSourceText(item.origin, item.tg_user_name, item.username),
         订单类型: getEnergyOrderKindText(item.kind),
         交易金额: `${item.amount || '-'} ${item.coin || ''}`.trim(),
         应发放能量: formatEnergyAmount(item.energy_amount),
@@ -242,7 +242,7 @@ const columns = computed(() => {
       field: 'origin',
       label: '来源',
       width: 100,
-      formatter: (row) => getSourceText(row.origin, row.tg_user_name)
+      formatter: (row) => getSourceText(row.origin, row.tg_user_name, row.username)
     },
     {
       field: 'kind',

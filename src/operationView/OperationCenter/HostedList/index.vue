@@ -121,7 +121,7 @@ const columns = computed(() => {
       field: 'origin',
       label: '来源',
       width: 100,
-      formatter: (row: HostingItemV2) => getSourceText(row.origin, row.user_name)
+      formatter: (row: HostingItemV2) => getSourceText(row.origin, row.user_name, row.username)
     },
     {
       field: 'address',
