@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <ContentWrap>
+    <ContentWrap class="account-info-card">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-2xl font-bold">账户信息</h2>
         <ElButtonGroup v-if="userData.id">
@@ -21,114 +21,115 @@
 
       <Descriptions v-else :column="1" :schema="accountSchema" :data="userData" />
 
-      <!-- 修改密码弹窗 -->
-      <Dialog v-model="passwordDialogVisible" title="修改密码" width="600px">
-        <div class="pw-reset-container">
-          <h3 class="text-lg font-bold mb-4">账户信息</h3>
-          <ElDescriptions :column="1" border label-width="120px">
-            <ElDescriptionsItem label="账户ID">{{ userData.id }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="账户名">{{ userData.username }}</ElDescriptionsItem>
-          </ElDescriptions>
-
-          <ElForm
-            ref="resetFormRef"
-            :model="resetForm"
-            :rules="resetRules"
-            label-position="top"
-            class="mt-4"
-          >
-            <ElFormItem prop="email" label="邮箱">
-              <ElInput v-model="resetForm.email" disabled />
-            </ElFormItem>
-
-            <!-- 验证码 -->
-            <ElFormItem prop="code" label="验证码">
-              <div class="flex">
-                <ElInput v-model="resetForm.code" placeholder="请输入验证码" />
-                <ElButton
-                  type="primary"
-                  class="ml-2 w-[120px]"
-                  :disabled="isCounting"
-                  @click="handleSendCodeClick"
-                >
-                  {{ isCounting ? `${countdown}秒` : '获取验证码' }}
-                </ElButton>
-              </div>
-            </ElFormItem>
-
-            <!-- 新密码 -->
-            <ElFormItem prop="password" label="新密码">
-              <ElInput
-                v-model="resetForm.password"
-                type="password"
-                placeholder="请输入新密码"
-                show-password
-              />
-            </ElFormItem>
-
-            <!-- 确认密码 -->
-            <ElFormItem prop="confirmPassword" label="确认密码">
-              <ElInput
-                v-model="resetForm.confirmPassword"
-                type="password"
-                placeholder="请再次输入新密码"
-                show-password
-              />
-            </ElFormItem>
-          </ElForm>
-        </div>
-
-        <template #footer>
-          <div class="flex justify-end">
-            <ElButton @click="passwordDialogVisible = false">取消</ElButton>
-            <ElButton type="primary" :loading="submitting" @click="handleUpdatePassword"
-              >确认</ElButton
-            >
-          </div>
-        </template>
-      </Dialog>
-
-      <!-- 充值弹窗 -->
-      <Dialog v-model="rechargeDialogVisible" title="账户充值" width="600px">
-        <div v-if="userData.pay_address">
-          <ElDescriptions :column="1" border label-width="120px">
-            <ElDescriptionsItem label="账户ID">{{ userData.id }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="账户名">{{ userData.username }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="TRX余额">{{
-              formatTrx(userData.trx_mount)
-            }}</ElDescriptionsItem>
-            <ElDescriptionsItem label="收款地址">
-              <div class="flex items-center">
-                <div class="truncate mr-2">{{ userData.pay_address }}</div>
-                <ElButton type="primary" size="small" @click="copyAddress">复制</ElButton>
-              </div>
-            </ElDescriptionsItem>
-          </ElDescriptions>
-
-          <div v-if="userData.qr_address" class="mt-4 text-center">
-            <div class="font-bold mb-2">扫描二维码充值</div>
-            <img :src="userData.qr_address" alt="收款二维码" />
-            <div class="flex items-center justify-center mt-2">
-              <Icon icon="cryptocurrency-color:trx" :size="24" />
-              <div class="text-sm text-gray-500">（可转入大于 1TRX 的任意金额）</div>
-            </div>
-          </div>
-        </div>
-        <div v-else class="py-4 text-center text-red-500">
-          该账户未设置收款地址，请联系管理员。
-        </div>
-      </Dialog>
-
-      <!-- 充值记录弹窗 -->
-      <RechargeRecordDialog
-        ref="rechargeRecordDialogRef"
-        :account-id="userData.id || 0"
-        width="1200"
-      />
-
-      <!-- 扣款记录弹窗 -->
-      <DeductionRecordDialog ref="deductionRecordDialogRef" :account-id="userData.id || 0" />
+      <!-- 代理消息提醒配置 -->
+      <ElDivider />
+      <NotificationConfig :account-id="userData.id" />
     </ContentWrap>
+
+    <!-- 修改密码弹窗 -->
+    <Dialog v-model="passwordDialogVisible" title="修改密码" width="600px">
+      <div class="pw-reset-container">
+        <h3 class="text-lg font-bold mb-4">账户信息</h3>
+        <ElDescriptions :column="1" border label-width="120px">
+          <ElDescriptionsItem label="账户ID">{{ userData.id }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="账户名">{{ userData.username }}</ElDescriptionsItem>
+        </ElDescriptions>
+
+        <ElForm
+          ref="resetFormRef"
+          :model="resetForm"
+          :rules="resetRules"
+          label-position="top"
+          class="mt-4"
+        >
+          <ElFormItem prop="email" label="邮箱">
+            <ElInput v-model="resetForm.email" disabled />
+          </ElFormItem>
+
+          <!-- 验证码 -->
+          <ElFormItem prop="code" label="验证码">
+            <div class="flex">
+              <ElInput v-model="resetForm.code" placeholder="请输入验证码" />
+              <ElButton
+                type="primary"
+                class="ml-2 w-[120px]"
+                :disabled="isCounting"
+                @click="handleSendCodeClick"
+              >
+                {{ isCounting ? `${countdown}秒` : '获取验证码' }}
+              </ElButton>
+            </div>
+          </ElFormItem>
+
+          <!-- 新密码 -->
+          <ElFormItem prop="password" label="新密码">
+            <ElInput
+              v-model="resetForm.password"
+              type="password"
+              placeholder="请输入新密码"
+              show-password
+            />
+          </ElFormItem>
+
+          <!-- 确认密码 -->
+          <ElFormItem prop="confirmPassword" label="确认密码">
+            <ElInput
+              v-model="resetForm.confirmPassword"
+              type="password"
+              placeholder="请再次输入新密码"
+              show-password
+            />
+          </ElFormItem>
+        </ElForm>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end">
+          <ElButton @click="passwordDialogVisible = false">取消</ElButton>
+          <ElButton type="primary" :loading="submitting" @click="handleUpdatePassword"
+            >确认</ElButton
+          >
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- 充值弹窗 -->
+    <Dialog v-model="rechargeDialogVisible" title="账户充值" width="600px">
+      <div v-if="userData.pay_address">
+        <ElDescriptions :column="1" border label-width="120px">
+          <ElDescriptionsItem label="账户ID">{{ userData.id }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="账户名">{{ userData.username }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="TRX余额">{{
+            formatTrx(userData.trx_mount)
+          }}</ElDescriptionsItem>
+          <ElDescriptionsItem label="收款地址">
+            <div class="flex items-center">
+              <div class="truncate mr-2">{{ userData.pay_address }}</div>
+              <ElButton type="primary" size="small" @click="copyAddress">复制</ElButton>
+            </div>
+          </ElDescriptionsItem>
+        </ElDescriptions>
+
+        <div v-if="userData.qr_address" class="mt-4 text-center">
+          <div class="font-bold mb-2">扫描二维码充值</div>
+          <img :src="userData.qr_address" alt="收款二维码" />
+          <div class="flex items-center justify-center mt-2">
+            <Icon icon="cryptocurrency-color:trx" :size="24" />
+            <div class="text-sm text-gray-500">（可转入大于 1TRX 的任意金额）</div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="py-4 text-center text-red-500"> 该账户未设置收款地址，请联系管理员。 </div>
+    </Dialog>
+    <!-- 充值记录弹窗 -->
+    <RechargeRecordDialog
+      ref="rechargeRecordDialogRef"
+      :account-id="userData.id || 0"
+      width="1200"
+    />
+
+    <!-- 扣款记录弹窗 -->
+    <DeductionRecordDialog ref="deductionRecordDialogRef" :account-id="userData.id || 0" />
   </div>
 </template>
 
@@ -155,6 +156,7 @@ import { getAccountListApi } from '@/api/account'
 import { useValidator } from '@/hooks/web/useValidator'
 import RechargeRecordDialog from './components/RechargeRecordDialog.vue'
 import DeductionRecordDialog from './components/DeductionRecordDialog.vue'
+import NotificationConfig from './components/NotificationConfig.vue'
 import { useClipboard } from '@/hooks/web/useClipboard'
 import { changePasswordApi, sendEmailCodeApi } from '@/api/login'
 import { debounce } from 'lodash-es'
@@ -466,5 +468,10 @@ onMounted(() => {
 
 .pw-reset-container {
   width: 100%;
+}
+
+/* 给账户信息卡片添加阴影 */
+.account-info-card :deep(.el-card) {
+  box-shadow: 0 2px 12px 0 rgb(0 0 0 / 10%);
 }
 </style>

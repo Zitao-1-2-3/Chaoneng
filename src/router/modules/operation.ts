@@ -72,7 +72,7 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           component: () => import('@/operationView/OperationCenter/EnergyTransaction/index.vue'),
           name: 'EnergyTransactionList',
           meta: {
-            title: '能量交易订单'
+            title: '能量订单'
           }
         },
         {
