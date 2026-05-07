@@ -14,6 +14,9 @@
           highlightCurrentRow: false,
           reserveSelection: false
         }"
+        :pagination="{
+          total: totalCount
+        }"
       >
         <template #searchButtons>
           <BaseButton type="primary" @click="handleExport">
@@ -44,6 +47,7 @@ import { handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
 // 引用SearchTable实例
 const searchTableRef = ref()
 const router = useRouter()
+const totalCount = ref(0)
 
 const orderTypeMap = () => {
   return {
@@ -119,6 +123,9 @@ const getAgentLedgerList = async (params?: any): Promise<{ list: any[]; total?: 
       total: res.data?.pager?.total,
       count: list.length
     })
+
+    // 更新总数
+    totalCount.value = res.data?.pager?.total || 0
 
     return {
       list,
@@ -244,7 +251,11 @@ const columns = ref<TableColumn[]>([
   {
     field: 'describe',
     label: '交易类型',
-    formatter: (row) => row.describe || '-'
+    formatter: (row) => {
+      // 根据 order_type (kind) 动态显示交易类型
+      const typeMap = orderTypeMap()
+      return typeMap[row.order_type] || row.describe || '-'
+    }
   },
 
   {
@@ -337,12 +348,13 @@ const handleExport = async () => {
     const res = await v2GetAgentBillList(exportParams)
 
     if (res.code === '000000' && res.data) {
+      const typeMap = orderTypeMap()
       const list = (res.data.list || []).map((item: any) => ({
         关联订单ID: item.order_id || '-',
         代理邮箱: item.agent_email || item.agent_name || '-',
         代理名称: item.agent_name || '-',
         机器人名称: item.bot_name || '-',
-        交易类型: item.describe || '-',
+        交易类型: typeMap[item.kind] || item.describe || '-',
         金额变动: `${parseFloat(item.amount) < 0 ? '-' : '+'}${Math.abs(parseFloat(item.amount))} ${item.coin || ''}`,
         交易后TRX余额: item.balance || '-',
         扣款状态: '已完成',

@@ -233,7 +233,7 @@ import {
 } from 'element-plus'
 import type { UploadUserFile, FormInstance } from 'element-plus'
 import { Dialog } from '@/components/Dialog'
-import { v2SendGroupMessage } from '@/api/tgUser'
+import { v1SendGroupMessage } from '@/api/tgUser'
 import { v1GetInnerButtonList } from '@/api/menu_list'
 import type { InnerButtonItem } from '@/api/menu_list/types'
 import { uploadFileV2 as uploadAPI } from '@/api/utils/upload'
@@ -650,8 +650,8 @@ const handleConfirmSend = async () => {
       }
     }
 
-    // 使用 v2 接口
-    await v2SendGroupMessage(apiParams)
+    // 使用 v1 接口
+    await v1SendGroupMessage(apiParams)
 
     emit('success')
     ElMessage.success('发送消息请求成功')
