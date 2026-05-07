@@ -87,7 +87,7 @@ import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
 import { useValidator } from '@/hooks/web/useValidator'
 import { v1SendGroupMessage } from '@/api/tgUser'
-import { getBotMenuList } from '@/api/menu_list'
+import { v1GetInnerButtonList } from '@/api/menu_list'
 import { v1GetBotUserList } from '@/api/tgUser' // 添加获取用户列表API
 import { uploadFileV2 as uploadAPI } from '@/api/utils/upload' // 使用 v2 版本的上传接口
 import type { BotMenuItem } from '@/api/menu_list/types'
@@ -272,10 +272,10 @@ const getContent = async () => (await getFormData())?.content || ''
 const setContent = async (newContent: string) => await setValues({ content: newContent })
 const { renderFormattingButtons } = useHtmlInsert(getContent, setContent)
 
-// 获取内联菜单列表 - 使用 getBotMenuList
+// 获取内联菜单列表 - 使用 v1GetInnerButtonList
 const fetchMenuList = async () => {
   try {
-    const res = await getBotMenuList({ bot_id: 0 }) // 运营端使用 bot_id: 0
+    const res = await v1GetInnerButtonList() // 运营端使用内联按钮接口
 
     console.log('res', res)
     if (res.code === '000000' && res.data) {
