@@ -7,7 +7,7 @@
 
     <!-- 购买限制标题 -->
     <el-divider content-position="left"
-      >购买限制<span style="color: #f56c6c">(需小于以下条件)</span></el-divider
+      >购买限制<span style=" font-size: 10px;color: #f56c6c">(需小于以下条件)</span></el-divider
     >
 
     <!-- 表单 -->
@@ -65,7 +65,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'Divider' as const,
     label: () => (
       <>
-        能量和带宽限制<span style={{ color: '#f56c6c' }}>(需小于以下条件)</span>
+        能量和带宽限制<span style={{ color: '#f56c6c', fontSize: '10px' }}>(需小于以下条件)</span>
       </>
     ),
     colProps: { span: 24 }
@@ -109,7 +109,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'Divider' as const,
     label: () => (
       <>
-        转账要求<span style={{ color: '#f56c6c' }}>(需小于以下条件)</span>
+        转账要求<span style={{ color: '#f56c6c', fontSize: '0px' }}>(需小于以下条件)</span>
       </>
     ),
     colProps: { span: 24 }
@@ -169,7 +169,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'Divider' as const,
     label: () => (
       <>
-        账户要求<span style={{ color: '#f56c6c' }}>(需大于以下条件)</span>
+        账户要求<span style={{ color: '#f56c6c', fontSize: '10px' }}>(需大于以下条件)</span>
       </>
     ),
     colProps: { span: 24 }
@@ -229,7 +229,8 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'Divider' as const,
     label: () => (
       <>
-        相同地址转账限制<span style={{ color: '#f56c6c' }}>(需同时满足以下条件)</span>
+        相同地址转账限制
+        <span style={{ color: '#f56c6c', fontSize: '10px' }}>(需同时满足以下条件)</span>
       </>
     ),
     colProps: { span: 24 }
