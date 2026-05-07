@@ -225,40 +225,36 @@ const columns = ref<TableColumn[]>([
     slots: {
       default: ({ row }: any) => {
         if (isEmpty(row.order_num)) return <span>-</span>
-        let href = '/operation'
+
+        // 根据订单类型确定跳转路径
+        let routePath = ''
         switch (row.order_type) {
           case 1: // 代理充值
-            href = `${href}/recharge_order`
+            routePath = '/operation/recharge_order'
             break
           case 3: // 兑换
-            href = `${href}/flash_exchange`
+            routePath = '/operation/flash_exchange'
             break
           case 4: // 按时间
           case 5: // 按笔数
           case 6: // 福利能量
           case 7: // 闪租
+          case 8: // 托管
           case 9: // 批量能量
           case 10: // 激活
-            href = `${href}/energy_transaction`
-            break
-          case 8: // 托管
-            href = `${href}/custody_details`
+            routePath = '/operation/energy_transaction'
             break
           case 11: // 机器人付费
-            href = ''
-            break
+            // 机器人付费没有对应页面，不跳转
+            return <span>{row.order_num}</span>
           default:
-            href = ''
-        }
-
-        if (!href) {
-          return <span>{row.order_num}</span>
+            return <span>{row.order_num}</span>
         }
 
         return (
           <ElLink
             type="primary"
-            onClick={() => router.push({ path: href, query: { query: row.order_num } })}
+            onClick={() => router.push({ path: routePath, query: { query: row.order_num } })}
           >
             {row.order_num}
           </ElLink>
