@@ -36,6 +36,7 @@
         :type="messageDialogType"
         :user="currentAccount"
         :bot-list="botsForDialog"
+        :is-single-user="true"
         @success="handleMessageSent"
       />
 

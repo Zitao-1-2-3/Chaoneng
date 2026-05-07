@@ -452,8 +452,26 @@ const handleImageRemove = (file: UploadUserFile) => {
 // 机器人选择变化
 const handleBotChange = (value: number | string | (number | string)[]) => {
   formData.value.bot_ids = value
-  if (Array.isArray(value) && value.length > 1) {
-    formData.value.filter_type = 'all_user'
+
+  // 当机器人选择变化时的逻辑
+  if (Array.isArray(value)) {
+    // 多选机器人
+    if (value.length > 1) {
+      // 切换到多选模式，强制设置为"全部用户"并清空用户列表
+      formData.value.filter_type = 'all_user'
+      formData.value.user_list = ''
+    } else if (value.length === 1) {
+      // 只有一个机器人，保持自定义用户模式，但清空用户列表（因为机器人可能变了）
+      formData.value.filter_type = 'user_custom'
+      formData.value.user_list = ''
+    } else {
+      // 没有选择机器人，清空用户列表
+      formData.value.user_list = ''
+    }
+  } else {
+    // 单选机器人，清空用户列表
+    formData.value.filter_type = 'user_custom'
+    formData.value.user_list = ''
   }
 }
 
@@ -683,12 +701,8 @@ watch(
   async (val) => {
     if (val) {
       await fetchMenuList()
-      formRef.value?.resetFields()
-      checkList.value = []
-      fileToUpload.value = null
-      fileListRef.value = []
 
-      // 如果是单个用户模式，自动填充信息
+      // 如果是单个用户模式，自动填充信息（在resetFields之前设置）
       if (props.isSingleUser && props.user) {
         formData.value.filter_type = 'user_custom'
 
@@ -700,6 +714,11 @@ watch(
       } else {
         formData.value.filter_type = 'user_custom'
       }
+
+      // 重置其他字段
+      checkList.value = []
+      fileToUpload.value = null
+      fileListRef.value = []
     } else {
       // 弹窗关闭时清空所有状态
       formRef.value?.resetFields()
