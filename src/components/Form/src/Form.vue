@@ -467,7 +467,13 @@ export default defineComponent({
           ref={(el: any) => setFormItemRefMap(el, item.field)}
           {...(item.formItemProps || {})}
           prop={item.field}
-          label={typeof item.label === 'object' ? item.label.text : item.label || ''}
+          label={
+            typeof item.label === 'object'
+              ? item.label.text
+              : typeof item.label === 'string'
+                ? item.label
+                : ''
+          }
         >
           {formItemSlots}
         </ElFormItem>
