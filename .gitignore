@@ -12,6 +12,10 @@ deploy.sh
 测试
 docs
 
+# Netlify 配置文件（仅测试仓库使用）
+netlify.toml
+netlify-operation.toml
+
 # Auto-generated files
 types/auto-imports.d.ts
 types/components.d.ts
