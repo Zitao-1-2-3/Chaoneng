@@ -42,6 +42,7 @@ import formatEnergyNum from '../helpers/formatEnergyNum'
 import { Icon } from '@/components/Icon'
 import { simpleExportToExcel } from '@/utils/excel'
 import { handleListMessage, handleErrorMessage, handleSuccessMessage } from '@/utils/messageHelper'
+import { getPaymentMethodText } from '@/utils/energyOrder'
 
 // 辅助函数：检查值是否为空
 const isEmpty = (value: any): boolean => {
@@ -679,7 +680,7 @@ const handleExport = async () => {
         支付金额: item.amount && item.amount != 0 ? `${item.amount} ${item.coin || ''}` : '-',
         能量数量: formatEnergyNum(item.energy_amount),
         能量有效期: formatExpirationTime(item.kind),
-        收款钱包地址: item.receive_address || '-',
+        收款方式: getPaymentMethodText(item.energy_address, item.receive_address),
         能量接收地址: item.energy_address || '-',
         笔数: item.energy_count || '-',
         订单状态: getStatusTextForTable(item.status),

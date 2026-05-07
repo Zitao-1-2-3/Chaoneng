@@ -532,18 +532,8 @@ const tableColumns: TableColumn[] = [
     }
   },
   {
-    field: 'kind',
-    label: '信息类别',
-    width: 120,
-    formatter: (row) => {
-      if (row.kind === 1) return '只发一次'
-      if (row.kind === 2) return '周期发送'
-      return '—'
-    }
-  },
-  {
     field: 'period',
-    label: '发送周期',
+    label: '信息类别',
     width: 120,
     formatter: (row) => {
       if (row.period === null || row.period === 0 || row.period === 4294967295) return '只发一次'

@@ -133,9 +133,9 @@ const columns = computed(() => {
       hideWhen: 2
     },
     {
-      field: 'account',
+      field: 'username',
       label: '用户账号',
-      formatter: (row) => row.account || '-',
+      formatter: (row) => row.username || '-',
       hideWhen: 1
     },
     {
@@ -398,7 +398,7 @@ const handleExport = async () => {
           TG用户ID: item.tg_user_id && item.tg_user_id !== 0 ? item.tg_user_id : '-',
           TG用户昵称: item.tg_first_name || '-',
           TG用户名: item.tg_user_name || '-',
-          用户账号: item.account || '-',
+          用户账号: item.username || '-',
           用户邮箱: item.email || '-',
           机器人ID: item.bot_id,
           机器人用户名: botInfo?.user_name || '-',

@@ -676,9 +676,9 @@ const handleExport = async () => {
       const list = res.data.list.map((item: any) => ({
         订单号: item.id,
         机器人名称: item.bot_name,
-        用户账号: item.user_account || '-',
-        用户邮箱: item.user_email || '-',
-        来源: item.source === 'h5' ? 'H5' : item.source === 'bot' ? '机器人' : item.source || '-',
+        // 用户账号: item.user_account || '-',
+        // 用户邮箱: item.user_email || '-',
+        // 来源: item.source === 'h5' ? 'H5' : item.source === 'bot' ? '机器人' : item.source || '-',
         订单类型: item.in_coin === 'USDT' ? 'USDT → TRX' : 'TRX → USDT',
         支付金额: `${item.amount} ${item.in_coin}`,
         兑换金额: `${item.out_amount} ${item.out_coin}`,

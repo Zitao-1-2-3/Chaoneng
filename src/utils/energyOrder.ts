@@ -127,3 +127,27 @@ export function formatEnergyAmount(amount: string | number | undefined): string 
   if (isNaN(num)) return '-'
   return num.toLocaleString('en-US')
 }
+
+/**
+ * 获取收款方式文本
+ * @param energyAddress 能量接收地址
+ * @param receiveAddress 收款地址
+ * @returns 收款方式文本
+ */
+export function getPaymentMethodText(
+  energyAddress: string | null | undefined,
+  receiveAddress: string | null | undefined
+): string {
+  // 如果能量接收地址为空，显示横杠
+  if (!energyAddress || energyAddress.trim() === '') {
+    return '-'
+  }
+
+  // 如果能量接收地址不为空，且收款地址为空，显示"余额支付"
+  if (!receiveAddress || receiveAddress.trim() === '') {
+    return '余额支付'
+  }
+
+  // 其他情况显示收款地址
+  return receiveAddress
+}

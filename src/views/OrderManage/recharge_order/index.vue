@@ -676,13 +676,13 @@ const handleExport = async () => {
     if (res.code === '000000' && res.data && res.data.list) {
       // 将数据转换为 Excel 格式，列名与列表显示一致
       const list = res.data.list.map((item: any) => ({
-        订单号: item.id,
-        TG用户名: item.tg_user_name,
-        TG用户昵称: item.tg_first_name,
+        订单号: item.id || '-',
+        TG用户名: item.tg_user_name || '-',
+        TG用户昵称: item.tg_first_name || '-',
         用户账号: item.username || '-',
         用户邮箱: item.email || '-',
         来源: item.origin === 1 ? '机器人' : item.origin === 2 ? 'H5' : '-',
-        机器人名称: item.bot_name,
+        机器人名称: item.bot_name || '-',
         订单类型: item.coin === 'TRX' ? '充值TRX' : '充值USDT',
         金额: `${item.amount} ${item.coin}`,
         订单状态: getStatusText(item.status),

@@ -21,7 +21,7 @@ export interface UserListParamsV2 {
   page_size?: number // 每页大小
   start_time?: string // 开始时间
   status?: number // 状态
-  account?: string // 用户账号
+  username?: string // 用户账号
   email?: string // 用户邮箱
 }
 
@@ -43,7 +43,7 @@ export interface UserListItemV2 {
   address_list: string[] // 地址列表
   lang: string // 语言
   status: number // 状态
-  account?: string // 用户账号
+  username?: string // 用户账号
   email?: string // 用户邮箱
   h5_balance?: string // H5余额
   source?: string // 来源

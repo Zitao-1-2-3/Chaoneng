@@ -83,7 +83,8 @@ import {
   getEnergyOrderKindText,
   ENERGY_ORDER_KIND_OPTIONS,
   calculateEnergyRentText,
-  formatEnergyAmount
+  formatEnergyAmount,
+  getPaymentMethodText
 } from '@/utils/energyOrder'
 
 const { t } = useI18n()
@@ -182,7 +183,7 @@ const handleExport = async () => {
           交易金额: `${item.amount || '-'} ${item.coin || ''}`.trim(),
           应发放能量: formatEnergyAmount(item.energy_amount),
           实际发放能量: formatEnergyAmount(item.energy_actual_amount),
-          收款钱包地址: item.receive_address || '-',
+          收款方式: getPaymentMethodText(item.energy_address, item.receive_address),
           能量接收地址: item.energy_address || '-',
           笔数: item.energy_count || '-',
           订单状态: getStatusText(item.status),
