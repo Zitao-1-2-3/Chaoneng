@@ -153,25 +153,44 @@ const handleExport = async () => {
     const res = await v2GetEnergyList(apiParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为 Excel 格式，直接使用后端字段名
-      const list = res.data.list.map((item: any) => ({
-        订单号: item.id || '-',
-        代理名称: item.agent_name || '-',
-        用户账号: item.username || '-',
-        用户邮箱: item.email || '-',
-        来源: getSourceText(item.origin, item.tg_user_name, item.username),
-        订单类型: getEnergyOrderKindText(item.kind),
-        交易金额: `${item.amount || '-'} ${item.coin || ''}`.trim(),
-        应发放能量: formatEnergyAmount(item.energy_amount),
-        实际发放能量: formatEnergyAmount(item.energy_actual_amount),
-        收款钱包地址: item.receive_address || '-',
-        能量接收地址: item.energy_address || '-',
-        笔数: item.energy_count || '-',
-        订单状态: getStatusText(item.status),
-        备注: item.describe || '-',
-        创建时间: item.created_at ? formatToDateTime(item.created_at) : '-',
-        回收时间: item.recycled_at ? formatToDateTime(new Date(item.recycled_at).getTime()) : '-'
-      }))
+      // 将数据转换为 Excel 格式，根据当前来源筛选决定导出哪些字段
+      const list = res.data.list.map((item: any) => {
+        // 基础字段（始终导出）
+        const baseData: any = {
+          订单号: item.id || '-',
+          代理名称: item.agent_name || '-'
+        }
+
+        // 根据来源判断导出哪些字段
+        // 如果没有筛选来源，或者来源为机器人(1)，导出TG相关字段
+        if (!selectedSource.value || selectedSource.value === 1 || selectedSource.value === '1') {
+          baseData['TG用户名'] = item.tg_user_name || '-'
+          baseData['TG用户昵称'] = item.tg_first_name || '-'
+        }
+
+        // 如果没有筛选来源，或者来源为H5(2)，导出H5相关字段
+        if (!selectedSource.value || selectedSource.value === 2 || selectedSource.value === '2') {
+          baseData['用户账号'] = item.username || '-'
+          baseData['用户邮箱'] = item.email || '-'
+        }
+
+        // 其他通用字段
+        return {
+          ...baseData,
+          来源: getSourceText(item.origin, item.tg_user_name, item.username),
+          订单类型: getEnergyOrderKindText(item.kind),
+          交易金额: `${item.amount || '-'} ${item.coin || ''}`.trim(),
+          应发放能量: formatEnergyAmount(item.energy_amount),
+          实际发放能量: formatEnergyAmount(item.energy_actual_amount),
+          收款钱包地址: item.receive_address || '-',
+          能量接收地址: item.energy_address || '-',
+          笔数: item.energy_count || '-',
+          订单状态: getStatusText(item.status),
+          备注: item.describe || '-',
+          创建时间: item.created_at ? formatToDateTime(item.created_at) : '-',
+          回收时间: item.recycled_at ? formatToDateTime(new Date(item.recycled_at).getTime()) : '-'
+        }
+      })
 
       // 导出为 Excel
       simpleExportToExcel(list, '能量订单列表')
@@ -184,13 +203,70 @@ const handleExport = async () => {
   }
 }
 
+// 正在停止的订单ID集合
+const stoppingOrders = ref<Set<string>>(new Set())
+
+// 已经停止过的订单ID集合（持久化记录，只有状态真正改变后才永久禁用）
+const stoppedOrders = ref<Set<string>>(new Set())
+
+// 轮询检查订单状态
+const pollOrderStatus = async (orderId: string, maxAttempts = 3, interval = 3000) => {
+  let attempts = 0
+
+  const checkStatus = async () => {
+    attempts++
+
+    try {
+      // 重新加载列表
+      await searchTableRef.value?.reload()
+
+      // 检查订单是否已经不是"已发送"状态
+      const currentData = searchTableRef.value?.getTableData?.() || []
+      const order = currentData.find((item: any) => item.id === orderId)
+
+      if (!order || order.status !== 3) {
+        // 状态已改变（不再是"已发送"），停止轮询
+        stoppingOrders.value.delete(orderId)
+        // 添加到已停止集合，永久禁用
+        stoppedOrders.value.add(orderId)
+        return
+      }
+
+      // 如果还没达到最大尝试次数，继续轮询
+      if (attempts < maxAttempts) {
+        setTimeout(checkStatus, interval)
+      } else {
+        // 达到最大尝试次数（9秒后），状态还没变化
+        // 清除停止中状态，恢复为可点击
+        stoppingOrders.value.delete(orderId)
+        // 不添加到 stoppedOrders，允许用户再次点击
+        console.warn(`订单 ${orderId} 停止代理后，状态未在9秒内改变`)
+      }
+    } catch (error) {
+      console.error('轮询订单状态失败:', error)
+      stoppingOrders.value.delete(orderId)
+      // 失败时不添加到 stoppedOrders
+    }
+  }
+
+  // 开始第一次检查
+  setTimeout(checkStatus, interval)
+}
+
 // 停止代理 - 使用后端字段名
 const handleStop = async (row) => {
+  // 添加到正在停止的集合中
+  stoppingOrders.value.add(row.id)
+
   try {
     await v2RecycleOrder(row.id)
     handleSuccessMessage('停止代理成功')
-    searchTableRef.value?.reload()
+
+    // 开始轮询检查订单状态（每3秒一次，最多3次）
+    pollOrderStatus(row.id, 3, 3000)
   } catch (error) {
+    // 失败时清除停止状态
+    stoppingOrders.value.delete(row.id)
     handleErrorMessage(error, '停止代理失败')
   }
 }
@@ -274,9 +350,22 @@ const columns = computed(() => {
     },
     {
       field: 'receive_address',
-      label: '收款钱包地址',
+      label: '收款方式',
       minWidth: 200,
-      formatter: (row) => row.receive_address || '-'
+      formatter: (row) => {
+        // 如果能量接收地址为空，显示横杠
+        if (!row.energy_address || row.energy_address.trim() === '') {
+          return '-'
+        }
+
+        // 如果能量接收地址不为空，且收款地址为空，显示"余额支付"
+        if (!row.receive_address || row.receive_address.trim() === '') {
+          return '余额支付'
+        }
+
+        // 其他情况显示收款地址
+        return row.receive_address
+      }
     },
     {
       field: 'energy_address',
@@ -362,8 +451,13 @@ const actionColumn = {
   slots: {
     default: (data: any) => {
       const row = data.row
-      // 只有 status=3 时才可点击停止代理按钮
-      const canStop = row.status === 3
+      // 判断是否可以停止：
+      // 1. 状态必须是"已发送"（status=3）
+      // 2. 不在停止中
+      // 3. 没有被停止过（即使后端列表还没更新）
+      const canStop =
+        row.status === 3 && !stoppingOrders.value.has(row.id) && !stoppedOrders.value.has(row.id)
+      const isStopping = stoppingOrders.value.has(row.id)
 
       return (
         <>
@@ -373,7 +467,7 @@ const actionColumn = {
             </BaseButton>
           ) : (
             <BaseButton type="info" disabled>
-              停止代理
+              {isStopping ? '停止中...' : '停止代理'}
             </BaseButton>
           )}
           <BaseButton type="primary" onClick={() => handleDetail(row)}>

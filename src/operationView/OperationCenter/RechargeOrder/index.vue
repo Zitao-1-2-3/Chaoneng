@@ -638,25 +638,42 @@ const handleExport = async () => {
     const res = await v2GetDepositList(adaptedParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
-      // 将数据转换为 Excel 格式，直接使用后端字段名
-      const list = res.data.list.map((item: any) => ({
-        订单号: item.id || '-',
-        代理名称: item.agent_name || '-',
-        TG用户名: item.tg_user_name || '-',
-        TG用户昵称: item.tg_first_name || '-',
-        用户账号: item.username || '-',
-        用户邮箱: item.email || '-',
-        机器人名称: item.bot_name || '-',
-        来源: getSourceText(item.origin, item.tg_user_name, item.username),
-        订单类型: item.coin ? `充值${item.coin}` : '-',
-        金额: item.amount ? `${item.amount} ${item.coin || ''}` : '-',
-        订单状态: getStatusText(item.status),
-        收款地址: item.receive_address || '-',
-        支付地址: item.pay_address || '-',
-        备注: item.describe || '-',
-        创建时间: item.created_at ? formatToDateTime(item.created_at) : '-',
-        完成时间: item.paid_at ? formatToDateTime(item.paid_at) : '-'
-      }))
+      // 将数据转换为 Excel 格式，根据当前来源筛选决定导出哪些字段
+      const list = res.data.list.map((item: any) => {
+        // 基础字段（始终导出）
+        const baseData: any = {
+          订单号: item.id || '-',
+          代理名称: item.agent_name || '-'
+        }
+
+        // 根据来源判断导出哪些字段
+        // 如果没有筛选来源，或者来源为机器人(1)，导出TG相关字段
+        if (!selectedSource.value || selectedSource.value === 1 || selectedSource.value === '1') {
+          baseData['TG用户名'] = item.tg_user_name || '-'
+          baseData['TG用户昵称'] = item.tg_first_name || '-'
+        }
+
+        // 如果没有筛选来源，或者来源为H5(2)，导出H5相关字段
+        if (!selectedSource.value || selectedSource.value === 2 || selectedSource.value === '2') {
+          baseData['用户账号'] = item.username || '-'
+          baseData['用户邮箱'] = item.email || '-'
+        }
+
+        // 其他通用字段
+        return {
+          ...baseData,
+          机器人名称: item.bot_name || '-',
+          来源: getSourceText(item.origin, item.tg_user_name, item.username),
+          订单类型: item.coin ? `充值${item.coin}` : '-',
+          金额: item.amount ? `${item.amount} ${item.coin || ''}` : '-',
+          订单状态: getStatusText(item.status),
+          收款地址: item.receive_address || '-',
+          支付地址: item.pay_address || '-',
+          备注: item.describe || '-',
+          创建时间: item.created_at ? formatToDateTime(item.created_at) : '-',
+          完成时间: item.paid_at ? formatToDateTime(item.paid_at) : '-'
+        }
+      })
 
       // 导出为 Excel
       simpleExportToExcel(list, '充值订单列表')
