@@ -7,7 +7,7 @@
 
     <!-- 购买限制标题 -->
     <el-divider content-position="left"
-      >购买限制<span style=" font-size: 10px;color: #f56c6c">(需小于以下条件)</span></el-divider
+      >购买限制<span style="font-size: 10px; color: #f56c6c">(需小于以下条件)</span></el-divider
     >
 
     <!-- 表单 -->

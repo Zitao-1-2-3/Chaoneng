@@ -140,6 +140,20 @@ const botInfoSchema = reactive<FormSchema[]>([
     }
   },
   {
+    field: 'invite_reward',
+    component: 'InputNumber' as const,
+    label: {
+      text: '邀请奖励（TRX）',
+      tips: '用户成功邀请好友后获得的TRX奖励金额'
+    },
+    componentProps: {
+      placeholder: '请输入邀请奖励金额',
+      min: 0,
+      step: 0.1,
+      precision: 2
+    }
+  },
+  {
     field: 'describe',
     component: 'Input' as const,
     label: '备注：',

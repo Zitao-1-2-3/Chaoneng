@@ -28,6 +28,7 @@ export type BotListItem = {
   token: string // 机器人Token
   tg_admin: string // TG管理员
   describe: string // 描述
+  invite_reward?: number // 邀请奖励（TRX）
   total_fee: string // 总费用
   user_count: number // 用户数量
   order_count: number // 订单数量
@@ -67,6 +68,7 @@ export type BotDetail = {
   token: string // 机器人Token
   tg_admin: string // TG管理员
   describe: string // 描述
+  invite_reward?: number // 邀请奖励（TRX）
   total_fee: number // 总费用
 }
 
@@ -202,6 +204,7 @@ export type UpdateBotParams = {
   id: number | string // 机器人ID（必填）
   auto_renew?: number // 自动续费：1-是，2-否
   describe?: string // 描述
+  invite_reward?: number // 邀请奖励（TRX）
   status?: number // 状态：1-启用，2-禁用
   tg_admin?: string // TG管理员
 }

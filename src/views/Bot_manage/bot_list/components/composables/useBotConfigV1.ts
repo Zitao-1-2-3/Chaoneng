@@ -75,6 +75,9 @@ export function useBotConfigV1() {
         token: botDetailRes.data.token || '',
         api_key: '',
         tg_admin: botDetailRes.data.tg_admin || '',
+        invite_reward: botDetailRes.data.invite_reward
+          ? Number(botDetailRes.data.invite_reward)
+          : 0,
         describe: botDetailRes.data.describe || '',
         status: botDetailRes.data.status || 2
       })
@@ -296,7 +299,8 @@ export function useBotConfigV1() {
         id: currentBot.value.id,
         describe: botInfoData.describe,
         status: botInfoData.status,
-        tg_admin: botInfoData.tg_admin
+        tg_admin: botInfoData.tg_admin,
+        invite_reward: botInfoData.invite_reward
       })
 
       // 2. 更新Site信息（客服账号和H5端开关）
