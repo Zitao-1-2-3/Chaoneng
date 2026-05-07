@@ -1,14 +1,14 @@
-# Netlify 部署配置 - 运营端（Operation）
+# Netlify 部署配置 - 代理端（Management）
 
 [build]
-  command = "pnpm install && pnpm build:operation"
-  publish = "dist-operation"
+  command = "pnpm install && pnpm build:management"
+  publish = "dist-management"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps"
-  VITE_SYSTEM_TYPE = "Operation"
+  VITE_SYSTEM_TYPE = "Management"
 
 [functions]
   # 增加函数请求体大小限制到 10MB
@@ -17,22 +17,22 @@
   # 如果需要更大文件，考虑使用后台函数或直接上传到对象存储
 
 [context.production]
-  command = "pnpm install && pnpm build:operation"
-  publish = "dist-operation"
+  command = "pnpm install && pnpm build:management"
+  publish = "dist-management"
   [context.production.environment]
-    VITE_SYSTEM_TYPE = "Operation"
+    VITE_SYSTEM_TYPE = "Management"
 
 [context.develop]
-  command = "pnpm install && pnpm build:operation"
-  publish = "dist-operation"
+  command = "pnpm install && pnpm build:management"
+  publish = "dist-management"
   [context.develop.environment]
-    VITE_SYSTEM_TYPE = "Operation"
+    VITE_SYSTEM_TYPE = "Management"
 
 [context.branch-deploy]
-  command = "pnpm install && pnpm build:operation"
-  publish = "dist-operation"
+  command = "pnpm install && pnpm build:management"
+  publish = "dist-management"
   [context.branch-deploy.environment]
-    VITE_SYSTEM_TYPE = "Operation"
+    VITE_SYSTEM_TYPE = "Management"
 
 # 代理静态文件访问（图片、视频等）- 必须放在 API 路由之前
 [[redirects]]
@@ -71,9 +71,9 @@
   status = 200
   force = true
 
-# 重定向 /operation 路径的静态资源到根目录
+# 重定向 /management 路径的静态资源到根目录
 [[redirects]]
-  from = "/operation/*"
+  from = "/management/*"
   to = "/:splat"
   status = 200
 
