@@ -47,7 +47,8 @@ type OrderDetailType = Partial<
     receive_address?: string
     resend_time?: number
     status?: number
-    agent_out_amount?: string | number
+    agent_out_amount?: string | number // 代理利润
+    agent_cost?: string | number // 代理扣款
     finish_time?: number
     describe?: string
     pay_unit?: string
@@ -227,9 +228,9 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
   },
   {
     label: '代理扣款',
-    field: 'agent_out_amount',
+    field: 'agent_cost',
     span: 8,
-    slots: { default: (data) => formatAmount(data.agent_out_amount, data.exchange_unit) }
+    slots: { default: (data) => formatAmount(data.agent_cost, 'TRX') }
   },
 
   // {
@@ -247,7 +248,7 @@ const detailSchema = computed<DescriptionsSchema[]>(() => [
   { label: '备注', field: 'describe', span: 24, slots: { default: (data) => data.describe ?? '-' } }
 ])
 
-const open = async (orderIdValue: number | string) => {
+const open = async (orderIdValue: number | string, rowData?: any) => {
   const id = String(orderIdValue) // 转换为字符串类型
   if (!id) {
     ElMessage.error('无效的订单ID')
@@ -288,7 +289,8 @@ const open = async (orderIdValue: number | string) => {
         trx_price: exchange.actual_rate, // 对话汇率
         real_price: exchange.real_rate, // 实时汇率
         plate_profit: exchange.plate_profit,
-        agent_out_amount: responseData.agent_cost || 0, // 代理扣款（使用agent_cost字段）
+        agent_out_amount: exchange.agent_profit || 0, // 代理利润
+        agent_cost: rowData?.agent_cost || responseData.agent_cost || 0, // 代理扣款（优先使用列表数据）
         receive_address: responseData.receive_address,
         status: responseData.status,
         finish_time: responseData.paid_at || exchange.out_at || 0,

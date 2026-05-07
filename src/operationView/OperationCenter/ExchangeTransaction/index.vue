@@ -411,7 +411,7 @@ const actionColumn = {
 
 // 处理详情查看 - 使用后端字段名
 const handleDetail = (row: V2ExchangeItem) => {
-  orderDetailRef.value?.open(row.id)
+  orderDetailRef.value?.open(row.id, row) // 传递完整的行数据
 }
 
 // 请求闪兑明细列表数据 - 直接使用后端字段名
