@@ -141,7 +141,7 @@
           <ElFormItem label="发送时间">
             <template #label>
               <ElTooltip
-                content="选择消息发送的具体时间，只能选择未来时间，不选择则立即发送"
+                content="选择消息发送的具体时间，只能选择当前时间5分钟之后，不选择则立即发送"
                 placement="top"
               >
                 <span class="cursor-help">发送时间 <span class="text-primary">ⓘ</span></span>
@@ -155,7 +155,11 @@
               value-format="YYYY-MM-DD HH:mm:ss"
               style="width: 100%"
               :clearable="true"
-              :disabled-date="(time: Date) => time.getTime() < Date.now()"
+              :disabled-date="disabledDate"
+              :disabled-hours="disabledHours"
+              :disabled-minutes="disabledMinutes"
+              :default-value="defaultSendTime"
+              @focus="handleDatePickerFocus"
             />
           </ElFormItem>
         </ElCol>
@@ -163,7 +167,7 @@
           <ElFormItem label="发送时间">
             <template #label>
               <ElTooltip
-                content="选择消息发送的具体时间，只能选择未来时间，不选择则立即发送"
+                content="选择消息发送的具体时间，只能选择当前时间5分钟之后，不选择则立即发送"
                 placement="top"
               >
                 <span class="cursor-help">发送时间 <span class="text-primary">ⓘ</span></span>
@@ -177,7 +181,11 @@
               value-format="YYYY-MM-DD HH:mm:ss"
               style="width: 100%"
               :clearable="true"
-              :disabled-date="(time: Date) => time.getTime() < Date.now()"
+              :disabled-date="disabledDate"
+              :disabled-hours="disabledHours"
+              :disabled-minutes="disabledMinutes"
+              :default-value="defaultSendTime"
+              @focus="handleDatePickerFocus"
             />
           </ElFormItem>
         </ElCol>
@@ -764,6 +772,82 @@ watch(
     }
   }
 )
+
+// 日期时间选择器禁用逻辑
+// 禁用日期：禁用今天之前的日期
+const disabledDate = (time: Date) => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return time.getTime() < today.getTime()
+}
+
+// 默认发送时间：当前时间
+const defaultSendTime = computed(() => {
+  const now = new Date()
+  return now
+})
+
+// 禁用小时：如果是今天，禁用当前小时之前的小时
+const disabledHours = () => {
+  const selectedDate = formData.value.send_at ? new Date(formData.value.send_at) : null
+  if (!selectedDate) return []
+
+  const now = new Date()
+  const isToday =
+    selectedDate.getFullYear() === now.getFullYear() &&
+    selectedDate.getMonth() === now.getMonth() &&
+    selectedDate.getDate() === now.getDate()
+
+  if (isToday) {
+    const currentHour = now.getHours()
+    const disabledHoursList: number[] = []
+    for (let i = 0; i < currentHour; i++) {
+      disabledHoursList.push(i)
+    }
+    return disabledHoursList
+  }
+  return []
+}
+
+// 禁用分钟：如果是今天且是当前小时，禁用当前时间+5分钟之前的分钟
+const disabledMinutes = (hour: number) => {
+  const selectedDate = formData.value.send_at ? new Date(formData.value.send_at) : null
+  if (!selectedDate) return []
+
+  const now = new Date()
+  const isToday =
+    selectedDate.getFullYear() === now.getFullYear() &&
+    selectedDate.getMonth() === now.getMonth() &&
+    selectedDate.getDate() === now.getDate()
+
+  if (isToday && hour === now.getHours()) {
+    // 当前时间 + 5分钟
+    const minAllowedMinute = now.getMinutes() + 5
+    const disabledMinutesList: number[] = []
+    for (let i = 0; i < minAllowedMinute && i < 60; i++) {
+      disabledMinutesList.push(i)
+    }
+    return disabledMinutesList
+  }
+  return []
+}
+
+// 处理日期选择器获得焦点事件
+const handleDatePickerFocus = () => {
+  // 如果当前没有选择时间，自动填充当前时间
+  if (!formData.value.send_at) {
+    const now = new Date()
+    now.setMilliseconds(0)
+    // 格式化为 YYYY-MM-DD HH:mm:ss
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    const hours = String(now.getHours()).padStart(2, '0')
+    const minutes = String(now.getMinutes()).padStart(2, '0')
+    const seconds = String(now.getSeconds()).padStart(2, '0')
+    formData.value.send_at = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+  }
+}
 
 onMounted(() => {
   // 初始化逻辑
