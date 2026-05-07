@@ -74,14 +74,14 @@ const columns = computed<TableColumn[]>(() => {
       field: 'bot_name',
       label: '机器人用户名',
       width: 150,
-      formatter: (row: AutoManageAddressItem) => row.bot_name || '-'
+      formatter: (row: any) => row.bot_name || '-'
     },
     {
-      field: 'user_name',
+      field: 'tg_user_name',
       label: 'TG用户名',
       width: 150,
       hideWhen: 2, // 来源为 H5(2) 时隐藏
-      formatter: (row: AutoManageAddressItem) => row.user_name || '-'
+      formatter: (row: any) => row.tg_user_name || '-'
     },
     {
       field: 'user_account',
@@ -115,15 +115,14 @@ const columns = computed<TableColumn[]>(() => {
       label: '创建时间',
       sortable: 'custom',
       width: 180,
-      formatter: (row: AutoManageAddressItem) => formatToDateTime(row.create_time)
+      formatter: (row: any) => formatToDateTime(row.create_time)
     },
     {
       field: 'finish_time',
       label: '更新时间',
       sortable: 'custom',
       width: 180,
-      formatter: (row: AutoManageAddressItem) =>
-        row.finish_time ? formatToDateTime(row.finish_time) : '-'
+      formatter: (row: any) => (row.finish_time ? formatToDateTime(row.finish_time) : '-')
     }
   ]
 
@@ -258,7 +257,7 @@ const fetchAutoManageList = async (params: any) => {
           create_time: item.created_at * 1000, // Unix时间戳（秒）转毫秒
           finish_time: item.updated_at * 1000, // Unix时间戳（秒）转毫秒
           bot_name: item.bot_name,
-          user_name: item.user_name,
+          tg_user_name: item.tg_user_name,
           tg_name: item.user_name,
           order_id: item.order_id,
           user_account: item.username || '-',

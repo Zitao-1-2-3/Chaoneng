@@ -39,7 +39,7 @@ export interface HostingItemV2 {
   order_id: string // 订单ID
   updated_at: string // 更新时间
   user_id: number // 用户ID
-  user_name: string // 用户名
+  tg_user_name: string // 用户名
   username?: string // 用户账号
   email?: string // 用户邮箱
   origin?: number // 来源（1=机器人，2=H5）

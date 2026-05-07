@@ -59,7 +59,7 @@ const fetchBotOptions = async () => {
     if (res.code === '000000' && res.data) {
       const bots = (res.data.list || []).map((bot: any) => {
         return {
-          label: `${bot.user_name} (${bot.first_name})`,
+          label: `${bot.tg_user_name} (${bot.first_name})`,
           value: bot.id
         }
       })
@@ -97,11 +97,11 @@ const columns = computed(() => {
       formatter: (row: HostingItemV2) => row.bot_name || '-'
     },
     {
-      field: 'user_name',
+      field: 'tg_user_name',
       label: '用户名',
       width: 150,
       hideWhen: 2, // H5时隐藏
-      formatter: (row: HostingItemV2) => row.user_name || '-'
+      formatter: (row: HostingItemV2) => row.tg_user_name || '-'
     },
     {
       field: 'username',
@@ -121,7 +121,7 @@ const columns = computed(() => {
       field: 'origin',
       label: '来源',
       width: 100,
-      formatter: (row: HostingItemV2) => getSourceText(row.origin, row.user_name, row.username)
+      formatter: (row: HostingItemV2) => getSourceText(row.origin, row.tg_user_name, row.username)
     },
     {
       field: 'address',

@@ -40,7 +40,7 @@ export interface HostingItemV1 {
   order_id: string // 订单ID
   agent_name: string // 代理名称
   bot_name: string // 机器人名称
-  user_name: string // 用户名
+  tg_user_name: string // 用户名
   user_account?: string // 用户账号
   user_email?: string // 用户邮箱
   origin?: number // 来源（1=机器人，2=H5）
@@ -105,17 +105,10 @@ export interface AutoManageAddressItem {
   used_energy_num?: number // (来自示例数据)
   nickname?: string // 用户昵称 (来自示例数据 tg_name 或 nickname)
   tg_name?: string // 用户TG名 (来自示例数据)
-  user_name?: string // 用户名（新接口字段）
+  user_name?: string // 用户名（新接口字段 - 对应后端 user_name）
+  tg_user_name?: string // TG用户名（新接口字段）
   bot_name?: string // 机器人用户名
   user_account?: string // 用户账号
   user_email?: string // 用户邮箱
   origin?: number // 来源（1=机器人，2=H5）
 }
-
-// 由于不再有详情页，HostedOrderDetail 可以移除或注释掉
-// export interface HostedOrderDetail extends AutoManageAddressItem {
-//   // 详情可能包含更多字段
-//   payment_method?: string;
-//   transaction_id?: string;
-//   remarks?: string;
-// }
