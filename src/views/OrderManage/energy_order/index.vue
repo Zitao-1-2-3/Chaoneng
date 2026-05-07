@@ -230,9 +230,22 @@ const columns = computed<TableColumn[]>(() => {
     },
     {
       field: 'receive_address',
-      label: '收款钱包地址',
+      label: '收款方式',
       minWidth: 180,
-      formatter: (row) => row.receive_address || '-'
+      formatter: (row) => {
+        // 如果能量接收地址为空，显示横杠
+        if (!row.energy_address || row.energy_address.trim() === '') {
+          return '-'
+        }
+
+        // 如果能量接收地址不为空，且收款地址为空，显示"余额支付"
+        if (!row.receive_address || row.receive_address.trim() === '') {
+          return '余额支付'
+        }
+
+        // 其他情况显示收款地址
+        return row.receive_address
+      }
     },
     {
       field: 'energy_address',
