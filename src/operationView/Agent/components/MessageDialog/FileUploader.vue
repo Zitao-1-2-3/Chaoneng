@@ -2,7 +2,6 @@
   <div class="file-uploader">
     <ElFormItem label="上传图片/视频">
       <div class="flex flex-col gap-2 w-full">
-        <!-- 文件计数显示 -->
         <div
           v-if="fileList.length > 0"
           :style="{
@@ -42,13 +41,11 @@
                 disablePictureInPicture
                 controlsList="nodownload nofullscreen noremoteplayback"
               ></video>
-              <!-- 播放图标覆盖层 -->
               <div class="play-icon-overlay">
                 <svg class="play-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path fill="currentColor" d="M8 5v14l11-7z" />
                 </svg>
               </div>
-              <!-- 删除按钮 -->
               <span class="el-upload-list__item-delete" @click.stop="handleRemove(file)">
                 <svg class="el-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -62,7 +59,7 @@
           <BaseButton type="primary" size="small">选择文件</BaseButton>
         </ElUpload>
         <p class="text-gray-500 text-sm m-0">
-          支持图片（PNG、JPEG、GIF、WEBP）和视频（MP4、AVI、MOV），最多上传 10 个文件
+          支持图片（PNG、JPEG、JPG、GIF、WEBP）和视频（MP4、AVI、MOV），最多上传 10 个文件
         </p>
       </div>
     </ElFormItem>
@@ -84,7 +81,6 @@ defineProps({
 
 const emit = defineEmits(['preview', 'change', 'remove'])
 
-// 判断文件类型
 const getFileType = (file: File | UploadUserFile): 'image' | 'video' => {
   const fileName = file.name || ''
   const fileType = (file as File).type || (file as UploadUserFile).raw?.type || ''
@@ -119,7 +115,6 @@ const handleExceed = () => {
   width: 100%;
 }
 
-/* 紧凑型上传组件 - 缩小尺寸 */
 .compact-upload :deep(.el-upload-list--picture-card) {
   --el-upload-list-picture-card-size: 80px;
 }
@@ -132,14 +127,12 @@ const handleExceed = () => {
   justify-content: center;
 }
 
-/* 一行最多5个 */
 .compact-upload :deep(.el-upload-list--picture-card .el-upload-list__item) {
   width: 80px;
   height: 80px;
   margin: 0 8px 8px 0;
 }
 
-/* 视频缩略图容器 */
 .video-thumbnail-wrapper {
   position: relative;
   display: flex;
@@ -158,7 +151,6 @@ const handleExceed = () => {
   object-fit: cover;
 }
 
-/* 禁用视频的画中画和其他控制 */
 .video-thumbnail::-webkit-media-controls-panel {
   display: none !important;
 }
@@ -172,7 +164,6 @@ const handleExceed = () => {
   display: none !important;
 }
 
-/* 播放图标覆盖层 */
 .play-icon-overlay {
   position: absolute;
   top: 50%;
@@ -197,11 +188,10 @@ const handleExceed = () => {
 .play-icon {
   width: 14px;
   height: 14px;
-  margin-left: 1px; /* 视觉居中调整 */
+  margin-left: 1px;
   color: #fff;
 }
 
-/* 删除按钮样式 - 模仿 Element Plus 默认样式 */
 .el-upload-list__item-delete {
   position: absolute;
   top: 2px;
