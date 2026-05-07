@@ -154,8 +154,15 @@ const handleExport = async () => {
     const res = await v2GetEnergyList(apiParams)
 
     if (res.code === '000000' && res.data && res.data.list) {
+      // 按创建时间降序排序（最新的在前）
+      const sortedList = [...res.data.list].sort((a: any, b: any) => {
+        const timeA = a.created_at ? new Date(a.created_at).getTime() : 0
+        const timeB = b.created_at ? new Date(b.created_at).getTime() : 0
+        return timeB - timeA // 降序：新的在前
+      })
+
       // 将数据转换为 Excel 格式，根据当前来源筛选决定导出哪些字段
-      const list = res.data.list.map((item: any) => {
+      const list = sortedList.map((item: any) => {
         // 基础字段（始终导出）
         const baseData: any = {
           订单号: item.id || '-',
@@ -507,7 +514,7 @@ const searchSchema = [
   {
     field: 'receive_address',
     component: 'Input' as const,
-    label: '收款钱包地址:',
+    label: '收款钱包地址',
     componentProps: {
       placeholder: '请输入收款钱包地址',
       clearable: true
@@ -516,7 +523,7 @@ const searchSchema = [
   {
     field: 'energy_address',
     component: 'Input' as const,
-    label: '能量接收地址:',
+    label: '能量接收地址',
     componentProps: {
       placeholder: '请输入能量接收地址',
       clearable: true
@@ -525,7 +532,7 @@ const searchSchema = [
   {
     field: 'status',
     component: 'Select' as const,
-    label: '状态：',
+    label: '状态',
     componentProps: {
       placeholder: '请选择状态',
       clearable: true,
@@ -535,7 +542,7 @@ const searchSchema = [
   {
     field: 'kind',
     component: 'Select' as const,
-    label: '订单类型：',
+    label: '订单类型',
     componentProps: {
       placeholder: '请选择订单类型',
       options: ENERGY_ORDER_KIND_OPTIONS

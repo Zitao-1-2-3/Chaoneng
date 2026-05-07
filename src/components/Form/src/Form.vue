@@ -445,7 +445,7 @@ export default defineComponent({
           return (
             <span>
               {labelText || ''}
-              <Tips content={labelObj.tips} />：
+              <Tips content={labelObj.tips} />
             </span>
           )
         }

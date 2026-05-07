@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { ref, nextTick, computed } from 'vue'
+import { ref, nextTick, computed, watch } from 'vue'
 import { Dialog } from '@/components/Dialog'
 import { Form, FormSchema } from '@/components/Form'
 import { useForm } from '@/hooks/web/useForm'
@@ -47,6 +47,13 @@ interface AgentFormData {
 const { required, lengthRange } = useValidator()
 const { formRegister, formMethods } = useForm()
 const { formRegister: formRegister2, formMethods: formMethods2 } = useForm()
+
+// 监听 emailValue 变化，同步到表单字段
+watch(emailValue, (newValue) => {
+  if (!isEdit.value) {
+    formMethods.setValues({ email: newValue })
+  }
+})
 
 // 辅助函数：获取列宽
 const getColSpan = (fullWidth: boolean = false) => (fullWidth || isEdit.value ? 24 : 12)
@@ -105,6 +112,7 @@ const agentFormSchema = computed<FormSchema[]>(() => {
       },
       colProps: { span: 12 },
       formItemProps: {
+        rules: [required('联系方式不能为空')],
         slots: {
           default: () => <EmailInput v-model={emailValue.value} style={{ width: '100%' }} />
         }
@@ -150,13 +158,22 @@ const formRules = computed<FormRules>(() => {
 
   const emailRules = [
     {
-      validator: (_rule: any, _value: any, callback: any) => {
-        if (!emailValue.value) {
-          callback()
+      validator: (_rule: any, value: any, callback: any) => {
+        // 使用传入的 value 参数或 emailValue.value
+        const emailToCheck = value || emailValue.value
+
+        if (!emailToCheck) {
+          callback(new Error('联系方式不能为空'))
           return
         }
 
-        if (!EMAIL_REGEX.test(emailValue.value)) {
+        // 检查是否包含中文
+        if (/[\u4e00-\u9fa5]/.test(emailToCheck)) {
+          callback(new Error('联系方式不能包含中文'))
+          return
+        }
+
+        if (!EMAIL_REGEX.test(emailToCheck)) {
           callback(new Error('请输入正确的邮箱格式'))
         } else {
           callback()
