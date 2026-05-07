@@ -143,7 +143,6 @@ const handleExport = async () => {
         }
 
         return {
-          日期: item.paid_at ? formatToDate(item.paid_at) : '-',
           订单ID: item.id || '-',
           代理名称: item.agent_name || '-',
           支付金额: `${item.amount || ''} ${item.in_coin || ''}`.trim(),
@@ -179,12 +178,6 @@ const handleExport = async () => {
 
 // 表格列配置 - 使用后端字段名
 const columns = reactive<TableColumn[]>([
-  {
-    field: 'paid_at',
-    label: '日期',
-    minWidth: 120,
-    formatter: (row) => (row.paid_at ? formatToDate(row.paid_at) : '-')
-  },
   {
     field: 'id',
     label: '订单ID',
