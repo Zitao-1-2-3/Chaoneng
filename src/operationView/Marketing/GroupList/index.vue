@@ -7,18 +7,7 @@
         :fetch-data-api="fetchGroupList"
         :show-add-button="false"
         :action-column="actionColumn"
-      >
-        <template #leftToolbar>
-          <BaseButton type="success" @click="handleMassSend">
-            <Icon icon="ep:promotion" class="mr-5px" />
-            发送消息
-          </BaseButton>
-          <BaseButton type="warning" @click="handleViewMassSendRecord" class="ml-2">
-            <Icon icon="ep:document" class="mr-5px" />
-            消息记录
-          </BaseButton>
-        </template>
-      </SearchTable>
+      />
     </ContentWrap>
   </div>
 </template>
@@ -246,14 +235,6 @@ const fetchGroupList = async (params: any) => {
 
 const handleViewDetail = (row: any) => {
   ElMessage.info(`发送消息到群组: ${row.group_name}`)
-}
-
-const handleMassSend = () => {
-  ElMessage.info('打开群发消息弹窗')
-}
-
-const handleViewMassSendRecord = () => {
-  ElMessage.info('打开群发记录弹窗')
 }
 
 // 组件挂载时获取机器人列表

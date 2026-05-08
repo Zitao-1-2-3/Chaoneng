@@ -517,6 +517,12 @@ const handleSave = async (agentId: number) => {
     return
   }
 
+  // 验证：托管的65k价格不能高于131k价格
+  if (Number(formData.hosting_65k) > Number(formData.hosting_131k)) {
+    ElMessage.error('托管的65k价格不能高于131k价格')
+    return
+  }
+
   loading.value = true
   try {
     await v2UpdateSystemPrice({
@@ -603,7 +609,6 @@ onActivated(() => {
 .value-text {
   display: inline-block;
   max-width: 100px;
-  min-width: 60px;
   padding: 0 8px;
   font-size: 14px;
   font-weight: 500;
@@ -614,7 +619,7 @@ onActivated(() => {
 
 .price-items-grid {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) repeat(3, minmax(120px, 1fr)) minmax(200px, 1fr);
+  grid-template-columns: minmax(200px, 1fr) repeat(3, minmax(150px, 1fr)) minmax(220px, 1fr);
   gap: 12px;
   contain: layout;
 }
@@ -641,7 +646,7 @@ onActivated(() => {
 
 .price-item-card {
   display: flex;
-  padding: 12px;
+  padding: 10px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 6px;
@@ -695,7 +700,7 @@ onActivated(() => {
 }
 
 .time-label {
-  min-width: 65px;
+  min-width: 35px;
   font-size: 12px;
   color: var(--el-text-color-regular);
   text-align: center;
