@@ -109,7 +109,7 @@ const welfareSchema = reactive<FormSchema[]>([
     component: 'Divider' as const,
     label: () => (
       <>
-        转账要求<span style={{ color: '#f56c6c', fontSize: '0px' }}>(需小于以下条件)</span>
+        转账要求<span style={{ color: '#f56c6c', fontSize: '10px' }}>(需小于以下条件)</span>
       </>
     ),
     colProps: { span: 24 }
