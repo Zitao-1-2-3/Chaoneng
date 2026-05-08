@@ -105,7 +105,12 @@ const handleTabChange = async (tabName: string) => {
     return
   }
 
-  await loadTabConfig(currentBot.value.id, tabName, currentFormMethod)
+  // 如果是收款配置标签页，传递 paymentTabRef
+  if (tabName === 'payment') {
+    await loadTabConfig(currentBot.value.id, tabName, currentFormMethod, paymentTabRef.value)
+  } else {
+    await loadTabConfig(currentBot.value.id, tabName, currentFormMethod)
+  }
 }
 
 const open = async (botInfo: Record<string, any>) => {

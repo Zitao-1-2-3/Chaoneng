@@ -20,7 +20,7 @@ export const v2GetAddressList = (
   params: V2AddressListParams
 ): Promise<IResponse<V2AddressListResponse>> => {
   return request.get({
-    url: `${NEW_BASE_URL}/list`,
+    url: `/v1/address`,
     params
   })
 }
@@ -30,7 +30,7 @@ export const v2GetAddressList = (
  */
 export const v2CreateAddress = (data: V2CreateAddressParams): Promise<IResponse> => {
   return request.post({
-    url: `${NEW_BASE_URL}/create`,
+    url: `/v1/address`,
     data,
     // 添加配置，跳过拦截器的错误提示
     skipErrorHandler: true
@@ -51,8 +51,8 @@ export const v2UpdateAddress = (data: V2UpdateAddressParams): Promise<IResponse>
  * 删除地址 - 新接口
  */
 export const v2DeleteAddress = (data: V2DeleteAddressParams): Promise<IResponse> => {
-  return request.post({
-    url: `${NEW_BASE_URL}/delete`,
+  return request.delete({
+    url: `/v1/address`,
     data
   })
 }
