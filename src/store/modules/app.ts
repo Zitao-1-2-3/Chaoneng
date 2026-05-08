@@ -53,7 +53,7 @@ export const useAppStore = defineStore('app', {
       breadcrumb: true, // 面包屑
       breadcrumbIcon: true, // 面包屑图标
       collapse: false, // 折叠菜单
-      uniqueOpened: false, // 是否只保持一个子菜单的展开
+      uniqueOpened: true, // 是否只保持一个子菜单的展开
       hamburger: true, // 折叠图标
       screenfull: true, // 全屏图标
       size: true, // 尺寸图标
@@ -337,6 +337,11 @@ export const useAppStore = defineStore('app', {
       isDark.value = this.getIsDark
       const newTitle = getSystemTitle()
       newTitle !== this.getTitle && this.setTitle(newTitle)
+
+      // 强制设置 uniqueOpened 为 true（菜单手风琴模式）
+      if (this.uniqueOpened !== true) {
+        this.setUniqueOpened(true)
+      }
     }
   },
   persist: true

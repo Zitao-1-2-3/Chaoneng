@@ -80,16 +80,16 @@ export default defineComponent({
     const renderMenu = () => {
       return (
         <ElMenu
-          defaultActive={unref(activeMenu)}
+          default-active={unref(activeMenu)}
           mode={unref(menuMode)}
           collapse={
             unref(layout) === 'top' || unref(layout) === 'cutMenu' ? false : unref(collapse)
           }
-          uniqueOpened={unref(layout) === 'top' ? false : unref(uniqueOpened)}
-          backgroundColor="var(--left-menu-bg-color)"
-          textColor="var(--left-menu-text-color)"
-          activeTextColor="var(--left-menu-text-active-color)"
-          popperClass={
+          unique-opened={unref(layout) === 'top' ? false : unref(uniqueOpened)}
+          background-color="var(--left-menu-bg-color)"
+          text-color="var(--left-menu-text-color)"
+          active-text-color="var(--left-menu-text-active-color)"
+          popper-class={
             unref(menuMode) === 'vertical'
               ? `${prefixCls}-popper--vertical`
               : `${prefixCls}-popper--horizontal`
