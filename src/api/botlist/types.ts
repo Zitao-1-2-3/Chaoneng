@@ -160,8 +160,27 @@ export type AddressListParams = {
   bot_id?: number // 机器人ID
   current_page?: number // 当前页码
   keyword?: string // 关键字（搜索）
+  order?: string // 排序 【ASC | DESC】
   kind?: number // 类型：1-代理充值, 2-用户充值, 3-兑换(TRX-USDT), 4-时间能量(闪租), 5-笔数能量, 6-福利能量, 7-快速能量, 8-自动托管, 9-批量能量, 10-批量激活, 11-机器人付费
   page_size?: number // 每页数量
+}
+
+/**
+ * Address 创建地址参数
+ */
+export type AddressAddParams = {
+  agent_id?: number // 代理ID
+  bot_id?: number // 机器人ID
+  kind?: number // 类型：1-代理充值, 2-用户充值, 3-兑换(TRX-USDT), 4-时间能量(闪租), 5-笔数能量, 6-福利能量, 7-快速能量, 8-自动托管, 9-批量能量, 10-批量激活, 11-机器人付费
+  list: string[] //地址列表
+}
+
+/**
+ * Address 删除地址参数
+ */
+export type AddressDeleteParams = {
+  bot_id?: number // 机器人ID
+  list: string[] //地址列表
 }
 
 /**

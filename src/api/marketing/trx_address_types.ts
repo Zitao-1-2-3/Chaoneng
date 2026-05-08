@@ -51,7 +51,8 @@ export interface V2AddressListResponse {
  * 创建地址 - 请求参数
  */
 export interface V2CreateAddressParams {
-  address_list: string[] // 地址列表
+  kind?: number // 类型：1-代理充值, 2-用户充值, 等
+  list: string[] // 地址列表
 }
 
 /**
@@ -72,7 +73,7 @@ export interface V2UpdateAddressParams {
  * 删除地址 - 请求参数
  */
 export interface V2DeleteAddressParams {
-  address_list: string[] // 要删除的地址列表
+  list: string[] // 要删除的地址列表
 }
 
 /**

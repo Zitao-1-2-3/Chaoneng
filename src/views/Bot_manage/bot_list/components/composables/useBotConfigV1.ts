@@ -91,7 +91,7 @@ export function useBotConfigV1() {
   }
 
   // 加载收款配置
-  const loadPaymentConfig = async (id: number, formMethods: any) => {
+  const loadPaymentConfig = async (id: number, formMethods: any, paymentTabRef: any) => {
     try {
       const addressListRes = await v1GetAddressList({
         bot_id: id,
@@ -115,16 +115,19 @@ export function useBotConfigV1() {
       const userDepositAddress = addressList.find((item) => Number(item.kind) === 2)
       const strokeEnergyAddress = addressList.find((item) => Number(item.kind) === 5)
       const exchangeAddress = addressList.find((item) => Number(item.kind) === 3)
-      const welfareAddress = addressList.find((item) => Number(item.kind) === 6)
 
       formMethods.setValues({
         energy_address: timeEnergyAddress?.address || '',
         receive_address: userDepositAddress?.address || '',
         energy_usdt_address: strokeEnergyAddress?.address || '',
         transfer_address: exchangeAddress?.address || '',
-        weal_address: welfareAddress?.address || '',
         notice_order_tg_admin: 2
       })
+
+      // 设置福利地址的 bot_id，触发 SearchTable 加载
+      if (paymentTabRef && paymentTabRef.setBotId) {
+        paymentTabRef.setBotId(id)
+      }
 
       return true
     } catch (error) {
@@ -243,7 +246,7 @@ export function useBotConfigV1() {
   }
 
   // 统一的加载函数
-  const loadTabConfig = async (id: number, tabName: string, formMethods: any) => {
+  const loadTabConfig = async (id: number, tabName: string, formMethods: any, tabRef?: any) => {
     if (!id) {
       ElMessage.error('机器人ID不能为空')
       return false
@@ -264,7 +267,7 @@ export function useBotConfigV1() {
           success = await loadBotInfo(id, formMethods)
           break
         case 'payment':
-          success = await loadPaymentConfig(id, formMethods)
+          success = await loadPaymentConfig(id, formMethods, tabRef)
           break
         case 'priceConfig':
           success = await loadPriceConfig(id, formMethods)
@@ -389,15 +392,7 @@ export function useBotConfigV1() {
         )
       }
 
-      if (paymentData.weal_address?.trim()) {
-        bindPromises.push(
-          v1BindAddress({
-            address: paymentData.weal_address.trim(),
-            bot_id: currentBot.value.id,
-            kind: 6 // 福利
-          })
-        )
-      }
+      // 注意：福利地址（kind: 6）现在通过 SearchTable 独立管理，不在这里保存
 
       if (bindPromises.length === 0) {
         ElMessage.warning('请至少填写一个收款地址')

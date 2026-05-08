@@ -28,19 +28,10 @@
             <Icon icon="ep:plus" class="mr-5px" />
             新增地址
           </ElButton>
-          <!-- <ElButton type="danger" @click="handleBatchDelete">
-            <Icon icon="ep:delete" class="mr-5px" />
-            批量删除
-          </ElButton> -->
         </template>
 
         <!-- 操作列内容通过 columns formatter 定义 -->
       </SearchTable>
-
-      <!-- 表单弹窗 (保持不变) -->
-      <!-- <TrxAddressForm ref="formRef" @success="handleSuccess" /> -->
-
-      <!-- 新增地址弹窗 (多行文本) -->
       <Dialog v-model="addDialogVisible" title="新增地址" width="500px" max-height="300px">
         <Form :schema="addFormSchema" @register="addFormRegister" label-position="top" />
         <template #footer>
@@ -306,20 +297,6 @@ const handleAdd = () => {
   })
 }
 
-// 编辑地址 - 简化传递给表单的数据
-// const handleEdit = (row: any) => {
-//   // Assuming TrxAddressForm primarily edits the address or related info
-//   // Pass only necessary data, typically the ID for lookup and current values
-//   formRef.value?.open({
-//     mode: 'edit',
-//     data: {
-//       id: row.id,
-//       address: row.address
-//       // Pass other fields like user_id or username if the form needs them
-//     }
-//   })
-// }
-
 // 批量导入按钮点击
 const handleBatchImport = () => {
   batchImportVisible.value = true
@@ -545,7 +522,7 @@ const handleDelete = async (row) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await v2DeleteAddress({ address_list: [row.address] })
+    await v2DeleteAddress({ list: [row.address] })
     handleSuccessMessage('删除成功')
     reloadTable()
   } catch (error) {
@@ -595,7 +572,7 @@ const submitAddAddresses = async () => {
     }
 
     submitting.value = true
-    await v2CreateAddress({ address_list: addressList })
+    await v2CreateAddress({ kind: 1, list: addressList })
     handleSuccessMessage('新增成功')
     addDialogVisible.value = false
     reloadTable()
