@@ -19,22 +19,30 @@ const currentPage = ref(1)
 const pageSize = ref(10)
 
 // 汇总信息 schema
-const summarySchema = computed((): DescriptionsSchema[] => [
-  {
-    field: 'summary.energy_count',
-    label: '能量笔数',
-    slots: {
-      default: (data) => h('span', `${data?.summary?.energy_count ?? 0} 笔`)
+const summarySchema = computed((): DescriptionsSchema[] => {
+  const baseSchema: DescriptionsSchema[] = [
+    {
+      field: 'summary.energy_count',
+      label: '能量笔数',
+      slots: {
+        default: (data) => h('span', `${data?.summary?.energy_count ?? 0} 笔`)
+      }
     }
-  },
-  {
-    field: 'summary.used_count',
-    label: '已使用笔数',
-    slots: {
-      default: (data) => h('span', `${data?.summary?.used_count ?? 0} 笔`)
-    }
+  ]
+
+  // 只有 kind 为 5（按笔数能量）时才显示"已使用笔数"
+  if (props.orderData?.kind === 5) {
+    baseSchema.push({
+      field: 'summary.used_count',
+      label: '已使用笔数',
+      slots: {
+        default: (data) => h('span', `${data?.summary?.used_count ?? 0} 笔`)
+      }
+    })
   }
-])
+
+  return baseSchema
+})
 
 // 资源列表表格列
 const resourceTableSchema = computed((): TableColumn[] => [
