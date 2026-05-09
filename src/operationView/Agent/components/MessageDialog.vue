@@ -44,7 +44,15 @@
       />
 
       <!-- 消息内容编辑器 -->
-      <MessageContentEditor v-model="formData.content" :show-formatting-buttons="false" />
+      <MessageContentEditor
+        ref="messageContentEditorRef"
+        v-model="formData.content"
+        :show-formatting-buttons="true"
+      >
+        <template #formattingButtons>
+          <component :is="renderFormattingButtons()" />
+        </template>
+      </MessageContentEditor>
 
       <!-- 文件上传器 -->
       <FileUploader
@@ -245,6 +253,7 @@ import { v1SendGroupMessage } from '@/api/tgUser'
 import { v1GetInnerButtonList } from '@/api/menu_list'
 import type { InnerButtonItem } from '@/api/menu_list/types'
 import { uploadFileV2 as uploadAPI } from '@/api/utils/upload'
+import { useHtmlInsert } from '@/hooks/web/useHtmlInsert'
 
 // 导入子组件
 import BotSelector from './MessageDialog/BotSelector.vue'
@@ -368,6 +377,18 @@ const previewFileType = ref<'image' | 'video'>('image')
 // 消息预览相关
 const showMessagePreview = ref(false)
 const messagePreviewData = ref<MessagePreviewData>({})
+
+// 消息内容编辑器引用
+const messageContentEditorRef = ref()
+
+// 格式化按钮相关
+const getContent = async () => formData.value.content || ''
+const setContent = async (newContent: string) => {
+  formData.value.content = newContent
+}
+// 传递 textarea ref 以支持文本选择
+const textareaRef = computed(() => messageContentEditorRef.value?.textareaRef)
+const { renderFormattingButtons } = useHtmlInsert(getContent, setContent, textareaRef)
 
 // 判断文件类型
 const getFileType = (file: File | UploadUserFile): 'image' | 'video' => {
