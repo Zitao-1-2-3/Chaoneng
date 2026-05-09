@@ -503,7 +503,7 @@ const priceSchema = reactive<FormSchema[]>([
     colProps: { span: 24 }
   },
   {
-    field: 'weal_time_1h',
+    field: 'weal',
     component: 'InputNumber' as const,
     label: '福利能量（TRX）',
     componentProps: {
@@ -518,7 +518,7 @@ const priceSchema = reactive<FormSchema[]>([
       ],
       slots: {
         label: () => {
-          const costPrice = computedCostPrices.value.flash
+          const costPrice = computedCostPrices.value.weal
           const costText = costPrice !== undefined ? `成本价: ${costPrice} TRX` : '成本价: N/A'
           return (
             <>

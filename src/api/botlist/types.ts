@@ -98,7 +98,7 @@ export type SystemPrice = {
   usdt_2_trx: string // USDT转TRX价格
   batch_flash: string // 批量闪兑价格
   bot_fee: string // 机器人费用
-  weal_time_1h?: string // 福利1小时价格（后端可能不返回，前端降级使用 time_1h）
+  weal?: string // 福利1小时价格
 }
 
 /**
@@ -142,7 +142,7 @@ export type BotPriceConfig = {
   max_usdt_2_trx: string // USDT兑TRX可兑换上限
 
   // 福利板块
-  weal_time_1h: string // 福利能量
+  weal: string // 福利能量
   weal_hour_limit?: string // 每小时购买限制
   weal_total_limit?: string // 总购买限制
 
@@ -268,7 +268,7 @@ export type UpdateBotPriceParams = {
   max_usdt_2_trx?: number // USDT兑TRX可兑换上限
 
   // 福利板块
-  weal_time_1h?: number // 福利能量
+  weal?: number // 福利能量
   weal_hour_limit?: number // 每小时购买限制
   weal_total_limit?: number // 总购买限制
 

@@ -169,7 +169,8 @@ export function useBotConfigV1() {
         hosting_65k: parseFloat(systemPrice.hosting_65k) || 0,
         hosting_131k: parseFloat(systemPrice.hosting_131k) || 0,
         batch_flash: parseFloat(systemPrice.batch_flash) || 0,
-        active: parseFloat(systemPrice.active) || 0
+        active: parseFloat(systemPrice.active) || 0,
+        weal: parseFloat(systemPrice.weal || '0') || 0
       })
 
       // 保存当前价格配置
@@ -196,7 +197,7 @@ export function useBotConfigV1() {
         max_usdt_2_trx: parseFloat(botPriceData.max_usdt_2_trx) || 0,
         trx_2_usdt: (parseFloat(botPriceData.trx_2_usdt) || 0) * 100,
         max_trx_2_usdt: parseFloat(botPriceData.max_trx_2_usdt) || 0,
-        weal_time_1h: parseFloat(botPriceData.weal_time_1h) || 0
+        weal: parseFloat(botPriceData.weal) || 0
       })
 
       return true
@@ -435,7 +436,7 @@ export function useBotConfigV1() {
         min_trx_balance: priceData.min_trx_balance || 0,
         max_usdt_2_trx: priceData.max_usdt_2_trx || 0,
         max_trx_2_usdt: priceData.max_trx_2_usdt || 0,
-        weal_time_1h: priceData.weal_time_1h || 0
+        weal: priceData.weal || 0
       }
 
       await v1UpdateBotPrice(priceConfig)
