@@ -225,7 +225,7 @@
             </div>
           </div>
 
-          <!-- 第二行：闪租 - 按笔数 - 首次激活 - 批量下单 - 机器人价格 -->
+          <!-- 第二行：闪租 - 按笔数 - 福利 - 首次激活 - 批量下单 - 机器人价格 -->
           <div class="row-second">
             <!-- 闪租 -->
             <div class="price-item-card">
@@ -302,6 +302,26 @@
                 />
                 <span v-else class="value-text">{{ formDataMap[agent.id].batch_flash }}</span>
                 <span class="unit">TRX</span>
+              </div>
+            </div>
+
+            <!-- 福利 -->
+            <div class="price-item-card">
+              <div class="item-title">福利</div>
+              <div class="item-content single-input">
+                <div class="value-wrapper">
+                  <el-input-number
+                    v-if="editModeMap[agent.id]"
+                    v-model="formDataMap[agent.id].weal"
+                    :precision="2"
+                    :step="0.1"
+                    :min="0"
+                    size="small"
+                    controls-position="right"
+                  />
+                  <span v-else class="value-text">{{ formDataMap[agent.id].weal }}</span>
+                  <span class="unit">TRX</span>
+                </div>
               </div>
             </div>
 
@@ -418,7 +438,8 @@ const hasChanges = (agentId: number) => {
     Number(formData.trx_2_usdt) !== Number(original.trx_2_usdt) ||
     Number(formData.usdt_2_trx) !== Number(original.usdt_2_trx) ||
     Number(formData.bot_fee) !== Number(original.bot_fee) ||
-    Number(formData.batch_flash) !== Number(original.batch_flash || 0)
+    Number(formData.batch_flash) !== Number(original.batch_flash || 0) ||
+    Number(formData.weal) !== Number(original.weal || 0)
   )
 }
 
@@ -450,7 +471,8 @@ const handleCancel = (agentId: number) => {
       trx_2_usdt: Number(original.trx_2_usdt),
       usdt_2_trx: Number(original.usdt_2_trx),
       bot_fee: Number(original.bot_fee),
-      batch_flash: Number(original.batch_flash || 0)
+      batch_flash: Number(original.batch_flash || 0),
+      weal: Number(original.weal || 0)
     }
   }
   editModeMap[agentId] = false
@@ -499,7 +521,8 @@ const loadPriceData = async () => {
         trx_2_usdt: Number(item.trx_2_usdt),
         usdt_2_trx: Number(item.usdt_2_trx),
         bot_fee: Number(item.bot_fee),
-        batch_flash: Number(item.batch_flash || 0)
+        batch_flash: Number(item.batch_flash || 0),
+        weal: Number(item.weal || 0)
       }
     })
   } catch (error) {
@@ -541,7 +564,8 @@ const handleSave = async (agentId: number) => {
       trx_2_usdt: formData.trx_2_usdt,
       usdt_2_trx: formData.usdt_2_trx,
       bot_fee: formData.bot_fee,
-      batch_flash: formData.batch_flash
+      batch_flash: formData.batch_flash,
+      weal: formData.weal
     })
 
     ElMessage.success('保存成功')
@@ -619,7 +643,7 @@ onActivated(() => {
 
 .price-items-grid {
   display: grid;
-  grid-template-columns: minmax(200px, 1fr) repeat(3, minmax(150px, 1fr)) minmax(220px, 1fr);
+  grid-template-columns: repeat(12, minmax(60px, 1fr));
   gap: 12px;
   contain: layout;
 }
@@ -629,19 +653,27 @@ onActivated(() => {
 }
 
 .row-first > .price-item-card:nth-child(1) {
-  grid-column: 1 / 2;
+  grid-column: span 3;
+  min-width: 0;
 }
 
 .row-first > .price-item-card:nth-child(2) {
-  grid-column: 2 / 5;
+  grid-column: span 6;
+  min-width: 0;
 }
 
 .row-first > .price-item-card:nth-child(3) {
-  grid-column: 5 / 6;
+  grid-column: span 3;
+  min-width: 0;
 }
 
 .row-second {
   display: contents;
+}
+
+.row-second > .price-item-card {
+  grid-column: span 2;
+  min-width: 0;
 }
 
 .price-item-card {

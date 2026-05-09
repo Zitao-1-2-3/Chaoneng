@@ -40,6 +40,7 @@ export interface V1PriceListResponse {
   usdt_2_trx: string | number // 闪兑-USDT兑换TRX费率（小数，显示时需乘以100）
   bot_fee: string | number // 机器人价格
   batch_flash: string | number // 批量下单价格
+  weal?: string | number // 福利价格
 }
 
 // 系统价格参数查询参数 - v2
@@ -71,6 +72,7 @@ export interface V2SystemPriceResponse {
   usdt_2_trx: string | number // 闪兑-USDT兑换TRX费率（小数，显示时需乘以100）
   bot_fee: string | number // 机器人价格
   batch_flash: string | number // 批量下单价格
+  weal?: string | number // 福利价格
 }
 
 // 系统价格参数更新参数 - v2
@@ -92,6 +94,7 @@ export interface V2UpdateSystemPriceParams {
   usdt_2_trx?: string | number // 闪兑-USDT兑换TRX费率（小数，保存时需除以100）
   bot_fee?: string | number // 机器人价格
   batch_flash?: string | number // 批量下单价格
+  weal?: string | number // 福利价格
 }
 
 // ========== 旧的类型定义 ==========
