@@ -120,7 +120,8 @@ const buildSchema = (type: number | string | undefined): FormSchema[] => {
         { label: 'TRX池子', value: 1 },
         { label: 'USDT池子', value: 2 },
         { label: '能量池子', value: 3 },
-        { label: '带宽池子', value: 4 }
+        { label: '带宽池子', value: 4 },
+        { label: '激活池子', value: 5 }
       ],
       onChange: handleConfigTypeChange
     },
@@ -136,6 +137,9 @@ const buildSchema = (type: number | string | undefined): FormSchema[] => {
   } else if (numericType === 3 || numericType === 4) {
     // 能量池子和带宽池子使用相同的Schema
     specificSchema = energyPoolSchema
+  } else if (numericType === 5) {
+    // 激活池子使用相同的Schema（空数组，只需要基础字段）
+    specificSchema = trxPoolSchema
   }
 
   return [configSchema, ...baseSchema, ...specificSchema]
