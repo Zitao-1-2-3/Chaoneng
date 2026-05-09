@@ -1,7 +1,6 @@
 <template>
   <ContentWrap>
     <SearchTable
-      v-if="botListLoaded"
       :columns="tableColumns"
       :search-schema="searchSchema"
       :fetch-data-api="fetchMessageList"
@@ -195,7 +194,7 @@
 </template>
 
 <script setup lang="tsx">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ContentWrap } from '@/components/ContentWrap'
 import { SearchTable } from '@/components/SearchTable'
 import { BaseButton } from '@/components/Button'
@@ -237,11 +236,8 @@ const formatSentTime = (sentAt: string | number): string => {
 // SearchTable 引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 
-// 机器人列表加载状态
-const botListLoaded = ref(false)
-
-// 机器人列表
-const botList = ref<Array<{ label: string; value: number }>>([])
+// 机器人下拉选项
+const botOptions = ref<Array<{ label: string; value: number }>>([{ label: '全部', value: 0 }])
 
 // 消息发送相关
 const messageDialogVisible = ref(false)
@@ -265,24 +261,32 @@ const inlineButtonDialogVisible = ref(false)
 const advancedSettingsDialogVisible = ref(false)
 const currentEditRow = ref<any>(null)
 
-const fetchBotList = async () => {
+// 初始化机器人列表
+const initBotList = async () => {
   try {
     const res = await v1GetMessageBotList()
-    if (res.code === '000000' && res.data) {
-      botList.value = (res.data || []).map((bot: any) => ({
-        label: bot.user_name,
-        value: bot.id
-      }))
-      botListLoaded.value = true
+
+    if (res.code === '000000' && res.data && Array.isArray(res.data)) {
+      const newOptions = [
+        { label: '全部', value: 0 },
+        ...res.data.map((bot) => ({
+          label: bot.user_name,
+          value: bot.id
+        }))
+      ]
+      botOptions.value = newOptions
+
+      // 更新 searchSchema
+      updateBotOptions(newOptions)
     }
   } catch (error) {
-    botListLoaded.value = true
+    console.error('获取机器人列表失败:', error)
   }
 }
 
 // 为弹窗准备的机器人列表（转换为 string value）
 const botsForDialog = computed(() => {
-  return botList.value.map((bot) => ({
+  return botOptions.value.map((bot) => ({
     label: bot.label,
     value: String(bot.value)
   }))
@@ -402,37 +406,44 @@ const handleDelete = async (row: any) => {
   }
 }
 
-const searchSchema = computed<FormSchema[]>(() => {
-  const botOptions = [...botList.value]
-  return [
-    {
-      field: 'bot_id',
-      component: 'Select',
-      label: '机器人',
-      colProps: { span: 6 },
-      componentProps: {
-        options: botOptions,
-        placeholder: '请选择机器人',
-        clearable: true
-      }
-    },
-    {
-      field: 'kind',
-      component: 'Select',
-      label: '信息类别',
-      colProps: { span: 6 },
-      componentProps: {
-        options: [
-          { label: '全部', value: 0 },
-          { label: '只发一次', value: 1 },
-          { label: '周期发送', value: 2 }
-        ],
-        placeholder: '请选择信息类别',
-        clearable: true
-      }
+// 搜索表单配置 - 直接返回固定值测试
+const searchSchema = ref<FormSchema[]>([
+  {
+    field: 'bot_id',
+    component: 'Select',
+    label: '机器人',
+    colProps: { span: 6 },
+    componentProps: {
+      options: [
+        { label: '全部', value: 0 },
+        { label: '测试机器人1', value: 1 },
+        { label: '测试机器人2', value: 2 }
+      ],
+      placeholder: '请选择机器人',
+      clearable: true
     }
-  ]
-})
+  },
+  {
+    field: 'kind',
+    component: 'Select',
+    label: '信息类别',
+    colProps: { span: 6 },
+    componentProps: {
+      options: [
+        { label: '全部', value: 0 },
+        { label: '只发一次', value: 1 },
+        { label: '周期发送', value: 2 }
+      ],
+      placeholder: '请选择信息类别',
+      clearable: true
+    }
+  }
+])
+
+// 动态更新 searchSchema 的函数
+const updateBotOptions = (options: Array<{ label: string; value: number }>) => {
+  searchSchema.value[0].componentProps.options = options
+}
 
 const tableColumns: TableColumn[] = [
   {
@@ -611,8 +622,9 @@ const fetchMessageList = async (params: any) => {
   }
 }
 
+// 组件挂载时初始化机器人列表
 onMounted(() => {
-  fetchBotList()
+  initBotList()
 })
 </script>
 

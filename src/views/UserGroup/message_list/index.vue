@@ -229,11 +229,8 @@ import type { MessagePreviewData } from '../user_list/components/MessageDialog/c
 // SearchTable 引用
 const searchTableRef = ref<InstanceType<typeof SearchTable> | null>(null)
 
-// 机器人列表加载状态
-const botListLoaded = ref(false)
-
-// 机器人列表
-const botList = ref<Array<{ label: string; value: number }>>([])
+// 机器人下拉选项
+const botOptions = ref<Array<{ label: string; value: number }>>([{ label: '全部', value: 0 }])
 
 // 消息发送相关
 const messageDialogVisible = ref(false)
@@ -263,29 +260,32 @@ const resendPreviewData = ref<MessagePreviewData>({})
 const resending = ref(false)
 const currentResendRow = ref<any>(null)
 
-// 获取机器人列表
-const fetchBotList = async () => {
+// 初始化机器人列表
+const initBotList = async () => {
   try {
     const res = await v1GetMessageBotList()
-    if (res.code === '000000' && res.data) {
-      botList.value = (res.data || []).map((bot: any) => ({
-        label: bot.user_name,
-        value: bot.id
-      }))
-    } else {
-      // 接口返回失败，设置空数组
-      botList.value = []
+
+    if (res.code === '000000' && res.data && Array.isArray(res.data)) {
+      const newOptions = [
+        { label: '全部', value: 0 },
+        ...res.data.map((bot) => ({
+          label: bot.user_name,
+          value: bot.id
+        }))
+      ]
+      botOptions.value = newOptions
+
+      // 更新 searchSchema
+      updateBotOptions(newOptions)
     }
   } catch (error) {
     console.error('获取机器人列表失败:', error)
-    // 接口调用失败，设置空数组
-    botList.value = []
   }
 }
 
 // 为弹窗准备的机器人列表（转换为 string value）
 const botsForDialog = computed(() => {
-  return botList.value.map((bot) => ({
+  return botOptions.value.map((bot) => ({
     label: bot.label,
     value: String(bot.value)
   }))
@@ -446,15 +446,15 @@ const handleDelete = async (row: any) => {
   }
 }
 
-// 搜索表单配置
-const searchSchema = computed<FormSchema[]>(() => [
+// 搜索表单配置 - 使用 ref 而不是 computed
+const searchSchema = ref<FormSchema[]>([
   {
     field: 'bot_id',
     component: 'Select',
     label: '机器人',
     colProps: { span: 6 },
     componentProps: {
-      options: botList.value,
+      options: [{ label: '全部', value: 0 }],
       placeholder: '请选择机器人',
       clearable: true
     }
@@ -475,6 +475,11 @@ const searchSchema = computed<FormSchema[]>(() => [
     }
   }
 ])
+
+// 动态更新 searchSchema 的函数
+const updateBotOptions = (options: Array<{ label: string; value: number }>) => {
+  searchSchema.value[0].componentProps.options = options
+}
 
 // 表格列配置
 const tableColumns: TableColumn[] = [
@@ -688,9 +693,9 @@ const fetchMessageList = async (params: any) => {
   }
 }
 
-// 组件挂载时获取机器人列表
+// 组件挂载时初始化机器人列表
 onMounted(() => {
-  fetchBotList()
+  initBotList()
 })
 </script>
 
