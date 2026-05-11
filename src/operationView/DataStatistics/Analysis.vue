@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import PanelGroup from './components/PanelGroup.vue'
-import { ElRow, ElCol, ElCard, ElSkeleton } from 'element-plus'
+import { ElRow, ElCol, ElCard, ElSkeleton, ElSkeletonItem, ElEmpty } from 'element-plus'
 import { Echart } from '@/components/Echart'
 import { pieOptions, barOptions, lineOptions } from './echarts-data'
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onActivated, computed } from 'vue'
 import { v2GetStats } from '@/api/statistics'
 import type { V2StatsData } from '@/api/statistics/types'
 import { set } from 'lodash-es'
@@ -29,6 +29,24 @@ const loading = ref(true)
 
 // 使用后端返回的数据结构
 const panelStatsData = reactive<Partial<V2StatsData>>({})
+
+// 判断是否有能量收入数据
+const hasEnergyIncomeData = computed(() => {
+  return (
+    panelStatsData.daily_energy_in &&
+    panelStatsData.daily_energy_in.length > 0 &&
+    panelStatsData.daily_energy_in.some((item) => item && item.date)
+  )
+})
+
+// 判断是否有代理活跃数据
+const hasAgentActivityData = computed(() => {
+  return (
+    panelStatsData.daily_active_agent &&
+    panelStatsData.daily_active_agent.length > 0 &&
+    panelStatsData.daily_active_agent.some((item) => item && item.date)
+  )
+})
 
 // --- Chart Options ---
 const pieOptionsData = reactive<EChartsOption>(pieOptions) as EChartsOption
@@ -120,6 +138,12 @@ onMounted(() => {
   console.log('[onMounted] 组件已挂载，开始获取数据')
   getAllApi()
 })
+
+// 使用onActivated确保每次进入页面都重新获取数据（支持keep-alive缓存）
+onActivated(() => {
+  console.log('[onActivated] 页面被激活，重新获取数据')
+  getAllApi()
+})
 </script>
 
 <template>
@@ -128,14 +152,157 @@ onMounted(() => {
     <ElCol :xl="24" :lg="24" :md="24" :sm="24" :xs="24">
       <ElCard shadow="hover" class="mb-20px">
         <ElSkeleton :loading="loading" animated>
-          <Echart :options="energyIncomeChartOptions" :height="300" />
+          <template #template>
+            <div style="padding: 20px">
+              <ElSkeletonItem variant="text" style="width: 30%; margin-bottom: 20px" />
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-around;
+                  align-items: flex-end;
+                  height: 250px;
+                "
+              >
+                <ElSkeletonItem variant="rect" style="width: 8%; height: 60%" />
+                <ElSkeletonItem variant="rect" style="width: 8%; height: 80%" />
+                <ElSkeletonItem variant="rect" style="width: 8%; height: 45%" />
+                <ElSkeletonItem variant="rect" style="width: 8%; height: 90%" />
+                <ElSkeletonItem variant="rect" style="width: 8%; height: 70%" />
+                <ElSkeletonItem variant="rect" style="width: 8%; height: 55%" />
+                <ElSkeletonItem variant="rect" style="width: 8%; height: 85%" />
+              </div>
+            </div>
+          </template>
+          <template #default>
+            <div
+              v-if="!hasEnergyIncomeData"
+              style="display: flex; align-items: center; justify-content: center; height: 300px"
+            >
+              <ElEmpty description="暂无能量收入数据" />
+            </div>
+            <Echart v-else :options="energyIncomeChartOptions" :height="300" />
+          </template>
         </ElSkeleton>
       </ElCard>
     </ElCol>
     <ElCol :span="24">
       <ElCard shadow="hover" class="mb-20px">
-        <ElSkeleton :loading="loading" animated :rows="4">
-          <Echart :options="agentActivityChartOptions" :height="350" />
+        <ElSkeleton :loading="loading" animated>
+          <template #template>
+            <div style="padding: 20px">
+              <ElSkeletonItem variant="text" style="width: 30%; margin-bottom: 20px" />
+              <div
+                style="
+                  position: relative;
+                  display: flex;
+                  height: 300px;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <div
+                  style="
+                    position: absolute;
+                    top: 50%;
+                    right: 0;
+                    left: 0;
+                    transform: translateY(-50%);
+                  "
+                >
+                  <div style="display: flex; justify-content: space-around; align-items: center">
+                    <ElSkeletonItem variant="circle" style="width: 8px; height: 8px" />
+                    <div
+                      style="
+                        height: 2px;
+                        margin: 0 10px;
+                        background: linear-gradient(
+                          90deg,
+                          var(--el-skeleton-color) 0%,
+                          transparent 100%
+                        );
+                        flex: 1;
+                      "
+                    ></div>
+                    <ElSkeletonItem variant="circle" style="width: 8px; height: 8px" />
+                    <div
+                      style="
+                        height: 2px;
+                        margin: 0 10px;
+                        background: linear-gradient(
+                          90deg,
+                          var(--el-skeleton-color) 0%,
+                          transparent 100%
+                        );
+                        flex: 1;
+                      "
+                    ></div>
+                    <ElSkeletonItem variant="circle" style="width: 8px; height: 8px" />
+                    <div
+                      style="
+                        height: 2px;
+                        margin: 0 10px;
+                        background: linear-gradient(
+                          90deg,
+                          var(--el-skeleton-color) 0%,
+                          transparent 100%
+                        );
+                        flex: 1;
+                      "
+                    ></div>
+                    <ElSkeletonItem variant="circle" style="width: 8px; height: 8px" />
+                    <div
+                      style="
+                        height: 2px;
+                        margin: 0 10px;
+                        background: linear-gradient(
+                          90deg,
+                          var(--el-skeleton-color) 0%,
+                          transparent 100%
+                        );
+                        flex: 1;
+                      "
+                    ></div>
+                    <ElSkeletonItem variant="circle" style="width: 8px; height: 8px" />
+                    <div
+                      style="
+                        height: 2px;
+                        margin: 0 10px;
+                        background: linear-gradient(
+                          90deg,
+                          var(--el-skeleton-color) 0%,
+                          transparent 100%
+                        );
+                        flex: 1;
+                      "
+                    ></div>
+                    <ElSkeletonItem variant="circle" style="width: 8px; height: 8px" />
+                    <div
+                      style="
+                        height: 2px;
+                        margin: 0 10px;
+                        background: linear-gradient(
+                          90deg,
+                          var(--el-skeleton-color) 0%,
+                          transparent 100%
+                        );
+                        flex: 1;
+                      "
+                    ></div>
+                    <ElSkeletonItem variant="circle" style="width: 8px; height: 8px" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template #default>
+            <div
+              v-if="!hasAgentActivityData"
+              style="display: flex; align-items: center; justify-content: center; height: 350px"
+            >
+              <ElEmpty description="暂无代理活跃数据" />
+            </div>
+            <Echart v-else :options="agentActivityChartOptions" :height="350" />
+          </template>
         </ElSkeleton>
       </ElCard>
     </ElCol>
