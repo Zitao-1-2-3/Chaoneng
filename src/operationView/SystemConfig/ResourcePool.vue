@@ -124,6 +124,7 @@ const columns = ref<TableColumn[]>([
             onChange={(newValue) => handleStatusChangeAttempt(row, newValue)}
             placeholder="请选择"
             disabled={!isPermission('ResourcePool.edit')}
+            class="status-select"
           >
             {{
               prefix: () => {
@@ -136,7 +137,9 @@ const columns = ref<TableColumn[]>([
                     label={label}
                     value={parseInt(value, 10)}
                     disabled={disableOthers && parseInt(value, 10) !== 1}
-                  />
+                  >
+                    <span class={statusColors[parseInt(value, 10)]}>{label}</span>
+                  </ElOption>
                 ))
               }
             }}
@@ -411,5 +414,15 @@ onActivated(() => {
   display: flex;
   justify-content: flex-end;
   margin-top: 1rem;
+}
+
+/* 隐藏 ElSelect 中的默认文字，只显示 prefix 插槽的内容 */
+:deep(.status-select .el-select__selected-item) {
+  display: none;
+}
+
+:deep(.status-select .el-select__prefix) {
+  display: flex;
+  align-items: center;
 }
 </style>
