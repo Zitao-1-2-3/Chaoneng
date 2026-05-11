@@ -21,6 +21,7 @@ import TableActions from './components/TableActions.vue'
 import { createVideoViewer } from '@/components/VideoPlayer'
 import { Icon } from '@/components/Icon'
 import { BaseButton } from '@/components/Button'
+import { useWheelHorizontalScroll } from '@/hooks/web/useWheelHorizontalScroll'
 
 export default defineComponent({
   name: 'Table',
@@ -210,11 +211,19 @@ export default defineComponent({
     cardWrapClass: {
       type: String as PropType<string>,
       default: ''
-    }
+    },
+    // 是否启用鼠标滚轮横向滚动
+    wheelScroll: propTypes.bool.def(true)
   },
   emits: ['update:pageSize', 'update:currentPage', 'register', 'refresh', 'sort-change'],
   setup(props, { attrs, emit, slots, expose }) {
     const elTableRef = ref<ComponentRef<typeof ElTable>>()
+    const tableWrapperRef = ref<HTMLElement | null>(null)
+
+    // 启用滚轮横向滚动
+    if (props.wheelScroll) {
+      useWheelHorizontalScroll(tableWrapperRef)
+    }
 
     // 注册
     onMounted(() => {
@@ -553,7 +562,7 @@ export default defineComponent({
       }
 
       return (
-        <div v-loading={unref(getProps).loading}>
+        <div ref={tableWrapperRef} v-loading={unref(getProps).loading}>
           {unref(getProps).customContent ? (
             <div class="flex flex-wrap">
               {unref(getProps)?.data?.length ? (

@@ -1,5 +1,5 @@
 <template>
-  <div class="search-table-container">
+  <div ref="containerRef" class="search-table-container">
     <!-- 搜索表单 -->
     <Search
       v-if="searchSchema && searchSchema.length > 0"
@@ -55,8 +55,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, useSlots, PropType, watch, unref } from 'vue'
+import { computed, onMounted, ref, useSlots, PropType, watch, unref } from 'vue'
 import { useSearchTable } from '@/hooks/web/useSearchTable'
+import { useWheelHorizontalScroll } from '@/hooks/web/useWheelHorizontalScroll'
 import { Search } from '@/components/Search'
 import { Table } from '@/components/Table'
 import { BaseButton } from '@/components/Button'
@@ -124,8 +125,21 @@ const props = defineProps({
   actionColumn: {
     type: Object as PropType<any>,
     default: undefined
+  },
+  // 是否启用鼠标滚轮横向滚动
+  wheelScroll: {
+    type: Boolean,
+    default: true
   }
 })
+
+// 容器引用（用于滚轮横向滚动）
+const containerRef = ref<HTMLElement | null>(null)
+
+// 启用滚轮横向滚动
+if (props.wheelScroll) {
+  useWheelHorizontalScroll(containerRef)
+}
 
 const emit = defineEmits([
   'add',
