@@ -209,6 +209,14 @@ if (import.meta.env.VITE_SYSTEM_TYPE === 'Operation') {
           meta: {
             title: '消息列表'
           }
+        },
+        {
+          path: 'invite_list',
+          component: () => import('@/operationView/Agent/InviteList.vue'),
+          name: 'InviteList',
+          meta: {
+            title: '邀请列表'
+          }
         }
       ]
     },

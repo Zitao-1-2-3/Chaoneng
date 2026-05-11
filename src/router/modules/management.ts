@@ -100,6 +100,14 @@ const managementRoutes: AppRouteRecordRaw[] = [
         meta: {
           title: '消息列表'
         }
+      },
+      {
+        path: 'invite_list',
+        component: () => import('@/views/UserGroup/invite_list/index.vue'),
+        name: 'InviteList',
+        meta: {
+          title: '邀请列表'
+        }
       }
     ]
   },
