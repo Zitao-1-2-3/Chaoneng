@@ -356,6 +356,18 @@ const handleSubmit = async () => {
       // 校验通过后获取表单数据
       const values = await formMethods.getFormData()
 
+      // 排序号重复校验：与当前列表中除自身外的菜单比对
+      const currentList: any[] = searchTableRef.value?.tableState?.dataList?.value || []
+      const duplicated = currentList.find(
+        (item) =>
+          Number(item.order_num) === Number(values.order_num) &&
+          (!values.id || item.id !== values.id)
+      )
+      if (duplicated) {
+        ElMessage.warning(`排序号 ${values.order_num} 已被「${duplicated.menu_name}」占用，请更换`)
+        return
+      }
+
       // 判断是添加还是更新
       if (values.id) {
         // 更新操作 - 使用批量更新接口

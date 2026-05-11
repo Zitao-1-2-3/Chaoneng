@@ -144,7 +144,7 @@ const compactLayout = (items: MenuItemWithExtras[]): MenuLayout => {
 
 /**
  * 将菜单列表转换为键盘布局
- * 分离启用和禁用的菜单，并按 order_num 排序
+ * 启用和禁用菜单共用同一套 order_num（启用列表整体在前，禁用列表在后）
  * @param list 原始菜单列表
  * @returns 网格布局（仅包含启用的菜单）
  */
@@ -160,11 +160,39 @@ const convertToKeyboardLayout = (list: BotMenuItem[]): MenuLayout => {
     .filter((item) => item.status === 2)
     .sort((a, b) => b.order_num - a.order_num)
 
+  // 启用和禁用共用同一套 order_num，按"启用在前、禁用在后"整体赋值
+  // 后端返回的 order_num 可能存在重复，此处统一重算以保证唯一且有序
+  reassignGlobalOrderNum(enabledList, disabledList)
+
   // 设置禁用菜单列表
   disabledMenus.value = disabledList
 
   // 使用 compactLayout 构建启用菜单的网格布局
   return compactLayout(enabledList)
+}
+
+/**
+ * 全局重新赋值 order_num
+ * 启用列表在前、禁用列表在后，整体从大到小赋值
+ * @param enabled 启用列表（原地修改）
+ * @param disabled 禁用列表（原地修改）
+ */
+const reassignGlobalOrderNum = (enabled: MenuItemWithExtras[], disabled: MenuItemWithExtras[]) => {
+  const total = enabled.length + disabled.length
+  enabled.forEach((item, index) => {
+    item.order_num = total - index
+  })
+  disabled.forEach((item, index) => {
+    item.order_num = total - enabled.length - index
+  })
+}
+
+/**
+ * 根据当前启用布局和禁用列表重算全局 order_num
+ * 每次拖拽/状态变更后调用，保证 order_num 唯一
+ */
+const refreshOrderNum = (enabledItems: MenuItemWithExtras[]) => {
+  reassignGlobalOrderNum(enabledItems, disabledMenus.value)
 }
 
 // ==================== API 调用 ====================
@@ -321,15 +349,16 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
 
     disabledMenus.value.splice(indexToRemove, 1)
 
-    // 添加到启用列表，保持原来的 order_num，只改变 status
+    // 添加到启用列表（先放到目标位置，再重新赋值 order_num）
     const allEnabledItems = collectMenuItems(keyboardLayout.value)
-    allEnabledItems.push({
+    const insertIndex = computeInsertIndex(targetRow, targetCol)
+    allEnabledItems.splice(insertIndex, 0, {
       ...itemToEnable,
-      status: 1 // 只改变状态为启用
+      status: 1
     })
 
-    // 按 order_num 从大到小排序后重新布局
-    allEnabledItems.sort((a, b) => b.order_num - a.order_num)
+    // 全局重算 order_num（启用+禁用共用一套）
+    refreshOrderNum(allEnabledItems)
     keyboardLayout.value = compactLayout(allEnabledItems)
 
     resetDragState()
@@ -348,25 +377,46 @@ const handleEnabledItemDrop = (e: DragEvent, targetRow: number, targetCol: numbe
 
     // 收集所有启用的菜单项
     const allEnabledItems = collectMenuItems(keyboardLayout.value)
-    const draggedItem = allEnabledItems.find((item) => item.menu_name === dragItem.value!.menu_name)
+    const draggedIndex = allEnabledItems.findIndex(
+      (item) => item.menu_name === dragItem.value!.menu_name
+    )
     const targetItem = keyboardLayout.value[targetRow]?.[targetCol]
 
-    if (!draggedItem || !targetItem) {
+    if (draggedIndex === -1 || !targetItem) {
       resetDragState()
       return
     }
 
-    // 交换 order_num（只在启用区域内互换时交换）
-    const tempOrderNum = draggedItem.order_num
-    draggedItem.order_num = targetItem.order_num
-    targetItem.order_num = tempOrderNum
+    const targetIndex = allEnabledItems.findIndex((item) => item.menu_name === targetItem.menu_name)
+    if (targetIndex === -1) {
+      resetDragState()
+      return
+    }
 
-    // 重新排序并布局（从大到小排序）
-    allEnabledItems.sort((a, b) => b.order_num - a.order_num)
+    // 将被拖拽项移动到目标位置
+    const [draggedItem] = allEnabledItems.splice(draggedIndex, 1)
+    allEnabledItems.splice(targetIndex, 0, draggedItem)
+
+    // 全局重算 order_num
+    refreshOrderNum(allEnabledItems)
     keyboardLayout.value = compactLayout(allEnabledItems)
 
     resetDragState()
   }
+}
+
+/**
+ * 根据目标网格位置计算在扁平列表中的插入索引
+ * 注意：compactLayout 按 COLUMN_COUNT 平铺，索引 = row * COLUMN_COUNT + col
+ * 若目标位置为 null（空位），则插入到末尾
+ */
+const computeInsertIndex = (targetRow: number, targetCol: number): number => {
+  const items = collectMenuItems(keyboardLayout.value)
+  const targetItem = keyboardLayout.value[targetRow]?.[targetCol]
+  if (!targetItem) return items.length
+
+  const index = items.findIndex((item) => item.menu_name === targetItem.menu_name)
+  return index === -1 ? items.length : index
 }
 
 /**
@@ -440,14 +490,14 @@ const handleDisabledZoneDrop = (e: DragEvent) => {
 
   const updatedEnabledItems = allEnabledItems.filter((item) => item.menu_name !== itemMenuName)
 
-  // 添加到禁用列表，保持原来的 order_num，只改变 status
+  // 添加到禁用列表末尾
   disabledMenus.value.push({
     ...itemToDisable,
-    status: 2 // 只改变状态为禁用
+    status: 2
   })
 
-  // 按 order_num 从大到小排序禁用列表
-  disabledMenus.value.sort((a, b) => b.order_num - a.order_num)
+  // 全局重算 order_num（启用+禁用共用一套）
+  refreshOrderNum(updatedEnabledItems)
 
   // 重新布局启用区域
   keyboardLayout.value = compactLayout(updatedEnabledItems)
@@ -528,15 +578,15 @@ const handlePreviewDrop = (e: DragEvent) => {
 
   disabledMenus.value.splice(indexToRemove, 1)
 
-  // 添加到启用列表，保持原来的 order_num，只改变 status
+  // 添加到启用列表末尾
   const allEnabledItems = collectMenuItems(keyboardLayout.value)
   allEnabledItems.push({
     ...itemToEnable,
-    status: 1 // 只改变状态为启用
+    status: 1
   })
 
-  // 按 order_num 从大到小排序后重新布局
-  allEnabledItems.sort((a, b) => b.order_num - a.order_num)
+  // 全局重算 order_num（启用+禁用共用一套）
+  refreshOrderNum(allEnabledItems)
   keyboardLayout.value = compactLayout(allEnabledItems)
 
   resetDragState()
