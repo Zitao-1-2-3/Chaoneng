@@ -220,8 +220,4 @@ const submitAdd = async () => {
 }
 </script>
 
-<style scoped>
-.app-container {
-  padding: 15px;
-}
-</style>
+<style scoped></style>

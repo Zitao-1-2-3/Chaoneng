@@ -729,10 +729,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.app-container {
-  padding: 20px;
-}
-
 .transaction-tabs {
   margin-bottom: 20px;
 }

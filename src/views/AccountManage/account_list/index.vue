@@ -455,10 +455,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.app-container {
-  padding: 20px;
-}
-
 .loading-container {
   display: flex;
   min-height: 200px;

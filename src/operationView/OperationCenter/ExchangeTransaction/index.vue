@@ -529,6 +529,5 @@ const onSearch = (params: any) => {
 <style scoped>
 .exchange-transaction-container {
   height: 100%;
-  padding: 16px;
 }
 </style>

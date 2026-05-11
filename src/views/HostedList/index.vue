@@ -309,8 +309,4 @@ const onSearch = (params: any) => {
 }
 </script>
 
-<style scoped>
-.app-container {
-  padding: 15px;
-}
-</style>
+<style scoped></style>

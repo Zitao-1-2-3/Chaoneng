@@ -727,10 +727,6 @@ const handleAgentError = (error: { type: 'add' | 'edit'; error: any }) => {
 </script>
 
 <style scoped>
-.app-container {
-  padding: 20px;
-}
-
 .action-buttons {
   display: flex;
   gap: 8px;

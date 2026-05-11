@@ -330,10 +330,4 @@ onMounted(() => {
 // })
 </script>
 
-<style scoped>
-.app-container {
-  padding: 20px;
-}
-
-/* 如果需要可以添加更多样式 */
-</style>
+<style scoped></style>
