@@ -57,7 +57,7 @@ const activeTab = ref('basic')
 
 const commonDetailSchema = reactive<any[]>([
   { label: '订单号', field: 'order_num' },
-  { label: '用户名', field: 'tg_name', slots: { default: (data) => data?.tg_name || '-' } },
+  { label: '用户名', field: 'tg_name', slots: { default: (data: any) => data?.tg_name || '-' } },
   { label: '机器人ID', field: 'bot_id' },
   { label: '机器人用户名', field: 'bot_name' },
   { label: '代理名称', field: 'username' },
@@ -65,7 +65,7 @@ const commonDetailSchema = reactive<any[]>([
     label: '订单类型',
     field: 'order_type',
     slots: {
-      default: (data) => {
+      default: (data: any) => {
         const value = Number(data?.order_type)
         return h(ElTag, { type: getTagType('order_type', value) }, () =>
           getTagText('order_type', value)
@@ -77,7 +77,7 @@ const commonDetailSchema = reactive<any[]>([
     label: '支付金额',
     field: 'order_amount',
     slots: {
-      default: (data) => {
+      default: (data: any) => {
         return data?.order_amount !== undefined
           ? `${data.order_amount} ${data.pay_unit || ''}`
           : '暂无'
@@ -92,7 +92,7 @@ const commonDetailSchema = reactive<any[]>([
     }),
     field: 'energy_num',
     slots: {
-      default: (data) => {
+      default: (data: any) => {
         const value = data?.energy_num
         if (value === null || value === undefined || value === '') return '0'
         return Number(value) >= 10000 ? formatToWan(value as any) : `${value}`
@@ -102,13 +102,13 @@ const commonDetailSchema = reactive<any[]>([
   {
     label: '收款地址',
     field: 'receive_address',
-    slots: { default: (data) => data?.receive_address || '余额支付' }
+    slots: { default: (data: any) => data?.receive_address || '余额支付' }
   },
   {
     label: '订单状态',
     field: 'status',
     slots: {
-      default: (data) => {
+      default: (data: any) => {
         const value = Number(data?.status)
         return h(ElTag, { type: getTagType('status', value) }, () => getTagText('status', value))
       }
@@ -117,27 +117,33 @@ const commonDetailSchema = reactive<any[]>([
   {
     label: '有效时长',
     field: 'energy_rent_text',
-    slots: { default: (data) => data?.energy_rent_text || '-' }
+    slots: { default: (data: any) => data?.energy_rent_text || '-' }
   },
   {
     label: '回收时间',
     field: 'recycle_time',
-    slots: { default: (data) => (data?.recycle_time ? formatToDateTime(data?.recycle_time) : '-') }
+    slots: {
+      default: (data: any) => (data?.recycle_time ? formatToDateTime(data?.recycle_time) : '-')
+    }
   },
   {
     label: '创建时间',
     field: 'create_time',
-    slots: { default: (data) => (data?.create_time ? formatToDateTime(data?.create_time) : '-') }
+    slots: {
+      default: (data: any) => (data?.create_time ? formatToDateTime(data?.create_time) : '-')
+    }
   },
   {
     label: '完成时间',
     field: 'finish_time',
-    slots: { default: (data) => (data?.finish_time ? formatToDateTime(data?.finish_time) : '-') }
+    slots: {
+      default: (data: any) => (data?.finish_time ? formatToDateTime(data?.finish_time) : '-')
+    }
   },
   {
     label: '支付时间',
     field: 'pay_time',
-    slots: { default: (data) => formatToDateTime(data?.pay_time) }
+    slots: { default: (data: any) => formatToDateTime(data?.pay_time) }
   }
 ])
 
@@ -182,14 +188,14 @@ const statusColorMap = {
   9: 'danger'
 }
 
-const getTagType = (field, value) => {
+const getTagType = (field: string, value: number) => {
   if (isNaN(value)) return 'info'
   if (field === 'order_type') return orderTypeColorMap[value] || 'info'
   if (field === 'status') return statusColorMap[value] || 'info'
   return 'info'
 }
 
-const getTagText = (field, value) => {
+const getTagText = (field: string, value: number) => {
   if (isNaN(value)) return '未知'
   if (field === 'order_type') return orderTypeMap[value] || '未知类型'
   if (field === 'status') return statusMap[value] || '-'

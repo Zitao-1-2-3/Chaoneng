@@ -71,7 +71,6 @@ import {
   v2GetEnergyList,
   v2RecycleOrder
 } from '@/api/energy_transaction'
-import type { V2EnergyItem } from '@/api/energy_transaction/types'
 import { formatToDateTime } from '@/utils/dateUtil'
 import { useRoute } from 'vue-router'
 import { formatToWan } from '@/utils'
@@ -101,7 +100,7 @@ const selectedSource = ref<number | string>('')
 const handleExport = async () => {
   try {
     // 尝试获取当前搜索条件，如果失败则使用保存的参数
-    let params
+    let params: any
     try {
       params = await searchTableRef.value?.searchMethods?.getFormData()
     } catch (e) {
@@ -262,7 +261,7 @@ const pollOrderStatus = async (orderId: string, maxAttempts = 3, interval = 3000
 }
 
 // 停止代理 - 使用后端字段名
-const handleStop = async (row) => {
+const handleStop = async (row: any) => {
   // 添加到正在停止的集合中
   stoppingOrders.value.add(row.id)
 
@@ -286,59 +285,59 @@ const columns = computed(() => {
       field: 'id',
       label: '订单ID',
       minWidth: 180,
-      formatter: (row) => row.id || '-'
+      formatter: (row: any) => row.id || '-'
     },
     {
       field: 'agent_name',
       label: '代理名称',
       width: 120,
-      formatter: (row) => row.agent_name || '-'
+      formatter: (row: any) => row.agent_name || '-'
     },
     {
       field: 'tg_user_name',
       label: 'TG用户名',
       width: 120,
       hideWhen: 2, // H5时隐藏
-      formatter: (row) => row.tg_user_name || '-'
+      formatter: (row: any) => row.tg_user_name || '-'
     },
     {
       field: 'tg_first_name',
       label: 'TG用户昵称',
       width: 120,
       hideWhen: 2, // H5时隐藏
-      formatter: (row) => row.tg_first_name || '-'
+      formatter: (row: any) => row.tg_first_name || '-'
     },
     {
       field: 'username',
       label: '用户账号',
       width: 120,
       hideWhen: 1, // 来源为机器人(1)时隐藏
-      formatter: (row) => row.username || '-'
+      formatter: (row: any) => row.username || '-'
     },
     {
       field: 'email',
       label: '用户邮箱',
       minWidth: 150,
       hideWhen: 1, // 来源为机器人(1)时隐藏
-      formatter: (row) => row.email || '-'
+      formatter: (row: any) => row.email || '-'
     },
     {
       field: 'origin',
       label: '来源',
       width: 100,
-      formatter: (row) => getSourceText(row.origin, row.tg_user_name, row.username)
+      formatter: (row: any) => getSourceText(row.origin, row.tg_user_name, row.username)
     },
     {
       field: 'kind',
       label: '订单类型',
       width: 120,
-      formatter: (row) => getEnergyOrderKindText(row.kind)
+      formatter: (row: any) => getEnergyOrderKindText(row.kind)
     },
     {
       field: 'amount',
       label: '交易金额',
       width: 100,
-      formatter: (row) => {
+      formatter: (row: any) => {
         const amount = row.amount ?? ''
         const unit = row.coin ?? ''
         return amount || unit ? `${amount} ${unit}`.trim() : '-'
@@ -348,19 +347,19 @@ const columns = computed(() => {
       field: 'energy_amount',
       label: '应发放能量',
       width: 100,
-      formatter: (row) => formatToWan(row.energy_amount) || '-'
+      formatter: (row: any) => formatToWan(row.energy_amount) || '-'
     },
     {
       field: 'energy_actual_amount',
       label: '实际发放能量',
       width: 110,
-      formatter: (row) => formatToWan(row.energy_actual_amount) || '-'
+      formatter: (row: any) => formatToWan(row.energy_actual_amount) || '-'
     },
     {
       field: 'receive_address',
       label: '收款方式',
       minWidth: 200,
-      formatter: (row) => {
+      formatter: (row: any) => {
         // 如果能量接收地址为空，显示横杠
         if (!row.energy_address || row.energy_address.trim() === '') {
           return '-'
@@ -379,26 +378,26 @@ const columns = computed(() => {
       field: 'energy_address',
       label: '能量接收地址',
       minWidth: 200,
-      formatter: (row) => row.energy_address || '-'
+      formatter: (row: any) => row.energy_address || '-'
     },
     {
       field: 'energy_count',
       label: '笔数',
       width: 100,
-      formatter: (row) => (row.energy_count == 0 ? '-' : row.energy_count)
+      formatter: (row: any) => (row.energy_count == 0 ? '-' : row.energy_count)
     },
     {
       field: 'energy_rent_text',
       label: '有效时长',
       width: 100,
-      formatter: (row) => calculateEnergyRentText(row.kind, row.delegated_at, row.recycled_at)
+      formatter: (row: any) => calculateEnergyRentText(row.kind, row.delegated_at, row.recycled_at)
     },
     {
       field: 'recycled_at',
       label: '回收时间',
       sortable: 'custom',
       width: 160,
-      formatter: (row) => {
+      formatter: (row: any) => {
         if (!row.recycled_at) return '-'
         try {
           return formatToDateTime(new Date(row.recycled_at).getTime())
@@ -424,13 +423,13 @@ const columns = computed(() => {
       label: '创建时间',
       sortable: 'custom',
       width: 160,
-      formatter: (row) => (row.created_at ? formatToDateTime(row.created_at) : '-')
+      formatter: (row: any) => (row.created_at ? formatToDateTime(row.created_at) : '-')
     },
     {
       field: 'describe',
       label: '描述',
       width: 160,
-      formatter: (row) => row.describe || '-'
+      formatter: (row: any) => row.describe || '-'
     }
   ]
 
@@ -691,7 +690,7 @@ const handleAdd = () => {
 }
 
 // 详情操作
-const handleDetail = (row) => {
+const handleDetail = (row: any) => {
   if (orderDetailRef.value) {
     orderDetailRef.value.open(row)
   }
@@ -885,7 +884,7 @@ const handleLoadError = () => {
 const route = useRoute()
 const searchTableRef = ref()
 
-function onSearchTableReady(instance) {
+function onSearchTableReady(instance: any) {
   const query = route.query
   instance.setSearchParams({ keyword: query.query })
   instance.reload()
